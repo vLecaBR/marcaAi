@@ -1,24 +1,19 @@
-import { DefaultSession, DefaultUser } from "next-auth";
+// types/next-auth.d.ts
+import type { DefaultSession } from "next-auth"
 
 declare module "next-auth" {
-  /**
-   * Estende a sessão padrão para incluir nossos campos customizados
-   */
   interface Session {
     user: {
-      id: string;
-      username?: string | null;
-      timeZone?: string | null;
-      onboarded?: boolean;
-    } & DefaultSession["user"];
+      id: string
+      username: string | null
+      onboarded: boolean
+      timeZone: string
+    } & DefaultSession["user"]
   }
 
-  /**
-   * Estende o usuário padrão do banco de dados/adapter
-   */
-  interface User extends DefaultUser {
-    username?: string | null;
-    timeZone?: string | null;
-    onboarded?: boolean;
+  interface User {
+    username?: string | null
+    onboarded?: boolean
+    timeZone?: string
   }
 }
