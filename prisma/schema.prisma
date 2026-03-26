@@ -1,0 +1,313 @@
+// prisma/schema.prisma
+// People OS — Database Architecture v1.0
+// Engine: PostgreSQL | ORM: Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// AUTH — NextAuth v5 + Prisma Adapter
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  username      String?   @unique
+  bio           String?
+  timeZone      String    @default("America/Sao_Paulo")
+  locale        String    @default("pt-BR")
+  onboarded     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  eventTypes        EventType[]
+  schedules         Schedule[]
+  scheduleExceptions ScheduleException[]
+  bookingsAsOwner   Booking[]           @relation("BookingOwner")
+
+  @@index([email])
+  @@index([username])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─────────────────────────────────────────────
+// DOMAIN — Event Types
+// ─────────────────────────────────────────────
+
+enum EventTypeColor {
+  SLATE
+  ROSE
+  ORANGE
+  AMBER
+  EMERALD
+  TEAL
+  CYAN
+  VIOLET
+  FUCHSIA
+}
+
+model EventType {
+  id              String         @id @default(cuid())
+  userId          String
+  title           String
+  slug            String
+  description     String?        @db.Text
+  duration        Int            // em minutos (ex: 15, 30, 60)
+  color           EventTypeColor @default(VIOLET)
+  isActive        Boolean        @default(true)
+  requiresConfirm Boolean        @default(false)
+
+  // Buffers de tempo
+  beforeEventBuffer Int @default(0) // minutos antes
+  afterEventBuffer  Int @default(0) // minutos depois
+
+  // Limite de agendamentos futuros
+  bookingLimitDays Int? // ex: só pode agendar até 60 dias à frente
+
+  // Localização / link da reunião
+  locationType    LocationType @default(GOOGLE_MEET)
+  locationValue   String?      // URL customizada ou endereço físico
+
+  // Perguntas adicionais no formulário público
+  questions       EventTypeQuestion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([slug])
+  @@map("event_types")
+}
+
+enum LocationType {
+  GOOGLE_MEET
+  ZOOM
+  TEAMS
+  PHONE
+  IN_PERSON
+  CUSTOM
+}
+
+model EventTypeQuestion {
+  id          String   @id @default(cuid())
+  eventTypeId String
+  label       String
+  type        QuestionType @default(TEXT)
+  placeholder String?
+  required    Boolean  @default(false)
+  order       Int      @default(0)
+
+  eventType EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+
+  @@index([eventTypeId])
+  @@map("event_type_questions")
+}
+
+enum QuestionType {
+  TEXT
+  TEXTAREA
+  SELECT
+  CHECKBOX
+  PHONE
+}
+
+// ─────────────────────────────────────────────
+// DOMAIN — Schedules (Disponibilidade)
+// ─────────────────────────────────────────────
+
+model Schedule {
+  id       String  @id @default(cuid())
+  userId   String
+  name     String  @default("Agenda Padrão")
+  timeZone String
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availabilities   ScheduleAvailability[]
+  exceptions       ScheduleException[]
+
+  @@index([userId])
+  @@map("schedules")
+}
+
+// Disponibilidade recorrente por dia da semana
+// dayOfWeek: 0 = domingo, 1 = segunda, ..., 6 = sábado
+model ScheduleAvailability {
+  id         String @id @default(cuid())
+  scheduleId String
+  dayOfWeek  Int    // 0–6
+  startTime  String // "HH:mm" ex: "09:00"
+  endTime    String // "HH:mm" ex: "18:00"
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@map("schedule_availabilities")
+}
+
+// Exceções: bloqueios pontuais, férias, etc.
+model ScheduleException {
+  id         String            @id @default(cuid())
+  scheduleId String
+  userId     String
+  date       DateTime          @db.Date
+  type       ExceptionType     @default(BLOCKED)
+  startTime  String?           // null = dia inteiro bloqueado
+  endTime    String?
+  reason     String?
+
+  createdAt DateTime @default(now())
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@index([userId])
+  @@index([date])
+  @@map("schedule_exceptions")
+}
+
+enum ExceptionType {
+  BLOCKED      // bloqueio manual
+  VACATION     // férias
+  OVERRIDE     // disponibilidade especial nesse dia
+}
+
+// ─────────────────────────────────────────────
+// DOMAIN — Bookings (Agendamentos)
+// ─────────────────────────────────────────────
+
+model Booking {
+  id          String        @id @default(cuid())
+  uid         String        @unique @default(cuid()) // ID público (URL de confirmação)
+  userId      String        // dono da agenda
+  eventTypeId String
+
+  // Dados do convidado
+  guestName   String
+  guestEmail  String
+  guestPhone  String?
+  guestNotes  String?       @db.Text
+
+  // Janela de tempo — sempre armazenada em UTC
+  startTime   DateTime
+  endTime     DateTime
+
+  // Timezone do convidado no momento do agendamento
+  guestTimeZone String
+
+  status      BookingStatus @default(PENDING)
+
+  // Metadados de cancelamento
+  cancelReason String?
+  canceledAt   DateTime?
+  canceledBy   CanceledBy?
+
+  // Conferência
+  meetingUrl  String?
+  meetingId   String?
+
+  // Respostas às perguntas do EventType
+  responses   BookingResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner     User      @relation("BookingOwner", fields: [userId], references: [id], onDelete: Cascade)
+  eventType EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([eventTypeId])
+  @@index([startTime])
+  @@index([status])
+  @@index([guestEmail])
+  // Índice composto crítico para a query anti-double-booking
+  @@index([userId, startTime, endTime, status])
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  PENDING    // aguardando confirmação manual
+  CONFIRMED  // confirmado
+  CANCELLED  // cancelado
+  RESCHEDULED
+  NO_SHOW
+}
+
+enum CanceledBy {
+  OWNER
+  GUEST
+  SYSTEM
+}
+
+model BookingResponse {
+  id        String @id @default(cuid())
+  bookingId String
+  questionId String
+  answer    String @db.Text
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("booking_responses")
+}
