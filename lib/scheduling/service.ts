@@ -1,4 +1,3 @@
-// lib/scheduling/service.ts
 import { prisma } from "@/lib/prisma"
 import { addDays, startOfDay, endOfDay } from "date-fns"
 import { buildAvailableWindows } from "./availability"

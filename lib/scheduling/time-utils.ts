@@ -1,19 +1,12 @@
-// lib/scheduling/time-utils.ts
 import {
   addMinutes,
   startOfDay,
-  endOfDay,
-  parseISO,
-  isValid,
-  format,
   isBefore,
   isAfter,
-  isEqual,
 } from "date-fns"
 import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz"
 
 // ─── Conversão de timezone ───────────────────────────────────────────────────
-
 /**
  * Converte um Date UTC para o timezone especificado.
  * Retorna um Date cujo valor numérico representa o horário local.
@@ -41,11 +34,9 @@ export function formatInZone(
 }
 
 // ─── Parsing de "HH:mm" para Date UTC ───────────────────────────────────────
-
 /**
  * Dado um dia (Date UTC) e um horário "HH:mm" no timezone do owner,
  * retorna o Date UTC correspondente.
- *
  * Exemplo: dia=2024-03-15 (UTC), time="09:00", tz="America/Sao_Paulo"
  * → 2024-03-15T12:00:00.000Z (UTC-3)
  */
@@ -68,7 +59,6 @@ export function buildUtcDateTime(
 }
 
 // ─── Utilitários de intervalo ────────────────────────────────────────────────
-
 /**
  * Retorna true se dois intervalos de tempo se sobrepõem.
  * Intervalos adjacentes (um termina exatamente quando o outro começa) NÃO se sobrepõem.
@@ -80,7 +70,6 @@ export function rangesOverlap(a: { start: Date; end: Date }, b: { start: Date; e
 /**
  * Subtrai um conjunto de intervalos ocupados de uma janela disponível.
  * Retorna os fragmentos livres resultantes.
- *
  * Exemplo:
  *   window: [09:00, 18:00]
  *   busy:   [10:00, 11:00], [14:00, 15:00]
@@ -151,7 +140,6 @@ export function generateSlotsInWindow(
 }
 
 // ─── Datas ───────────────────────────────────────────────────────────────────
-
 /**
  * Retorna um array de datas (meia-noite UTC) entre dateFrom e dateTo inclusive.
  */

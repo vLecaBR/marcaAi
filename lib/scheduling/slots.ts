@@ -1,5 +1,4 @@
-// lib/scheduling/slots.ts
-import { addMinutes, isAfter, isBefore, isEqual, startOfDay } from "date-fns"
+import { addMinutes, isAfter, isBefore, startOfDay } from "date-fns"
 import { formatInTimeZone } from "date-fns-tz"
 import type { SlotInput, Slot, BookingConflict, DayAvailability } from "./types"
 import { subtractBusyFromWindow, generateSlotsInWindow } from "./time-utils"
@@ -7,7 +6,6 @@ import { subtractBusyFromWindow, generateSlotsInWindow } from "./time-utils"
 /**
  * Dado um conjunto de janelas disponíveis do owner e os agendamentos
  * já existentes (conflicts), gera todos os slots disponíveis.
- *
  * Esta função é pura — não acessa banco de dados.
  * A query de conflitos é responsabilidade da camada de serviço.
  */
@@ -85,7 +83,6 @@ export function computeAvailableSlots(
 /**
  * Agrupa slots por data local (no timezone do viewer).
  * Útil para renderizar o calendário na UI.
- *
  * Retorna: { "2024-03-15": Slot[], "2024-03-16": Slot[], ... }
  */
 export function groupSlotsByDate(

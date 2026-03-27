@@ -1,5 +1,3 @@
-// lib/scheduling/types.ts
-
 export interface TimeRange {
   start: Date  // sempre UTC internamente
   end: Date
