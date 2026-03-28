@@ -20,7 +20,7 @@ export async function saveAvailabilityAction(
 
   const parsed = availabilitySchema.safeParse(raw)
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0].message }
+    return { success: false, error: parsed.error.issues[0].message }
   }
 
   const { scheduleId, timeZone, availabilities } = parsed.data
