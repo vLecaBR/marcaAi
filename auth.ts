@@ -11,16 +11,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
 
   callbacks: {
-    async jwt({ token, user }) {
-      // roda no login
-      if (user) {
-        token.id = user.id
-        token.username = (user as any).username
-        token.onboarded = (user as any).onboarded
-        token.timeZone = (user as any).timeZone
-      }
-      return token
-    },
+async jwt({ token, user }) {
+  if (user) {
+    token.id = user.id
+  }
+
+  // 🔥 SEMPRE busca do banco
+  if (token.id) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: token.id as string },
+    })
+
+    if (dbUser) {
+      token.username = dbUser.username
+      token.onboarded = dbUser.onboarded
+      token.timeZone = dbUser.timeZone
+    }
+  }
+
+  return token
+},
 
     async session({ session, token }) {
       if (session.user) {

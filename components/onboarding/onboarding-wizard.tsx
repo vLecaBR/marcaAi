@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { StepProfile } from "./step-profile"
 import { StepAvailability } from "./step-availability"
 import { completeOnboardingAction } from "@/lib/actions/onboarding"
@@ -34,17 +33,22 @@ const STEPS = [
 ]
 
 export function OnboardingWizard({ user, schedule }: WizardProps) {
-  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [isFinishing, setIsFinishing] = useState(false)
+  const [finishError, setFinishError] = useState<string | null>(null)
 
   async function handleFinish() {
     setIsFinishing(true)
+    setFinishError(null)
+
     const result = await completeOnboardingAction()
+
     if (result.success) {
-      router.push("/dashboard")
-      router.refresh()
+      // window.location.href força reload completo da página
+      // garantindo que o middleware releia a sessão atualizada do banco
+      window.location.href = "/dashboard"
     } else {
+      setFinishError(result.error)
       setIsFinishing(false)
     }
   }
@@ -55,8 +59,18 @@ export function OnboardingWizard({ user, schedule }: WizardProps) {
       <div className="mb-10 text-center">
         <div className="inline-flex items-center gap-2 mb-6">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
-            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            <svg
+              className="h-4 w-4 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+              />
             </svg>
           </span>
           <span className="text-xl font-semibold tracking-tight text-white">
@@ -87,8 +101,18 @@ export function OnboardingWizard({ user, schedule }: WizardProps) {
                 )}
               >
                 {currentStep > step.id ? (
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4.5 12.75l6 6 9-13.5"
+                    />
                   </svg>
                 ) : (
                   step.id
@@ -117,6 +141,12 @@ export function OnboardingWizard({ user, schedule }: WizardProps) {
 
       {/* Step content */}
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8 shadow-2xl backdrop-blur-sm">
+        {finishError && (
+          <div className="mb-6 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3">
+            <p className="text-sm text-rose-400">{finishError}</p>
+          </div>
+        )}
+
         {currentStep === 1 && (
           <StepProfile
             user={user}
