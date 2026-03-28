@@ -38,17 +38,28 @@ export function OnboardingWizard({ user, schedule }: WizardProps) {
   const [finishError, setFinishError] = useState<string | null>(null)
 
   async function handleFinish() {
+    if (isFinishing) return // evita double click bug
+
     setIsFinishing(true)
     setFinishError(null)
 
-    const result = await completeOnboardingAction()
+    try {
+      const result = await completeOnboardingAction()
 
-    if (result.success) {
-      // window.location.href força reload completo da página
-      // garantindo que o middleware releia a sessão atualizada do banco
+      if (!result.success) {
+        setFinishError(result.error)
+        setIsFinishing(false)
+        return
+      }
+
+      // 🔥 força atualização do JWT/session no NextAuth
+      await fetch("/api/auth/session", { method: "POST" })
+
+      // 🔥 força reload completo (middleware vai ler atualizado)
       window.location.href = "/dashboard"
-    } else {
-      setFinishError(result.error)
+    } catch (err) {
+      console.error(err)
+      setFinishError("Erro inesperado ao finalizar onboarding.")
       setIsFinishing(false)
     }
   }
@@ -77,15 +88,17 @@ export function OnboardingWizard({ user, schedule }: WizardProps) {
             People <span className="text-violet-400">OS</span>
           </span>
         </div>
+
         <h1 className="text-2xl font-semibold text-white">
           Vamos configurar sua conta
         </h1>
+
         <p className="mt-2 text-sm text-zinc-400">
           Leva menos de 2 minutos.
         </p>
       </div>
 
-      {/* Step indicators */}
+      {/* Steps */}
       <div className="mb-8 flex items-center justify-center gap-3">
         {STEPS.map((step, idx) => (
           <div key={step.id} className="flex items-center gap-3">
@@ -118,6 +131,7 @@ export function OnboardingWizard({ user, schedule }: WizardProps) {
                   step.id
                 )}
               </div>
+
               <span
                 className={cn(
                   "text-sm",
@@ -127,6 +141,7 @@ export function OnboardingWizard({ user, schedule }: WizardProps) {
                 {step.label}
               </span>
             </div>
+
             {idx < STEPS.length - 1 && (
               <div
                 className={cn(
@@ -139,7 +154,7 @@ export function OnboardingWizard({ user, schedule }: WizardProps) {
         ))}
       </div>
 
-      {/* Step content */}
+      {/* Content */}
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8 shadow-2xl backdrop-blur-sm">
         {finishError && (
           <div className="mb-6 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3">
@@ -153,6 +168,7 @@ export function OnboardingWizard({ user, schedule }: WizardProps) {
             onSuccess={() => setCurrentStep(2)}
           />
         )}
+
         {currentStep === 2 && (
           <StepAvailability
             schedule={schedule}

@@ -1,9 +1,5 @@
-import NextAuth from "next-auth"
-import authConfig from "./auth.config"
+import { auth } from "@/auth"
 import { NextResponse } from "next/server"
-
-// Inicializa o auth APENAS com a config sem Prisma
-const { auth } = NextAuth(authConfig)
 
 const PUBLIC_ROUTES = ["/", "/login"]
 const PUBLIC_PREFIXES = ["/book/", "/api/book/"]
@@ -15,38 +11,50 @@ export default auth((req) => {
   const { nextUrl, auth: session } = req
   const pathname = nextUrl.pathname
 
+  // Ignora rotas do auth
   if (pathname.startsWith(AUTH_API_PREFIX)) {
     return NextResponse.next()
   }
 
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
-  const isPublicPrefix = PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
+  const isPublicPrefix = PUBLIC_PREFIXES.some((p) =>
+    pathname.startsWith(p)
+  )
   const isOnboarding = pathname === ONBOARDING_ROUTE
   const isAuthenticated = !!session?.user
 
+  // Usuário logado tentando acessar rota pública
   if (isPublicRoute && isAuthenticated) {
     if (!session.user.onboarded) {
       return NextResponse.redirect(new URL(ONBOARDING_ROUTE, nextUrl))
     }
-    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, nextUrl))
+    return NextResponse.redirect(
+      new URL(DEFAULT_AUTHENTICATED_ROUTE, nextUrl)
+    )
   }
 
+  // Rotas públicas liberadas
   if (isPublicRoute || isPublicPrefix) {
     return NextResponse.next()
   }
 
+  // Não autenticado → login
   if (!isAuthenticated) {
     const loginUrl = new URL("/login", nextUrl)
     loginUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  if (isAuthenticated && !session?.user?.onboarded && !isOnboarding) {
+  // Usuário autenticado mas não onboarded
+  if (!session.user.onboarded && !isOnboarding) {
     return NextResponse.redirect(new URL(ONBOARDING_ROUTE, nextUrl))
   }
 
-  if (isAuthenticated && session?.user?.onboarded && isOnboarding) {
-    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, nextUrl))
+  // Usuário onboarded tentando acessar onboarding
+  if (session.user.onboarded && isOnboarding) {
+    return NextResponse.redirect(
+      new URL(DEFAULT_AUTHENTICATED_ROUTE, nextUrl)
+    )
   }
 
   return NextResponse.next()
