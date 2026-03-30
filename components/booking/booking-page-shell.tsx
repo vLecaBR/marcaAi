@@ -1,4 +1,3 @@
-// components/booking/booking-page-shell.tsx
 "use client"
 
 import { useState, useMemo } from "react"

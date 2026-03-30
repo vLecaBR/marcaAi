@@ -1,4 +1,3 @@
-// components/booking/calendar-picker.tsx
 "use client"
 
 import { useState, useMemo } from "react"
