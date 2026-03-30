@@ -100,7 +100,7 @@ export function EventTypeCard({ eventType, username, onEdit }: EventTypeCardProp
             <div
               className={cn(
                 "absolute h-4 w-4 rounded-full bg-white shadow transition-all",
-                isActive ? "left-[18px]" : "left-[2px]"
+                isActive ? "left-4.5" : "left-0.5"
               )}
             />
           </button>

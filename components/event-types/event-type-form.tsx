@@ -394,7 +394,7 @@ function Toggle({
         )} />
         <div className={cn(
           "absolute h-4 w-4 rounded-full bg-white shadow transition-all",
-          checked ? "left-[18px]" : "left-[2px]"
+          checked ? "left-4.5" : "left-0.5"
         )} />
       </button>
     </div>
