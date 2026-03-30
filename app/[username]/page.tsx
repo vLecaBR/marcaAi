@@ -1,4 +1,3 @@
-// app/[username]/page.tsx
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import Link from "next/link"

@@ -1,4 +1,3 @@
-// components/booking/time-slot-picker.tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -96,7 +95,7 @@ export function TimeSlotPicker({
           </p>
         </div>
       ) : (
-        <div className="flex-1 space-y-2 overflow-y-auto pr-1 max-h-[420px]">
+        <div className="flex-1 space-y-2 overflow-y-auto pr-1 max-h-105">
           {realSlots.map((slot, idx) => {
             const timeLabel = formatInTimeZone(
               slot.startUtc,

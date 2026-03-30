@@ -1,4 +1,3 @@
-// app/[username]/[slug]/page.tsx
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { BookingPageShell } from "@/components/booking/booking-page-shell"
