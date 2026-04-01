@@ -127,7 +127,20 @@ export default async function BookingsPage() {
   )
 }
 
-function BookingCard({ booking }: { booking: any }) {
+function BookingCard({ booking }: { booking: {
+  id: string
+  uid: string
+  guestName: string
+  guestEmail: string
+  startTime: Date
+  endTime: Date
+  status: string
+  eventType: {
+    title: string
+    color: string
+    locationType: string
+  }
+} }) {
   const isPending = booking.status === "PENDING"
 
   return (

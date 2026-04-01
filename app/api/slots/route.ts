@@ -4,6 +4,7 @@ import { buildAvailableWindows } from "@/lib/scheduling/availability"
 import { computeAvailableSlots, groupSlotsByDate } from "@/lib/scheduling/slots"
 import { startOfDay, endOfDay, addDays, parseISO } from "date-fns"
 import type { ScheduleData } from "@/lib/scheduling/types"
+import { getGoogleCalendarBusySlots } from "@/lib/google/calendar"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -17,7 +18,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [eventType, schedule, existingBookings] = await Promise.all([
+    const dateFrom = startOfDay(parseISO(dateStr))
+    // Verificamos até o fim do *próximo* dia para garantir cobertura de fuso horário
+    const dateTo   = endOfDay(addDays(parseISO(dateStr), 1))
+
+    const [eventType, schedule, existingBookings, googleBusySlots] = await Promise.all([
       prisma.eventType.findFirst({
         where: { id: eventTypeId, userId: ownerId, isActive: true },
         select: {
@@ -33,19 +38,17 @@ export async function GET(req: NextRequest) {
         where: {
           userId: ownerId,
           status: { in: ["CONFIRMED", "PENDING"] },
-          startTime: { gte: startOfDay(parseISO(dateStr)) },
-          endTime:   { lte: endOfDay(addDays(parseISO(dateStr), 1)) },
+          startTime: { gte: dateFrom },
+          endTime:   { lte: dateTo },
         },
         select: { startTime: true, endTime: true },
       }),
+      getGoogleCalendarBusySlots(ownerId, dateFrom, dateTo),
     ])
 
     if (!eventType || !schedule) {
       return NextResponse.json({ error: "Não encontrado." }, { status: 404 })
     }
-
-    const dateFrom = startOfDay(parseISO(dateStr))
-    const dateTo   = endOfDay(parseISO(dateStr))
 
     const scheduleData: ScheduleData = {
       timeZone: schedule.timeZone,
@@ -56,14 +59,23 @@ export async function GET(req: NextRequest) {
       })),
     }
 
-    const windows = buildAvailableWindows(scheduleData, dateFrom, dateTo)
-    const slots   = computeAvailableSlots(windows, existingBookings, {
+    // Unir agendamentos internos com conflitos do Google Calendar
+    const combinedConflicts = [
+      ...existingBookings,
+      ...googleBusySlots.map(slot => ({
+        startTime: slot.start,
+        endTime: slot.end,
+      })),
+    ]
+
+    const windows = buildAvailableWindows(scheduleData, dateFrom, endOfDay(parseISO(dateStr)))
+    const slots   = computeAvailableSlots(windows, combinedConflicts, {
       userId: ownerId,
       eventDuration: eventType.duration,
       beforeBuffer:  eventType.beforeEventBuffer,
       afterBuffer:   eventType.afterEventBuffer,
       dateFrom,
-      dateTo,
+      dateTo: endOfDay(parseISO(dateStr)),
       viewerTimeZone: tz,
     })
 
