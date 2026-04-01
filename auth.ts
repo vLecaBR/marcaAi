@@ -11,37 +11,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
 
   callbacks: {
-async jwt({ token, user }) {
-  if (user) {
-    token.id = user.id
-  }
-
-  // 🔥 SEMPRE busca do banco
-  if (token.id) {
-    const dbUser = await prisma.user.findUnique({
-      where: { id: token.id as string },
-    })
-
-    if (dbUser) {
-      token.username = dbUser.username
-      token.onboarded = dbUser.onboarded
-      token.timeZone = dbUser.timeZone
-    }
-  }
-
-  return token
-},
-
-    async session({ session, token }) {
-      if (session.user) {
-        const customToken = token as { username?: string, onboarded?: boolean, timeZone?: string }
-        session.user.id = token.id as string
-        session.user.username = customToken.username ?? null
-        session.user.onboarded = customToken.onboarded ?? false
-        session.user.timeZone =
-          customToken.timeZone ?? "America/Sao_Paulo"
+    ...authConfig.callbacks,
+    async jwt({ token, user, trigger, session }) {
+      if (authConfig.callbacks?.jwt) {
+        // Run the base jwt callback to handle triggers and users
+        token = await authConfig.callbacks.jwt({ token, user, trigger, session }) as any
       }
-      return session
+
+      // 🔥 SEMPRE busca do banco
+      if (token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+        })
+
+        if (dbUser) {
+          token.username = dbUser.username
+          token.onboarded = dbUser.onboarded
+          token.timeZone = dbUser.timeZone
+        }
+      }
+
+      return token
     },
   },
 

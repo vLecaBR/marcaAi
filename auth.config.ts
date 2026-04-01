@@ -21,4 +21,26 @@ export default {
     error: "/login",
     newUser: "/onboarding",
   },
+  callbacks: {
+    async jwt({ token, user, trigger, session }) {
+      if (user) {
+        token.id = user.id
+      }
+      // Se houver um trigger de update, atualiza o token
+      if (trigger === "update" && session) {
+        token = { ...token, ...session }
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        const customToken = token as { username?: string, onboarded?: boolean, timeZone?: string }
+        session.user.id = token.id as string
+        session.user.username = customToken.username ?? null
+        session.user.onboarded = customToken.onboarded ?? false
+        session.user.timeZone = customToken.timeZone ?? "America/Sao_Paulo"
+      }
+      return session
+    },
+  }
 } satisfies NextAuthConfig
