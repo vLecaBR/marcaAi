@@ -53,7 +53,7 @@ export async function upsertEventTypeAction(
     return { success: false, error: parsed.error.issues[0].message }
   }
 
-  const { id, ...data } = parsed.data
+  const { id, questions, ...data } = parsed.data
 
   // Verifica unicidade do slug para este user
   const slugConflict = await prisma.eventType.findFirst({
@@ -68,11 +68,35 @@ export async function upsertEventTypeAction(
     return { success: false, error: "Você já tem um evento com este slug." }
   }
 
-  const eventType = await prisma.eventType.upsert({
-    where: { id: id ?? "" },
-    create: { ...data, userId: session.user.id },
-    update: data,
-    select: { id: true, slug: true },
+  const eventType = await prisma.$transaction(async (tx) => {
+    const event = await tx.eventType.upsert({
+      where: { id: id ?? "" },
+      create: { ...data, userId: session.user.id },
+      update: data,
+      select: { id: true, slug: true },
+    })
+
+    if (questions) {
+      // Clear old questions
+      await tx.eventTypeQuestion.deleteMany({
+        where: { eventTypeId: event.id }
+      })
+      
+      if (questions.length > 0) {
+        await tx.eventTypeQuestion.createMany({
+          data: questions.map((q, i) => ({
+            eventTypeId: event.id,
+            label: q.label,
+            type: q.type,
+            placeholder: q.placeholder,
+            required: q.required,
+            order: i,
+          }))
+        })
+      }
+    }
+
+    return event
   })
 
   revalidatePath("/dashboard/event-types")

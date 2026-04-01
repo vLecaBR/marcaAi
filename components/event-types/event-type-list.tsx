@@ -19,6 +19,8 @@ type EventType = {
   bookingLimitDays: number | null
   locationType: EventTypeInput["locationType"]
   locationValue: string | null
+  price?: number | null
+  questions?: any[]
   _count: { bookings: number }
 }
 

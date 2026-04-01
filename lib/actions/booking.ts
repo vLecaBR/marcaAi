@@ -156,6 +156,14 @@ export async function createBooking(
             endTime: endUtc,
             guestTimeZone: input.guestTimeZone,
             status: eventType.requiresConfirm ? "PENDING" : "CONFIRMED",
+            responses: input.responses && input.responses.length > 0 ? {
+              createMany: {
+                data: input.responses.map(r => ({
+                  questionId: r.questionId,
+                  answer: r.answer,
+                }))
+              }
+            } : undefined
           },
           select: {
             id: true,

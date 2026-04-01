@@ -29,6 +29,7 @@ export default async function BookingPage({ params }: Props) {
       id: true, title: true, slug: true, description: true,
       duration: true, color: true, locationType: true,
       price: true,
+      questions: { orderBy: { order: "asc" } },
       requiresConfirm: true, beforeEventBuffer: true,
       afterEventBuffer: true, bookingLimitDays: true,
       user: {
@@ -60,6 +61,7 @@ export default async function BookingPage({ params }: Props) {
           color: eventType.color,
           locationType: eventType.locationType,
           price: eventType.price,
+          questions: eventType.questions,
           requiresConfirm: eventType.requiresConfirm,
           beforeEventBuffer: eventType.beforeEventBuffer,
           afterEventBuffer: eventType.afterEventBuffer,

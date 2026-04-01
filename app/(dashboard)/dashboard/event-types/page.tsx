@@ -27,6 +27,10 @@ export default async function EventTypesPage() {
       bookingLimitDays: true,
       locationType: true,
       locationValue: true,
+      price: true,
+      questions: {
+        orderBy: { order: "asc" }
+      },
       _count: { select: { bookings: true } },
     },
   })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -59,6 +59,7 @@ export function EventTypeForm({ open, onClose, defaultValues }: EventTypeFormPro
     handleSubmit,
     watch,
     setValue,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<z.input<typeof eventTypeSchema>, any, EventTypeInput>({ // <-- MAGIA ACONTECE AQUI
@@ -77,11 +78,16 @@ export function EventTypeForm({ open, onClose, defaultValues }: EventTypeFormPro
       locationType: "GOOGLE_MEET",
       locationValue: "",
       price: null,
+      questions: [],
       ...defaultValues,
     },
   })
 
   const titleValue = watch("title")
+  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    control,
+    name: "questions"
+  })
   const colorValue = watch("color")
   const locationTypeValue = watch("locationType")
 
@@ -107,6 +113,8 @@ export function EventTypeForm({ open, onClose, defaultValues }: EventTypeFormPro
         bookingLimitDays: 60,
         locationType: "GOOGLE_MEET",
         locationValue: "",
+        price: null,
+        questions: [],
         ...defaultValues,
       })
       setServerError(null)
@@ -340,6 +348,75 @@ export function EventTypeForm({ open, onClose, defaultValues }: EventTypeFormPro
               checked={watch("requiresConfirm") ?? false} // <-- SÓ ADICIONAR O '?? false'
               onChange={(v) => setValue("requiresConfirm", v)}
             />
+          </div>
+
+          {/* Perguntas Customizadas */}
+          <div className="space-y-4 pt-4 border-t border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-white">Perguntas adicionais</h3>
+                <p className="text-xs text-zinc-500">Faça perguntas aos convidados antes de agendar.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => appendQuestion({ label: "", type: "TEXT", required: false, order: questionFields.length })}
+                className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 transition-colors"
+              >
+                + Adicionar
+              </button>
+            </div>
+
+            {questionFields.length > 0 && (
+              <div className="space-y-3">
+                {questionFields.map((field, index) => (
+                  <div key={field.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 relative group">
+                    <button
+                      type="button"
+                      onClick={() => removeQuestion(index)}
+                      className="absolute top-3 right-3 text-zinc-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                    
+                    <div className="grid gap-3">
+                      <Field label="Pergunta" error={errors.questions?.[index]?.label?.message}>
+                        <input
+                          {...register(`questions.${index}.label` as const)}
+                          placeholder="Ex: Qual o seu cargo?"
+                          className={inputClass}
+                        />
+                      </Field>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label="Tipo de resposta">
+                          <select
+                            {...register(`questions.${index}.type` as const)}
+                            className={cn(inputClass, "appearance-none")}
+                          >
+                            <option value="TEXT">Texto Curto</option>
+                            <option value="TEXTAREA">Texto Longo</option>
+                            <option value="PHONE">Telefone</option>
+                          </select>
+                        </Field>
+                        
+                        <div className="flex items-end pb-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              {...register(`questions.${index}.required` as const)}
+                              className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-violet-600 focus:ring-violet-600 focus:ring-offset-zinc-950"
+                            />
+                            <span className="text-sm font-medium text-zinc-300">Obrigatória</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Footer */}

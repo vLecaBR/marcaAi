@@ -15,6 +15,7 @@ const bookingFormSchema = z.object({
   email: z.string().email("E-mail inválido."),
   phone: z.string().optional(),
   notes: z.string().max(500).optional(),
+  responses: z.record(z.string(), z.string()).optional(),
 })
 
 type BookingFormInput = z.infer<typeof bookingFormSchema>
@@ -24,6 +25,7 @@ interface BookingFormProps {
   eventType: {
     id: string; title: string; duration: number
     locationType: string; requiresConfirm: boolean
+    questions?: any[]
   }
   owner: { id: string; name: string | null }
   viewerTimeZone: string
@@ -75,6 +77,7 @@ export function BookingForm({
         guestEmail:    data.email,
         guestPhone:    data.phone,
         guestNotes:    data.notes,
+        responses:     data.responses ? Object.entries(data.responses).map(([questionId, answer]) => ({ questionId, answer })) : [],
       }),
     })
 
@@ -251,6 +254,39 @@ export function BookingForm({
             className={cn(inputClass, "resize-none")}
           />
         </div>
+
+        {eventType.questions && eventType.questions.length > 0 && (
+          <div className="space-y-5 pt-4 border-t border-zinc-800">
+            <h3 className="text-sm font-medium text-white">Perguntas adicionais</h3>
+            {eventType.questions.map((q: any) => (
+              <div key={q.id} className="space-y-1.5">
+                <label className="text-sm font-medium text-zinc-300">
+                  {q.label}{" "}
+                  {!q.required && <span className="text-zinc-600 font-normal">(opcional)</span>}
+                </label>
+                
+                {q.type === "TEXTAREA" ? (
+                  <textarea
+                    {...register(`responses.${q.id}` as any, { required: q.required ? "Campo obrigatório" : false })}
+                    placeholder={q.placeholder ?? ""}
+                    rows={3}
+                    className={cn(inputClass, "resize-none")}
+                  />
+                ) : (
+                  <input
+                    {...register(`responses.${q.id}` as any, { required: q.required ? "Campo obrigatório" : false })}
+                    type={q.type === "PHONE" ? "tel" : "text"}
+                    placeholder={q.placeholder ?? ""}
+                    className={inputClass}
+                  />
+                )}
+                {errors.responses?.[q.id] && (
+                  <p className="text-xs text-rose-400">{(errors.responses[q.id] as any).message}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         <button
           type="submit"
