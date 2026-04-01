@@ -44,16 +44,40 @@ async function dispatchWhatsAppMessage(phone: string, text: string) {
     return false
   }
 
-  // Em produção:
-  // const apiUrl = process.env.WHATSAPP_API_URL
-  // const apiKey = process.env.WHATSAPP_API_KEY
-  // await fetch(`${apiUrl}/message/sendText`, {
-  //   method: "POST",
-  //   headers: { "apiKey": apiKey, "Content-Type": "application/json" },
-  //   body: JSON.stringify({ number: formattedPhone, options: { delay: 1200 }, textMessage: { text } })
-  // })
+  const apiUrl = process.env.WHATSAPP_API_URL
+  const apiKey = process.env.WHATSAPP_API_KEY
+  
+  if (apiUrl && apiKey) {
+    try {
+      // Exemplo de integração padrão (Evolution API)
+      const response = await fetch(`${apiUrl}/message/sendText/InstanceName`, {
+        method: "POST",
+        headers: { 
+          "apikey": apiKey, 
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({ 
+          number: formattedPhone, 
+          options: { delay: 1200, presence: "composing" }, 
+          textMessage: { text } 
+        })
+      })
 
-  console.log(`\n\n=== 🟢 WHATSAPP ENVIADO PARA ${formattedPhone} ===\n${text}\n=========================================\n`)
+      if (!response.ok) {
+        console.error("[WhatsApp] Erro na API", await response.text())
+        return false
+      }
+
+      console.log(`[WhatsApp] Mensagem enviada para ${formattedPhone}`)
+      return true
+    } catch (err) {
+      console.error("[WhatsApp] Erro ao enviar mensagem HTTP", err)
+      return false
+    }
+  }
+
+  // Fallback visual no console (modo de desenvolvimento/simulação)
+  console.log(`\n\n=== 🟢 WHATSAPP (SIMULADO) ENVIADO PARA ${formattedPhone} ===\n${text}\n=========================================\n`)
   return true
 }
 

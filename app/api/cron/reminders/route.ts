@@ -15,8 +15,8 @@ export async function GET(req: Request) {
 
     const now = new Date()
     
-    // Queremos lembretes para agendamentos que acontecem entre agora e as próximas 24 horas
-    const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    // Queremos lembretes para agendamentos que acontecem entre agora e as próximas 2 horas
+    const next2h = new Date(now.getTime() + 2 * 60 * 60 * 1000)
 
     const upcomingBookings = await prisma.booking.findMany({
       where: {
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
         reminderSent: false,
         startTime: {
           gte: now,
-          lte: next24h,
+          lte: next2h,
         },
       },
       include: {
