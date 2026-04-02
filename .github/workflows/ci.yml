@@ -1,0 +1,80 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+    branches: ["main", "dev"]
+
+jobs:
+  validate:
+    name: Code Quality & Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Lint Code
+        run: npm run lint
+
+      - name: Type Check
+        run: npx tsc --noEmit
+
+      - name: Run Unit Tests (Vitest)
+        run: npm run test
+
+  e2e:
+    name: End-to-End Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: validate # Só roda se passar no build, lint e vitest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright Tests
+        run: npm run test:e2e
+        env:
+          # Para testes E2E reais no github actions, mockamos as variáveis base
+          # Se os testes exigissem banco real, você usaria secrets.DATABASE_URL
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          AUTH_SECRET: "test-secret-never-use-in-prod"
+          AUTH_GOOGLE_ID: "mock"
+          AUTH_GOOGLE_SECRET: "mock"
+          DATABASE_URL: "postgresql://mock"
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
