@@ -23,7 +23,7 @@ export async function completeProfileAction(
     return { success: false, error: parsed.error.issues[0].message }
   }
 
-  const { name, username, timeZone, bio } = parsed.data
+  const { name, username, timeZone, bio, theme, brandColor } = parsed.data
 
   // Verifica unicidade do username (exceto o próprio user)
   const existing = await prisma.user.findFirst({
@@ -39,7 +39,7 @@ export async function completeProfileAction(
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { name, username, timeZone, bio: bio ?? null },
+    data: { name, username, timeZone, bio: bio ?? null, theme: theme as any, brandColor: brandColor ?? null },
   })
 
   revalidatePath("/onboarding")

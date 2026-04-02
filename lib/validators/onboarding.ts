@@ -15,6 +15,8 @@ export const profileSchema = z.object({
     ),
   timeZone: z.string().min(1, "Selecione um fuso horário."),
   bio: z.string().max(160, "Bio deve ter no máximo 160 caracteres.").optional(),
+  theme: z.enum(["DARK", "LIGHT", "SYSTEM"]).default("DARK").optional(),
+  brandColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida").optional().nullable(),
 })
 
 export const availabilitySchema = z.object({

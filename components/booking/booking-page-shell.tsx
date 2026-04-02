@@ -34,6 +34,8 @@ interface Props {
   owner: {
     id: string; name: string | null; image: string | null
     username: string; timeZone: string
+    theme?: string
+    brandColor?: string | null
   }
   schedule: {
     timeZone: string
@@ -92,7 +94,10 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-start px-4 py-12">
+    <div className={cn(
+      "flex min-h-screen flex-col items-center justify-start px-4 py-12",
+      owner.theme === "LIGHT" ? "text-slate-900" : "text-white"
+    )}>
       <div className="w-full max-w-4xl">
 
         {/* Header do evento */}
@@ -101,19 +106,31 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
             <img
               src={owner.image}
               alt={owner.name ?? ""}
-              className="h-14 w-14 rounded-full ring-2 ring-zinc-800 shrink-0"
+              className={cn(
+                "h-14 w-14 rounded-full ring-2 shrink-0 object-cover",
+                owner.theme === "LIGHT" ? "ring-slate-200" : "ring-zinc-800"
+              )}
             />
           ) : (
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-violet-600/20 text-lg font-semibold text-violet-400">
+            <div className={cn(
+              "flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-lg font-semibold",
+              owner.theme === "LIGHT" ? "bg-slate-200 text-slate-500" : "bg-violet-600/20 text-violet-400"
+            )}>
               {owner.name?.[0]?.toUpperCase() ?? "U"}
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm text-zinc-500">{owner.name}</p>
-            <h1 className="mt-0.5 text-xl font-semibold text-white">
+            <p className={owner.theme === "LIGHT" ? "text-slate-500" : "text-zinc-500"}>{owner.name}</p>
+            <h1 className={cn(
+              "mt-0.5 text-xl font-semibold",
+              owner.theme === "LIGHT" ? "text-slate-900" : "text-white"
+            )}>
               {eventType.title}
             </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+            <div className={cn(
+              "mt-2 flex flex-wrap items-center gap-3 text-xs",
+              owner.theme === "LIGHT" ? "text-slate-500" : "text-zinc-500"
+            )}>
               <span className="flex items-center gap-1.5">
                 <span className={cn("h-2 w-2 rounded-full", COLOR_MAP[eventType.color])} />
                 {eventType.duration} min
@@ -124,12 +141,15 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
                   Confirmação manual
                 </span>
               )}
-              <span className="text-zinc-600">
+              <span className={owner.theme === "LIGHT" ? "text-slate-400" : "text-zinc-600"}>
                 Seu fuso: {viewerTimeZone}
               </span>
             </div>
             {eventType.description && (
-              <p className="mt-3 text-sm text-zinc-400 max-w-lg">
+              <p className={cn(
+                "mt-3 text-sm max-w-lg",
+                owner.theme === "LIGHT" ? "text-slate-600" : "text-zinc-400"
+              )}>
                 {eventType.description}
               </p>
             )}
@@ -137,11 +157,20 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
         </div>
 
         {/* Painel principal */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
+        <div className={cn(
+          "rounded-2xl border overflow-hidden transition-all",
+          owner.theme === "LIGHT" ? "border-slate-200 bg-white shadow-sm" : "border-zinc-800 bg-zinc-900/40"
+        )}>
           {step === "calendar" ? (
             <div className="grid lg:grid-cols-[1fr_300px]">
-              <div className="border-b border-zinc-800 p-6 lg:border-b-0 lg:border-r">
-                <p className="mb-5 text-sm font-medium text-zinc-300">
+              <div className={cn(
+                "border-b p-6 lg:border-b-0 lg:border-r",
+                owner.theme === "LIGHT" ? "border-slate-200" : "border-zinc-800"
+              )}>
+                <p className={cn(
+                  "mb-5 text-sm font-medium",
+                  owner.theme === "LIGHT" ? "text-slate-700" : "text-zinc-300"
+                )}>
                   Selecione uma data
                 </p>
                 <CalendarPicker
@@ -177,9 +206,12 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
           )}
         </div>
 
-        <p className="mt-8 text-center text-xs text-zinc-700">
+        <p className={cn(
+          "mt-8 text-center text-xs",
+          owner.theme === "LIGHT" ? "text-slate-400" : "text-zinc-700"
+        )}>
           Agendamento via{" "}
-          <span className="text-zinc-500 font-medium">People OS</span>
+          <span className={owner.theme === "LIGHT" ? "text-slate-500 font-medium" : "text-zinc-500 font-medium"}>People OS</span>
         </p>
       </div>
     </div>

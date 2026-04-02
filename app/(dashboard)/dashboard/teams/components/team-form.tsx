@@ -43,6 +43,8 @@ export function TeamForm({ open, onClose, defaultValues }: TeamFormProps) {
       name: "",
       slug: "",
       description: "",
+      theme: "DARK",
+      brandColor: "#7c3aed",
       ...defaultValues,
     },
   })
@@ -129,6 +131,49 @@ export function TeamForm({ open, onClose, defaultValues }: TeamFormProps) {
               rows={3}
               className={cn(inputClass, "resize-none")}
             />
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            {/* Theme */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-zinc-300">
+                Tema Público
+              </label>
+              <select
+                {...register("theme")}
+                className={cn(inputClass, "appearance-none")}
+              >
+                <option value="DARK">Escuro (Dark Mode)</option>
+                <option value="LIGHT">Claro (Light Mode)</option>
+                <option value="SYSTEM">Sistema (Automático)</option>
+              </select>
+              {errors.theme && (
+                <p className="text-xs text-rose-400">{errors.theme.message}</p>
+              )}
+            </div>
+
+            {/* Brand Color */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-zinc-300">
+                Cor da Marca (Hex)
+              </label>
+              <div className="flex gap-3">
+                <input
+                  type="color"
+                  {...register("brandColor")}
+                  className="h-10 w-14 rounded-xl cursor-pointer border-0 p-0"
+                />
+                <input
+                  type="text"
+                  {...register("brandColor")}
+                  placeholder="#7c3aed"
+                  className={cn(inputClass, errors.brandColor && "border-rose-500/60 focus:border-rose-500")}
+                />
+              </div>
+              {errors.brandColor && (
+                <p className="text-xs text-rose-400">{errors.brandColor.message}</p>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">

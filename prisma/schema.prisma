@@ -25,6 +25,11 @@ model User {
   timeZone      String    @default("America/Sao_Paulo")
   locale        String    @default("pt-BR")
   onboarded     Boolean   @default(false)
+  
+  // Customização de Marca
+  theme         Theme     @default(DARK)
+  brandColor    String?   @default("#7c3aed") // violet-600 default
+
   // Recorrência
   recurringEventId String? // ID do grupo de eventos (para repetições)
   recurringIndex   Int?    // Número da repetição (ex: 1, 2, 3...)
@@ -87,6 +92,12 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+enum Theme {
+  DARK
+  LIGHT
+  SYSTEM
+}
+
 // ─────────────────────────────────────────────
 // DOMAIN — Teams
 // ─────────────────────────────────────────────
@@ -97,6 +108,8 @@ model Team {
   slug        String   @unique
   description String?  @db.Text
   logo        String?
+  theme       Theme    @default(DARK)
+  brandColor  String?  @default("#7c3aed")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

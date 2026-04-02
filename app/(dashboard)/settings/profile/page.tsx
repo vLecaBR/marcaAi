@@ -34,6 +34,8 @@ export default async function ProfilePage() {
             bio: user.bio,
             image: user.image,
             email: user.email,
+            theme: user.theme,
+            brandColor: user.brandColor,
           }}
         />
       </div>

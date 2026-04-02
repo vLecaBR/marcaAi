@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { BookingPageShell } from "@/components/booking/booking-page-shell"
+import { cn } from "@/lib/utils"
 import type { Metadata } from "next"
 
 interface Props {
@@ -34,7 +35,7 @@ export default async function BookingPage({ params }: Props) {
       afterEventBuffer: true, bookingLimitDays: true,
       user: {
         select: {
-          id: true, name: true, image: true, username: true, timeZone: true,
+          id: true, name: true, image: true, username: true, timeZone: true, theme: true, brandColor: true,
           schedules: {
             where: { isDefault: true },
             include: {
@@ -46,12 +47,20 @@ export default async function BookingPage({ params }: Props) {
         },
       },
     },
-  })
+  }) as any
 
   if (!eventType || !eventType.user.schedules[0]) notFound()
 
   return (
-    <main className="min-h-screen bg-[#09090b]">
+    <main 
+      className={cn(
+        "min-h-screen",
+        eventType.user.theme === "LIGHT" ? "bg-slate-50 text-slate-900" : "bg-[#09090b] text-white"
+      )}
+      style={{
+        "--brand": eventType.user.brandColor ?? "#7c3aed",
+      } as React.CSSProperties}
+    >
       <BookingPageShell
         eventType={{
           id: eventType.id,
@@ -73,11 +82,13 @@ export default async function BookingPage({ params }: Props) {
           image: eventType.user.image,
           username: eventType.user.username ?? "",
           timeZone: eventType.user.timeZone,
+          theme: eventType.user.theme,
+          brandColor: eventType.user.brandColor,
         }}
         schedule={{
           timeZone: eventType.user.schedules[0].timeZone,
           availabilities: eventType.user.schedules[0].availabilities,
-          exceptions: eventType.user.schedules[0].exceptions.map((ex) => ({
+          exceptions: eventType.user.schedules[0].exceptions.map((ex: any) => ({
             ...ex,
             type: ex.type as "BLOCKED" | "VACATION" | "OVERRIDE",
           })),

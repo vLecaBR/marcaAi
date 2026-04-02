@@ -33,6 +33,8 @@ interface ProfileFormProps {
     bio: string | null
     image: string | null
     email: string
+    theme?: string
+    brandColor?: string | null
   }
 }
 
@@ -53,6 +55,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
       username: user.username ?? "",
       timeZone: user.timeZone ?? "America/Sao_Paulo",
       bio: user.bio ?? "",
+      theme: (user.theme as any) ?? "DARK",
+      brandColor: user.brandColor ?? "#7c3aed",
     },
   })
 
@@ -178,6 +182,49 @@ export function ProfileForm({ user }: ProfileFormProps) {
         {errors.bio && (
           <p className="text-xs text-rose-400">{errors.bio.message}</p>
         )}
+      </div>
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        {/* Theme */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-zinc-300">
+            Tema Público
+          </label>
+          <select
+            {...register("theme")}
+            className={cn(inputClass, "appearance-none")}
+          >
+            <option value="DARK">Escuro (Dark Mode)</option>
+            <option value="LIGHT">Claro (Light Mode)</option>
+            <option value="SYSTEM">Sistema (Automático)</option>
+          </select>
+          {errors.theme && (
+            <p className="text-xs text-rose-400">{errors.theme.message}</p>
+          )}
+        </div>
+
+        {/* Brand Color */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-zinc-300">
+            Cor da Marca (Hex)
+          </label>
+          <div className="flex gap-3">
+            <input
+              type="color"
+              {...register("brandColor")}
+              className="h-10 w-14 rounded-xl cursor-pointer border-0 p-0"
+            />
+            <input
+              type="text"
+              {...register("brandColor")}
+              placeholder="#7c3aed"
+              className={cn(inputClass, errors.brandColor && errorInputClass)}
+            />
+          </div>
+          {errors.brandColor && (
+            <p className="text-xs text-rose-400">{errors.brandColor.message}</p>
+          )}
+        </div>
       </div>
 
       <div className="pt-4 flex justify-end">

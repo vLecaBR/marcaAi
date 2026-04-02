@@ -43,7 +43,7 @@ export default async function UserPublicPage({ params }: Props) {
   const user = await prisma.user.findUnique({
     where: { username },
     select: {
-      name: true, bio: true, image: true,
+      name: true, bio: true, image: true, theme: true, brandColor: true,
       eventTypes: {
         where: { isActive: true },
         orderBy: { createdAt: "asc" },
@@ -60,65 +60,103 @@ export default async function UserPublicPage({ params }: Props) {
   if (!user) notFound()
 
   return (
-    <main className="min-h-screen bg-[#09090b]">
+    <main 
+      className={cn(
+        "min-h-screen",
+        user.theme === "LIGHT" ? "bg-slate-50 text-slate-900" : "bg-[#09090b] text-white"
+      )}
+      style={{
+        "--brand": user.brandColor ?? "#7c3aed",
+      } as React.CSSProperties}
+    >
       {/* Header com Cover */}
-      <div className="relative h-48 w-full sm:h-64 overflow-hidden bg-zinc-900">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/30 via-zinc-900 to-zinc-950" />
+      <div className={cn(
+        "relative h-48 w-full sm:h-64 overflow-hidden",
+        user.theme === "LIGHT" ? "bg-slate-200" : "bg-zinc-900"
+      )}>
+        <div className="absolute inset-0 opacity-30 mix-blend-overlay" style={{ backgroundColor: "var(--brand)" }} />
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay" />
       </div>
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         {/* Perfil (Avatar subindo sobre o cover) */}
         <div className="relative -mt-16 sm:-mt-20 mb-8 flex flex-col items-center sm:items-start">
-          <div className="rounded-full bg-[#09090b] p-1.5 shadow-xl">
+          <div className={cn(
+            "rounded-full p-1.5 shadow-xl",
+            user.theme === "LIGHT" ? "bg-slate-50" : "bg-[#09090b]"
+          )}>
             {user.image ? (
               <img
                 src={user.image}
                 alt={user.name ?? ""}
-                className="h-28 w-28 sm:h-32 sm:w-32 rounded-full object-cover ring-1 ring-zinc-800"
+                className={cn(
+                  "h-28 w-28 sm:h-32 sm:w-32 rounded-full object-cover ring-1",
+                  user.theme === "LIGHT" ? "ring-slate-200" : "ring-zinc-800"
+                )}
               />
             ) : (
-              <div className="flex h-28 w-28 sm:h-32 sm:w-32 items-center justify-center rounded-full bg-zinc-800 text-4xl font-semibold text-zinc-400 ring-1 ring-zinc-700">
+              <div className={cn(
+                "flex h-28 w-28 sm:h-32 sm:w-32 items-center justify-center rounded-full text-4xl font-semibold ring-1",
+                user.theme === "LIGHT" ? "bg-slate-200 text-slate-500 ring-slate-300" : "bg-zinc-800 text-zinc-400 ring-zinc-700"
+              )}>
                 {user.name?.[0]?.toUpperCase() ?? "U"}
               </div>
             )}
           </div>
 
           <div className="mt-4 text-center sm:text-left w-full">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
               {user.name}
             </h1>
-            <div className="mt-1 flex items-center justify-center sm:justify-start gap-2 text-zinc-400 text-sm">
+            <div className={cn(
+              "mt-1 flex items-center justify-center sm:justify-start gap-2 text-sm",
+              user.theme === "LIGHT" ? "text-slate-500" : "text-zinc-400"
+            )}>
               <LinkIcon className="h-4 w-4" />
               <span>marcaai.com/{username}</span>
             </div>
             {user.bio && (
-              <p className="mt-4 max-w-lg text-sm leading-relaxed text-zinc-300 mx-auto sm:mx-0">
+              <p className={cn(
+                "mt-4 max-w-lg text-sm leading-relaxed mx-auto sm:mx-0",
+                user.theme === "LIGHT" ? "text-slate-600" : "text-zinc-300"
+              )}>
                 {user.bio}
               </p>
             )}
           </div>
         </div>
 
-        <div className="h-px w-full bg-zinc-800/60 my-8" />
+        <div className={cn(
+          "h-px w-full my-8",
+          user.theme === "LIGHT" ? "bg-slate-200" : "bg-zinc-800/60"
+        )} />
 
         {/* Seção de Serviços */}
-        <div className="mb-6 flex items-center gap-2 text-lg font-semibold text-white">
-          <CalendarDays className="h-5 w-5 text-violet-400" />
+        <div className="mb-6 flex items-center gap-2 text-lg font-semibold">
+          <CalendarDays className="h-5 w-5" style={{ color: "var(--brand)" }} />
           <h2>Serviços Disponíveis</h2>
         </div>
 
         {user.eventTypes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 py-16 text-center">
-            <Users className="mb-4 h-10 w-10 text-zinc-700" />
-            <h3 className="text-base font-medium text-white">Nenhum serviço disponível</h3>
-            <p className="mt-1 text-sm text-zinc-500">
+          <div className={cn(
+            "flex flex-col items-center justify-center rounded-2xl border border-dashed py-16 text-center",
+            user.theme === "LIGHT" ? "border-slate-300 bg-slate-100" : "border-zinc-800 bg-zinc-900/20"
+          )}>
+            <Users className={cn(
+              "mb-4 h-10 w-10",
+              user.theme === "LIGHT" ? "text-slate-400" : "text-zinc-700"
+            )} />
+            <h3 className="text-base font-medium">Nenhum serviço disponível</h3>
+            <p className={cn(
+              "mt-1 text-sm",
+              user.theme === "LIGHT" ? "text-slate-500" : "text-zinc-500"
+            )}>
               O profissional ainda não cadastrou horários.
             </p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 pb-20">
-            {user.eventTypes.map((et) => {
+            {user.eventTypes.map((et: any) => {
               const LocIcon = LOCATION_LABELS[et.locationType]?.icon ?? MapPin
               const locLabel = LOCATION_LABELS[et.locationType]?.label ?? "Local"
 
@@ -126,32 +164,52 @@ export default async function UserPublicPage({ params }: Props) {
                 <Link
                   key={et.id}
                   href={`/${username}/${et.slug}`}
-                  className="group relative flex flex-col rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-5 transition-all hover:bg-zinc-800/80 hover:border-zinc-700"
+                  className={cn(
+                    "group relative flex flex-col rounded-2xl border p-5 transition-all",
+                    user.theme === "LIGHT" 
+                      ? "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md" 
+                      : "border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-800/80 hover:border-zinc-700"
+                  )}
                 >
                   <div className="mb-4 flex items-center gap-3">
                     <div className={cn("h-3 w-3 shrink-0 rounded-full", COLOR_MAP[et.color])} />
-                    <h3 className="font-semibold text-white group-hover:text-violet-100 transition-colors">
+                    <h3 className="font-semibold transition-colors" style={{ color: "inherit" }}>
                       {et.title}
                     </h3>
                   </div>
 
                   {et.description && (
-                    <p className="mb-6 line-clamp-2 text-sm text-zinc-400 flex-1">
+                    <p className={cn(
+                      "mb-6 line-clamp-2 text-sm flex-1",
+                      user.theme === "LIGHT" ? "text-slate-500" : "text-zinc-400"
+                    )}>
                       {et.description}
                     </p>
                   )}
 
-                  <div className="mt-auto flex flex-wrap items-center gap-y-2 gap-x-4 text-xs font-medium text-zinc-500">
-                    <div className="flex items-center gap-1.5 bg-zinc-950/50 px-2.5 py-1 rounded-md">
+                  <div className={cn(
+                    "mt-auto flex flex-wrap items-center gap-y-2 gap-x-4 text-xs font-medium",
+                    user.theme === "LIGHT" ? "text-slate-500" : "text-zinc-500"
+                  )}>
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded-md",
+                      user.theme === "LIGHT" ? "bg-slate-100" : "bg-zinc-950/50"
+                    )}>
                       <Clock className="h-3.5 w-3.5" />
                       <span>{et.duration} min</span>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-zinc-950/50 px-2.5 py-1 rounded-md">
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded-md",
+                      user.theme === "LIGHT" ? "bg-slate-100" : "bg-zinc-950/50"
+                    )}>
                       <LocIcon className="h-3.5 w-3.5" />
                       <span>{locLabel}</span>
                     </div>
                     {et.price && (
-                      <div className="flex items-center gap-1.5 bg-violet-500/10 text-violet-400 px-2.5 py-1 rounded-md ml-auto">
+                      <div 
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md ml-auto"
+                        style={{ backgroundColor: "var(--brand)", color: "#fff" }}
+                      >
                         <span>
                           {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(et.price / 100)}
                         </span>
@@ -161,7 +219,7 @@ export default async function UserPublicPage({ params }: Props) {
 
                   {/* Seta de hover */}
                   <div className="absolute right-5 bottom-5 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0">
-                    <ArrowRight className="h-5 w-5 text-violet-400" />
+                    <ArrowRight className="h-5 w-5" style={{ color: "var(--brand)" }} />
                   </div>
                 </Link>
               )
@@ -170,10 +228,13 @@ export default async function UserPublicPage({ params }: Props) {
         )}
       </div>
 
-      <footer className="fixed bottom-0 w-full border-t border-zinc-800/60 bg-[#09090b]/90 p-4 backdrop-blur-md text-center">
-        <p className="text-xs text-zinc-500">
+      <footer className={cn(
+        "fixed bottom-0 w-full border-t p-4 backdrop-blur-md text-center",
+        user.theme === "LIGHT" ? "border-slate-200 bg-white/90 text-slate-500" : "border-zinc-800/60 bg-[#09090b]/90 text-zinc-500"
+      )}>
+        <p className="text-xs">
           Agendamentos fornecidos por{" "}
-          <Link href="/" className="font-medium text-zinc-300 hover:text-white transition-colors">
+          <Link href="/" className="font-medium hover:opacity-80 transition-opacity" style={{ color: "var(--brand)" }}>
             MarcaAí
           </Link>
         </p>

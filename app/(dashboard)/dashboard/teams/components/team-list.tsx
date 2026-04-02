@@ -10,6 +10,8 @@ type TeamData = {
   name: string
   slug: string
   description: string | null
+  theme: string
+  brandColor: string | null
   members: { role: string; user: { name: string | null; image: string | null; email: string } }[]
   _count: { eventTypes: number }
 }
@@ -118,6 +120,8 @@ export function TeamList({ teams, currentUserId }: TeamListProps) {
           name: editing.name,
           slug: editing.slug,
           description: editing.description,
+          theme: editing.theme as any,
+          brandColor: editing.brandColor,
         } : undefined}
       />
     </>
