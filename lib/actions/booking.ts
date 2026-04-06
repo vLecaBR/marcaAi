@@ -305,6 +305,10 @@ export async function createBooking(
         locationType: eventType.locationType,
         meetingUrl: finalMeetingUrl,
         requiresConfirm: firstBooking.eventType.requiresConfirm,
+        allBookings: booking.map((b: any) => ({
+          startTime: b.startTime,
+          endTime: b.endTime,
+        })),
       }
 
       const whatsappData = {

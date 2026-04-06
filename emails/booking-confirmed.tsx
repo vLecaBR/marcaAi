@@ -52,9 +52,28 @@ export function BookingConfirmedEmail({ data, appUrl }: Props) {
           <Section style={styles.card}>
             <DetailRow label="Evento"   value={data.eventTitle} />
             <Hr style={styles.cardDivider} />
-            <DetailRow label="Data"     value={dateLabel} />
-            <Hr style={styles.cardDivider} />
-            <DetailRow label="Horário"  value={timeLabel} />
+            
+            {data.allBookings && data.allBookings.length > 1 ? (
+              <DetailRow
+                label="Sessões"
+                value={
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    {data.allBookings.map((b, i) => (
+                      <span key={i}>
+                        {formatBookingDate(b.startTime, data.guestTimeZone)} • {formatBookingTime(b.startTime, b.endTime, data.guestTimeZone)}
+                      </span>
+                    ))}
+                  </div>
+                }
+              />
+            ) : (
+              <>
+                <DetailRow label="Data"     value={dateLabel} />
+                <Hr style={styles.cardDivider} />
+                <DetailRow label="Horário"  value={timeLabel} />
+              </>
+            )}
+
             <Hr style={styles.cardDivider} />
             <DetailRow
               label="Local"
@@ -104,14 +123,14 @@ function DetailRow({
   isLink,
 }: {
   label: string
-  value: string
+  value: React.ReactNode
   isLink?: boolean
 }) {
   return (
     <Row style={styles.detailRow}>
       <Column style={styles.detailLabel}>{label}</Column>
       <Column style={styles.detailValue}>
-        {isLink ? (
+        {isLink && typeof value === "string" ? (
           <Link href={value} style={styles.detailLink}>
             Entrar na reunião
           </Link>

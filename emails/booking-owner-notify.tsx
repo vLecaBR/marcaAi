@@ -42,15 +42,36 @@ export function BookingOwnerNotifyEmail({ data, appUrl }: Props) {
               <Column style={styles.detailValue}>{data.eventTitle}</Column>
             </Row>
             <Hr style={{ borderColor: "#27272a", margin: "0" }} />
-            <Row style={{ padding: "12px 0" }}>
-              <Column style={styles.detailLabel}>Data</Column>
-              <Column style={styles.detailValue}>{dateLabel}</Column>
-            </Row>
-            <Hr style={{ borderColor: "#27272a", margin: "0" }} />
-            <Row style={{ padding: "12px 0" }}>
-              <Column style={styles.detailLabel}>Horário</Column>
-              <Column style={styles.detailValue}>{timeLabel}</Column>
-            </Row>
+
+            {data.allBookings && data.allBookings.length > 1 ? (
+              <>
+                <Row style={{ padding: "12px 0" }}>
+                  <Column style={styles.detailLabel}>Sessões</Column>
+                  <Column style={styles.detailValue}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      {data.allBookings.map((b, i) => (
+                        <span key={i}>
+                          {formatBookingDate(b.startTime, data.ownerTimeZone)} • {formatBookingTime(b.startTime, b.endTime, data.ownerTimeZone)}
+                        </span>
+                      ))}
+                    </div>
+                  </Column>
+                </Row>
+              </>
+            ) : (
+              <>
+                <Row style={{ padding: "12px 0" }}>
+                  <Column style={styles.detailLabel}>Data</Column>
+                  <Column style={styles.detailValue}>{dateLabel}</Column>
+                </Row>
+                <Hr style={{ borderColor: "#27272a", margin: "0" }} />
+                <Row style={{ padding: "12px 0" }}>
+                  <Column style={styles.detailLabel}>Horário</Column>
+                  <Column style={styles.detailValue}>{timeLabel}</Column>
+                </Row>
+              </>
+            )}
+
             <Hr style={{ borderColor: "#27272a", margin: "0" }} />
             <Row style={{ padding: "12px 0" }}>
               <Column style={styles.detailLabel}>Local</Column>

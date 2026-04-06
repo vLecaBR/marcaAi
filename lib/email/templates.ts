@@ -16,6 +16,7 @@ export interface BookingEmailData {
   locationType:    string
   meetingUrl:      string | null
   requiresConfirm: boolean
+  allBookings?:    { startTime: Date; endTime: Date }[]
 }
 
 export function formatBookingDate(date: Date, timeZone: string): string {
