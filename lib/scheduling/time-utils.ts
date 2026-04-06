@@ -64,7 +64,7 @@ export function buildUtcDateTime(
  * Intervalos adjacentes (um termina exatamente quando o outro começa) NÃO se sobrepõem.
  */
 export function rangesOverlap(a: { start: Date; end: Date }, b: { start: Date; end: Date }): boolean {
-  return isBefore(a.start, b.end) && isAfter(a.end, b.start)
+  return a.start < b.end && a.end > b.start
 }
 
 /**

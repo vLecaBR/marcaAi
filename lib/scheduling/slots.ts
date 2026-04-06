@@ -33,8 +33,8 @@ export function computeAvailableSlots(
           const bufferedStart = addMinutes(b.startTime, -input.beforeBuffer)
           const bufferedEnd = addMinutes(b.endTime, input.afterBuffer)
           return (
-            isBefore(bufferedStart, window.end) &&
-            isAfter(bufferedEnd, window.start)
+            bufferedStart.getTime() < window.end.getTime() &&
+            bufferedEnd.getTime() > window.start.getTime()
           )
         })
         .map((b) => ({

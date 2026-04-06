@@ -4,15 +4,23 @@ import { prisma } from "@/lib/prisma"
 import { addDays, setHours, setMinutes, startOfDay, endOfDay } from "date-fns"
 import { sendBookingCancelledEmail } from "@/lib/email/send"
 
-// Mock the email sending specifically to verify if it was called
-vi.mock("@/lib/email/send", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/email/send")>()
+// Mock first!
+vi.mock("@/lib/email/send", () => {
   return {
-    ...actual,
     sendBookingCancelledEmail: vi.fn().mockResolvedValue(true),
     sendBookingConfirmedEmail: vi.fn().mockResolvedValue(true),
     sendBookingPendingEmail: vi.fn().mockResolvedValue(true),
     sendOwnerNotifyEmail: vi.fn().mockResolvedValue(true),
+  }
+})
+
+vi.mock("@/lib/email/resend", () => {
+  return {
+    resend: {
+      emails: { send: vi.fn().mockResolvedValue({ data: { id: "mock-resend-id" }, error: null }) }
+    },
+    FROM_EMAIL: "mock@mock.com",
+    APP_URL: "http://localhost:3000"
   }
 })
 
