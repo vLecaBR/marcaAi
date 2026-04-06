@@ -18,16 +18,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token = await authConfig.callbacks.jwt({ token, user, trigger, session }) as any
       }
 
-      // 🔥 SEMPRE busca do banco
-      if (token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-        })
+      // Busca do banco apenas no login inicial ou atualização explícita da sessão
+      if (user || trigger === "signIn" || trigger === "update") {
+        if (token.id) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { username: true, onboarded: true, timeZone: true }
+          })
 
-        if (dbUser) {
-          token.username = dbUser.username
-          token.onboarded = dbUser.onboarded
-          token.timeZone = dbUser.timeZone
+          if (dbUser) {
+            token.username = dbUser.username
+            token.onboarded = dbUser.onboarded
+            token.timeZone = dbUser.timeZone
+          }
         }
       }
 
