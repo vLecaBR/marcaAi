@@ -154,4 +154,99 @@ describe("Scheduling Engine - computeAvailableSlots", () => {
     expect(slots.length).toBe(1)
     expect(slots[0].startUtc).toEqual(parseISO("2024-03-10T10:30:00Z"))
   })
+
+  it("deve lidar corretamente com conflitos de múltiplos eventos em fusos diferentes", () => {
+    // Janela: 13:00 às 17:00 UTC
+    const start = parseISO("2024-03-10T13:00:00Z")
+    const end = parseISO("2024-03-10T17:00:00Z")
+
+    const availableWindows = [
+      {
+        date: startOfDay(start),
+        dayOfWeek: 0,
+        windows: [{ start, end }],
+      },
+    ]
+
+    // Eventos que ocorrerão baseados no fuso do organizador/cliente
+    // Mas chegam na engine em UTC.
+    const existingBookings = [
+      {
+        // Evento 1: 14:00 - 14:30 UTC
+        startTime: parseISO("2024-03-10T14:00:00Z"),
+        endTime: parseISO("2024-03-10T14:30:00Z"),
+      },
+      {
+        // Evento 2: 15:30 - 16:15 UTC
+        startTime: parseISO("2024-03-10T15:30:00Z"),
+        endTime: parseISO("2024-03-10T16:15:00Z"),
+      },
+    ]
+
+    const slots = computeAvailableSlots(availableWindows, existingBookings, {
+      userId: "user-1",
+      eventDuration: 30,
+      beforeBuffer: 0,
+      afterBuffer: 0,
+      dateFrom: startOfDay(start),
+      dateTo: end,
+      viewerTimeZone: "America/Sao_Paulo", // A engine ignora ou lida, o output é UTC.
+    })
+
+    // Sem conflitos: 8 slots (13, 13.5, 14, 14.5, 15, 15.5, 16, 16.5)
+    // Com conflito Evento 1: bloqueia 14:00 (remove 14:00)
+    // Com conflito Evento 2: bloqueia 15:30 - 16:15 (remove 15:30, 16:00)
+    // Restam: 13:00, 13:30, 14:30, 15:00, 16:30
+    expect(slots.map((s) => s.startUtc.toISOString())).toEqual([
+      "2024-03-10T13:00:00.000Z",
+      "2024-03-10T13:30:00.000Z",
+      "2024-03-10T14:30:00.000Z",
+      "2024-03-10T15:00:00.000Z",
+      "2024-03-10T16:30:00.000Z",
+    ])
+  })
+
+  it("deve lidar corretamente com janelas de disponibilidade e eventos que atravessam a meia-noite", () => {
+    // Janela que atravessa a meia noite no UTC: das 22:00 até 02:00 do dia seguinte
+    const start = parseISO("2024-03-10T22:00:00Z")
+    const end = parseISO("2024-03-11T02:00:00Z")
+
+    const availableWindows = [
+      {
+        date: startOfDay(start),
+        dayOfWeek: 0,
+        windows: [{ start, end }],
+      },
+    ]
+
+    // Evento conflitando a virada exata do dia
+    const existingBookings = [
+      {
+        startTime: parseISO("2024-03-10T23:30:00Z"),
+        endTime: parseISO("2024-03-11T00:30:00Z"), // Atravessa a meia noite
+      },
+    ]
+
+    const slots = computeAvailableSlots(availableWindows, existingBookings, {
+      userId: "user-1",
+      eventDuration: 60, // Slots de 1h para simplificar
+      beforeBuffer: 0,
+      afterBuffer: 0,
+      dateFrom: startOfDay(start),
+      dateTo: parseISO("2024-03-11T23:59:59Z"),
+      viewerTimeZone: "UTC",
+    })
+
+    // Janela: 22h, 23h, 00h, 01h (4 slots)
+    // Conflito: 23:30 a 00:30.
+    // Slot das 22:00 -> Termina 23:00 (Livre)
+    // Slot das 23:00 -> Termina 00:00 (CONFLITO com 23:30)
+    // Slot das 00:00 -> Termina 01:00 (CONFLITO com 00:30)
+    // Slot das 01:00 -> Termina 02:00 (Livre)
+
+    expect(slots.map((s) => s.startUtc.toISOString())).toEqual([
+      "2024-03-10T22:00:00.000Z",
+      "2024-03-11T01:00:00.000Z",
+    ])
+  })
 })

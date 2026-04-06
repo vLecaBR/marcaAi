@@ -32,3 +32,44 @@ vi.mock("@/auth", () => ({
   signIn: vi.fn(),
   signOut: vi.fn(),
 }))
+
+// Mock global para serviços externos (Evitar chamadas reais no CI)
+vi.mock("resend", () => ({
+  Resend: vi.fn(() => ({
+    emails: {
+      send: vi.fn().mockResolvedValue({ data: { id: "mock-resend-id" }, error: null }),
+    },
+  })),
+}))
+
+vi.mock("stripe", () => ({
+  default: vi.fn(() => ({
+    checkout: {
+      sessions: {
+        create: vi.fn().mockResolvedValue({ url: "https://mock-stripe-url.com" }),
+      },
+    },
+  })),
+}))
+
+vi.mock("mercadopago", () => ({
+  MercadoPagoConfig: vi.fn(),
+  Payment: vi.fn(() => ({
+    create: vi.fn().mockResolvedValue({ id: 123456, point_of_interaction: { transaction_data: { qr_code_base64: "mock", qr_code: "mock", ticket_url: "mock" } } }),
+  })),
+}))
+
+vi.mock("googleapis", () => ({
+  google: {
+    auth: {
+      OAuth2: vi.fn(() => ({
+        setCredentials: vi.fn(),
+      })),
+    },
+    calendar: vi.fn(() => ({
+      events: {
+        insert: vi.fn().mockResolvedValue({ data: { id: "mock-event-id", htmlLink: "https://mock-meet.com" } }),
+      },
+    })),
+  },
+}))
