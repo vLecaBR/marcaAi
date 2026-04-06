@@ -317,17 +317,25 @@ export async function createBooking(
         uid: firstBooking.uid,
       }
 
-      void Promise.all([
-        firstBooking.eventType.requiresConfirm
-          ? sendBookingPendingEmail(emailData)
-          : sendBookingConfirmedEmail(emailData),
-        sendOwnerNotifyEmail(emailData),
-      ]).catch((err) => console.error("[email dispatch]", err))
+      try {
+        await Promise.all([
+          firstBooking.eventType.requiresConfirm
+            ? sendBookingPendingEmail(emailData)
+            : sendBookingConfirmedEmail(emailData),
+          sendOwnerNotifyEmail(emailData),
+        ])
+      } catch (err) {
+        console.error("[email dispatch]", err)
+      }
 
       if (whatsappData.phone) {
-        void (firstBooking.eventType.requiresConfirm
-          ? sendWhatsAppPending(whatsappData)
-          : sendWhatsAppConfirmation(whatsappData)).catch(err => console.error("[whatsapp dispatch]", err))
+        try {
+          await (firstBooking.eventType.requiresConfirm
+            ? sendWhatsAppPending(whatsappData)
+            : sendWhatsAppConfirmation(whatsappData))
+        } catch (err) {
+          console.error("[whatsapp dispatch]", err)
+        }
       }
     }
 
@@ -442,12 +450,18 @@ export async function cancelBooking(
       uid: booking.uid,
     }
 
-    void sendBookingCancelledEmail(emailData, reason, canceledBy === "GUEST").catch(err => {
+    try {
+      await sendBookingCancelledEmail(emailData, reason, canceledBy === "GUEST")
+    } catch (err) {
       console.error("[sendBookingCancelledEmail]", err)
-    })
+    }
 
     if (whatsappData.phone) {
-      void sendWhatsAppCancellation(whatsappData, reason).catch(err => console.error("[whatsapp dispatch]", err))
+      try {
+        await sendWhatsAppCancellation(whatsappData, reason)
+      } catch (err) {
+        console.error("[whatsapp dispatch]", err)
+      }
     }
 
     return { status: "success" }
