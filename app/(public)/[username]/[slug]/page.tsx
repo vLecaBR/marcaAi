@@ -3,6 +3,49 @@ import { notFound } from "next/navigation"
 import { BookingPageShell } from "@/components/booking/booking-page-shell"
 import { cn } from "@/lib/utils"
 import type { Metadata } from "next"
+import { unstable_cache } from "next/cache"
+
+const getCachedEventTypeMeta = unstable_cache(
+  async (username: string, slug: string) => {
+    return prisma.eventType.findFirst({
+      where: { slug, isActive: true, user: { username } },
+      select: { title: true, description: true, user: { select: { name: true } } },
+    })
+  },
+  ["public-event-meta"],
+  { tags: ["event-types"], revalidate: 60 }
+)
+
+const getCachedEventType = unstable_cache(
+  async (username: string, slug: string) => {
+    return prisma.eventType.findFirst({
+      where: { slug, isActive: true, user: { username } },
+      select: {
+        id: true, title: true, slug: true, description: true,
+        duration: true, color: true, locationType: true,
+        price: true,
+        questions: { orderBy: { order: "asc" } },
+        requiresConfirm: true, beforeEventBuffer: true,
+        afterEventBuffer: true, bookingLimitDays: true,
+        user: {
+          select: {
+            id: true, name: true, image: true, username: true, timeZone: true, theme: true, brandColor: true,
+            schedules: {
+              where: { isDefault: true },
+              include: {
+                availabilities: true,
+                exceptions: true,
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+    })
+  },
+  ["public-event-type"],
+  { tags: ["event-types"], revalidate: 60 }
+)
 
 interface Props {
   params: Promise<{ username: string; slug: string }>
@@ -10,10 +53,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username, slug } = await params
-  const eventType = await prisma.eventType.findFirst({
-    where: { slug, isActive: true, user: { username } },
-    select: { title: true, description: true, user: { select: { name: true } } },
-  })
+  const eventType = await getCachedEventTypeMeta(username, slug)
   if (!eventType) return { title: "Não encontrado" }
   return {
     title: `${eventType.title} · ${eventType.user.name}`,
@@ -24,30 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function BookingPage({ params }: Props) {
   const { username, slug } = await params
 
-  const eventType = await prisma.eventType.findFirst({
-    where: { slug, isActive: true, user: { username } },
-    select: {
-      id: true, title: true, slug: true, description: true,
-      duration: true, color: true, locationType: true,
-      price: true,
-      questions: { orderBy: { order: "asc" } },
-      requiresConfirm: true, beforeEventBuffer: true,
-      afterEventBuffer: true, bookingLimitDays: true,
-      user: {
-        select: {
-          id: true, name: true, image: true, username: true, timeZone: true, theme: true, brandColor: true,
-          schedules: {
-            where: { isDefault: true },
-            include: {
-              availabilities: true,
-              exceptions: true,
-            },
-            take: 1,
-          },
-        },
-      },
-    },
-  }) as any
+  const eventType = await getCachedEventType(username, slug) as any
 
   if (!eventType || !eventType.user.schedules[0]) notFound()
 

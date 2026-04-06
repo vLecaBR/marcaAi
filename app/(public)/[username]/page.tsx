@@ -4,6 +4,41 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Clock, MapPin, Video, Phone, Link as LinkIcon, Users, CalendarDays, ArrowRight } from "lucide-react"
 import type { Metadata } from "next"
+import { unstable_cache } from "next/cache"
+
+const getCachedUserMeta = unstable_cache(
+  async (username: string) => {
+    return prisma.user.findUnique({
+      where: { username },
+      select: { name: true, bio: true },
+    })
+  },
+  ["public-user-meta"],
+  { tags: ["user-profile"], revalidate: 60 }
+)
+
+const getCachedUser = unstable_cache(
+  async (username: string) => {
+    return prisma.user.findUnique({
+      where: { username },
+      select: {
+        name: true, bio: true, image: true, theme: true, brandColor: true,
+        eventTypes: {
+          where: { isActive: true },
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true, title: true, slug: true,
+            description: true, duration: true,
+            color: true, locationType: true,
+            price: true,
+          },
+        },
+      },
+    })
+  },
+  ["public-user-profile"],
+  { tags: ["user-profile"], revalidate: 60 }
+)
 
 interface Props {
   params: Promise<{ username: string }>
@@ -11,10 +46,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params
-  const user = await prisma.user.findUnique({
-    where: { username },
-    select: { name: true, bio: true },
-  })
+  const user = await getCachedUserMeta(username)
   if (!user) return { title: "Não encontrado" }
   return {
     title: `Agendar com ${user.name}`,
@@ -40,22 +72,7 @@ const LOCATION_LABELS: Record<string, { label: string, icon: React.ElementType }
 export default async function UserPublicPage({ params }: Props) {
   const { username } = await params
 
-  const user = await prisma.user.findUnique({
-    where: { username },
-    select: {
-      name: true, bio: true, image: true, theme: true, brandColor: true,
-      eventTypes: {
-        where: { isActive: true },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true, title: true, slug: true,
-          description: true, duration: true,
-          color: true, locationType: true,
-          price: true,
-        },
-      },
-    },
-  })
+  const user = await getCachedUser(username)
 
   if (!user) notFound()
 

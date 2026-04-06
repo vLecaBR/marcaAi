@@ -18,6 +18,7 @@ import {
 } from "@/lib/whatsapp/send"
 import { APP_URL } from "@/lib/email/resend"
 import type { BookingEmailData } from "@/lib/email/templates"
+import { mapPrismaError } from "@/lib/errors"
 
 // ─── Tipos de retorno ─────────────────────────────────────────────────────────
 
@@ -373,25 +374,18 @@ export async function createBooking(
         pixData,
       },
     }
-  } catch (err) {
+  } catch (err: any) {
     if (err instanceof ConflictError) {
       return { status: "conflict", message: err.message }
     }
 
-    if (
-      typeof err === "object" &&
-      err !== null &&
-      "code" in err &&
-      (err as { code: string }).code === "P2034"
-    ) {
-      return {
-        status: "conflict",
-        message: "Horário reservado simultaneamente. Por favor, escolha outro.",
-      }
+    const message = mapPrismaError(err, "Erro interno ao criar agendamento.")
+    if (message === "Horário reservado simultaneamente ou conflito de transação.") {
+      return { status: "conflict", message }
     }
 
     console.error("[createBooking] Erro inesperado:", err)
-    return { status: "internal", message: "Erro interno ao criar agendamento." }
+    return { status: "internal", message }
   }
 }
 
