@@ -1,3 +1,5 @@
+"use server";
+
 import { prisma } from "@/lib/prisma"
 import { buildAvailableWindows } from "@/lib/scheduling/availability"
 import { startOfDay, endOfDay, addDays } from "date-fns"
