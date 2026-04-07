@@ -4,6 +4,9 @@ import { BookingPageShell } from "@/components/booking/booking-page-shell"
 import { cn } from "@/lib/utils"
 import type { Metadata } from "next"
 import { unstable_cache } from "next/cache"
+import { addDays, startOfDay } from "date-fns"
+import { buildAvailableWindows } from "@/lib/scheduling/availability"
+import { computeAvailableSlots, groupSlotsByDate, getAvailableDates } from "@/lib/scheduling/slots"
 
 const getCachedEventTypeMeta = async (username: string, slug: string) => {
   return unstable_cache(
@@ -72,6 +75,38 @@ export default async function BookingPage({ params }: Props) {
 
   if (!eventType || !eventType.user.schedules[0]) notFound()
 
+  // Compute available slots on the server to avoid heavy client-side computation during hydration
+  const scheduleData = {
+    timeZone: eventType.user.schedules[0].timeZone,
+    availabilities: eventType.user.schedules[0].availabilities,
+    exceptions: eventType.user.schedules[0].exceptions.map((ex: any) => ({
+      ...ex,
+      type: ex.type as "BLOCKED" | "VACATION" | "OVERRIDE",
+    })),
+  }
+  const dateFrom = startOfDay(new Date())
+  const bookingLimitDays = eventType.bookingLimitDays ?? 60
+  const dateTo = addDays(dateFrom, bookingLimitDays)
+  
+  const windows = buildAvailableWindows(scheduleData, dateFrom, dateTo)
+  const slots = computeAvailableSlots(windows, [], {
+    userId: eventType.user.id,
+    eventDuration: eventType.duration,
+    beforeBuffer: eventType.beforeEventBuffer,
+    afterBuffer: eventType.afterEventBuffer,
+    dateFrom,
+    dateTo,
+    viewerTimeZone: eventType.user.timeZone, // Assume viewer = owner initially
+    bookingLimitDays,
+  })
+
+  // To prevent passing huge JSON structures with Dates, convert slots correctly or rely on the fact
+  // that Server Components can serialize plain objects. But Date objects might be tricky if they are deep.
+  // Actually, Server Components serialize Date objects properly.
+  // We'll just pass the grouped results.
+  const initialGroupedSlots = groupSlotsByDate(slots, eventType.user.timeZone)
+  const initialAvailableDates = getAvailableDates(slots, eventType.user.timeZone)
+
   return (
     <main 
       className={cn(
@@ -106,14 +141,9 @@ export default async function BookingPage({ params }: Props) {
           theme: eventType.user.theme,
           brandColor: eventType.user.brandColor,
         }}
-        schedule={{
-          timeZone: eventType.user.schedules[0].timeZone,
-          availabilities: eventType.user.schedules[0].availabilities,
-          exceptions: eventType.user.schedules[0].exceptions.map((ex: any) => ({
-            ...ex,
-            type: ex.type as "BLOCKED" | "VACATION" | "OVERRIDE",
-          })),
-        }}
+        schedule={scheduleData}
+        initialGroupedSlots={initialGroupedSlots}
+        initialAvailableDates={initialAvailableDates}
       />
     </main>
   )

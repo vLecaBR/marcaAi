@@ -45,9 +45,11 @@ interface Props {
       startTime: string | null; endTime: string | null
     }[]
   }
+  initialGroupedSlots: Record<string, Slot[]>
+  initialAvailableDates: string[]
 }
 
-export function BookingPageShell({ eventType, owner, schedule }: Props) {
+export function BookingPageShell({ eventType, owner, schedule, initialGroupedSlots, initialAvailableDates }: Props) {
   const [step, setStep] = useState<Step>("calendar")
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
@@ -64,8 +66,12 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
     }
   }, [owner.timeZone])
 
-  // Calcula slots para os próximos N dias (pure computation, sem fetch)
+  // Calcula slots para os próximos N dias apenas se o fuso do visitante for diferente
   const { groupedSlots, availableDates } = useMemo(() => {
+    if (viewerTimeZone === owner.timeZone) {
+      return { groupedSlots: initialGroupedSlots, availableDates: initialAvailableDates }
+    }
+
     const dateFrom = startOfDay(new Date())
     const dateTo = addDays(dateFrom, eventType.bookingLimitDays ?? 60)
 
@@ -85,7 +91,7 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
       groupedSlots: groupSlotsByDate(slots, viewerTimeZone),
       availableDates: getAvailableDates(slots, viewerTimeZone),
     }
-  }, [eventType, owner.id, schedule, viewerTimeZone])
+  }, [eventType, owner.id, owner.timeZone, schedule, viewerTimeZone, initialGroupedSlots, initialAvailableDates])
 
   const slotsForSelectedDate = selectedDate ? (groupedSlots[selectedDate] ?? []) : []
 
