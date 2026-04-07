@@ -40,15 +40,13 @@ test.describe("Fluxo do Dono (Dashboard)", () => {
     const bookingCard = page.locator("div, li, tr").filter({ hasText: booking.guestName }).first()
     await expect(bookingCard).toBeVisible()
 
-    const cancelOption = bookingCard.locator("button", { hasText: "Cancelar" })
-    const fallbackCancel = page.locator("button", { hasText: "Cancelar" }).first()
+    const cancelOption = bookingCard.locator("button", { hasText: "Cancelar" }).first()
 
     page.once("dialog", async (dialog) => {
       await dialog.accept("Imprevisto de teste")
     })
 
-    // Usando .or() para ser seguro sem race conditions do .isVisible()
-    await cancelOption.or(fallbackCancel).first().click()
+    await cancelOption.click()
 
     // 4. Verificar se a UI reflete o status "Cancelado"
     // Pode aparecer uma badge escrita "Cancelado"
