@@ -1,12 +1,10 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { addDays, startOfDay } from "date-fns"
 import dynamic from "next/dynamic"
 import { CalendarPicker } from "./calendar-picker"
 import { TimeSlotPicker } from "./time-slot-picker"
-import { buildAvailableWindows } from "@/lib/scheduling/availability"
-import { computeAvailableSlots, groupSlotsByDate, getAvailableDates } from "@/lib/scheduling/slots"
 import type { Slot } from "@/lib/scheduling/types"
 import { cn } from "@/lib/utils"
 
@@ -56,44 +54,43 @@ export function BookingPageShell({ eventType, owner, schedule, initialGroupedSlo
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [viewerTimeZone, setViewerTimeZone] = useState(owner.timeZone)
+  const [groupedSlots, setGroupedSlots] = useState(initialGroupedSlots)
+  const [availableDates, setAvailableDates] = useState(initialAvailableDates)
 
   useEffect(() => {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
       if (tz !== owner.timeZone) {
         setViewerTimeZone(tz)
+
+        // dynamically load heavy logic only if timezone differs
+        Promise.all([
+          import("@/lib/scheduling/availability"),
+          import("@/lib/scheduling/slots")
+        ]).then(([availability, slotsMod]) => {
+          const dateFrom = startOfDay(new Date())
+          const dateTo = addDays(dateFrom, eventType.bookingLimitDays ?? 60)
+
+          const windows = availability.buildAvailableWindows(schedule, dateFrom, dateTo)
+          const slots = slotsMod.computeAvailableSlots(windows, [], {
+            userId: owner.id,
+            eventDuration: eventType.duration,
+            beforeBuffer: eventType.beforeEventBuffer,
+            afterBuffer: eventType.afterEventBuffer,
+            dateFrom,
+            dateTo,
+            viewerTimeZone: tz,
+            bookingLimitDays: eventType.bookingLimitDays ?? undefined,
+          })
+
+          setGroupedSlots(slotsMod.groupSlotsByDate(slots, tz))
+          setAvailableDates(slotsMod.getAvailableDates(slots, tz))
+        })
       }
     } catch (e) {
-      // Ignora erro se Intl não estiver disponível (ex: em ambientes de teste muito limitados)
+      // Ignora erro se Intl não estiver disponível
     }
-  }, [owner.timeZone])
-
-  // Calcula slots para os próximos N dias apenas se o fuso do visitante for diferente
-  const { groupedSlots, availableDates } = useMemo(() => {
-    if (viewerTimeZone === owner.timeZone) {
-      return { groupedSlots: initialGroupedSlots, availableDates: initialAvailableDates }
-    }
-
-    const dateFrom = startOfDay(new Date())
-    const dateTo = addDays(dateFrom, eventType.bookingLimitDays ?? 60)
-
-    const windows = buildAvailableWindows(schedule, dateFrom, dateTo)
-    const slots = computeAvailableSlots(windows, [], {
-      userId: owner.id,
-      eventDuration: eventType.duration,
-      beforeBuffer: eventType.beforeEventBuffer,
-      afterBuffer: eventType.afterEventBuffer,
-      dateFrom,
-      dateTo,
-      viewerTimeZone,
-      bookingLimitDays: eventType.bookingLimitDays ?? undefined,
-    })
-
-    return {
-      groupedSlots: groupSlotsByDate(slots, viewerTimeZone),
-      availableDates: getAvailableDates(slots, viewerTimeZone),
-    }
-  }, [eventType, owner.id, owner.timeZone, schedule, viewerTimeZone, initialGroupedSlots, initialAvailableDates])
+  }, [owner.timeZone, owner.id, eventType, schedule])
 
   const slotsForSelectedDate = selectedDate ? (groupedSlots[selectedDate] ?? []) : []
 
