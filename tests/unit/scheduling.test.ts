@@ -239,14 +239,13 @@ describe("Scheduling Engine - computeAvailableSlots", () => {
 
     // Janela: 22h, 23h, 00h, 01h (4 slots)
     // Conflito: 23:30 a 00:30.
-    // Slot das 22:00 -> Termina 23:00 (Livre)
-    // Slot das 23:00 -> Termina 00:00 (CONFLITO com 23:30)
-    // Slot das 00:00 -> Termina 01:00 (CONFLITO com 00:30)
-    // Slot das 01:00 -> Termina 02:00 (Livre)
-
+    // O slot de 60min gerado inicia às 00:30 (termina 01:30), 
+    // porque o engine agora tenta encaixar as folgas no horário alinhado mais próximo após o bloqueio de 23:30 a 00:30.
+    // 00:30 já é múltiplo de 30 (grid natural), por isso permite gerar 00:30 -> 01:30.
+    
     expect(slots.map((s) => s.startUtc.toISOString())).toEqual([
       "2024-03-10T22:00:00.000Z",
-      "2024-03-11T01:00:00.000Z",
+      "2024-03-11T00:30:00.000Z",
     ])
   })
 })

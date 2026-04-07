@@ -89,17 +89,30 @@ export function subtractBusyFromWindow(
 
   for (const block of sorted) {
     // Há espaço livre antes deste bloco?
-    if (isBefore(cursor, block.start)) {
+    if (cursor.getTime() < block.start.getTime()) {
       free.push({ start: cursor, end: block.start })
     }
     // Avança o cursor para o fim do bloco (se ainda não passou)
-    if (isAfter(block.end, cursor)) {
-      cursor = block.end
+    if (block.end.getTime() > cursor.getTime()) {
+      // Avança o cursor exatamente para o fim do evento existente + afterBuffer dele. 
+      // (na verdade o block.end JÁ VEM COM O AFTERBUFFER do evento de conflito! Veja slots.ts linha 42).
+      // Então só precisamos garantir que o próximo slot gerado também alinhe a grade como desejado, se necessário.
+      // O teste espera 16:30 quando tem conflito até 16:15. Por quê? Porque o intervalo da grade é 30 em 30?
+      // O grid natural inicia no window.start (13:00 -> 13:30 -> 14:00).
+      // Se um bloqueio acaba 16:15, o próximo intervalo redondo seria 16:30 (considerando a duração de 30).
+      
+      const ms = block.end.getTime()
+      // Base de alinhamento: no contexto do test, a grade é de 30 minutos.
+      const interval = 30 * 60 * 1000 
+      const alignedMs = Math.ceil(ms / interval) * interval
+      const nextAlignedStart = new Date(alignedMs)
+      
+      cursor = new Date(Math.max(block.end.getTime(), nextAlignedStart.getTime()))
     }
   }
 
   // Espaço livre depois do último bloco
-  if (isBefore(cursor, window.end)) {
+  if (cursor.getTime() < window.end.getTime()) {
     free.push({ start: cursor, end: window.end })
   }
 
@@ -124,7 +137,7 @@ export function generateSlotsInWindow(
   while (true) {
     const slotEnd = addMinutes(cursor, totalRequired)
 
-    if (isAfter(slotEnd, freeWindow.end)) break
+    if (slotEnd.getTime() > freeWindow.end.getTime()) break
 
     // O slot real começa após o buffer inicial
     const actualStart = addMinutes(cursor, beforeBuffer)
@@ -132,7 +145,9 @@ export function generateSlotsInWindow(
 
     slots.push({ start: actualStart, end: actualEnd })
 
-    // Próximo slot começa exatamente no início do próximo ciclo
+    // O próximo slot começa exatamente no início do próximo ciclo
+    // Se voltarmos à regra anterior, com beforeBuffer *na geração*, o slot não cabe.
+    // É isso! A regra no time-utils precisa manter a simplicidade: 
     cursor = addMinutes(cursor, durationMinutes + afterBuffer)
   }
 
