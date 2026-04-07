@@ -37,23 +37,18 @@ test.describe("Fluxo do Dono (Dashboard)", () => {
     await expect(page.locator("h1", { hasText: "Agendamentos" })).toBeVisible()
 
     // 3. Visualizar o agendamento recém-criado
-    const bookingRow = page.locator(`text=${booking.guestName}`)
-    await expect(bookingRow).toBeVisible()
+    const bookingCard = page.locator("div, li, tr").filter({ hasText: booking.guestName }).first()
+    await expect(bookingCard).toBeVisible()
 
-    // O botão Cancelar fica diretamente no card e abre um prompt nativo
+    const cancelOption = bookingCard.locator("button", { hasText: "Cancelar" })
+    const fallbackCancel = page.locator("button", { hasText: "Cancelar" }).first()
+
     page.once("dialog", async (dialog) => {
       await dialog.accept("Imprevisto de teste")
     })
 
-    const cancelOption = bookingRow.locator("..").locator("..").locator("button", { hasText: "Cancelar" }).first()
-    // Caso a estrutura varie muito, vamos pegar o botão global
-    const fallbackCancel = page.locator("button", { hasText: "Cancelar" }).first()
-    
-    if (await cancelOption.isVisible()) {
-      await cancelOption.click()
-    } else {
-      await fallbackCancel.click()
-    }
+    // Usando .or() para ser seguro sem race conditions do .isVisible()
+    await cancelOption.or(fallbackCancel).first().click()
 
     // 4. Verificar se a UI reflete o status "Cancelado"
     // Pode aparecer uma badge escrita "Cancelado"
