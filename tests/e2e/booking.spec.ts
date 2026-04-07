@@ -10,8 +10,8 @@ test.describe("Fluxo do Cliente (Agendamento Público)", () => {
 
     // 2. Selecionar uma data disponível (simulada)
     // O calendário do marcaAE usa um grid-cols-7 gap-1
-    const calendarGrid = page.locator('.grid-cols-7.gap-1')
-    const dayButton = calendarGrid.locator('button:not([disabled])').first()
+    const calendarGrid = page.locator('.grid-cols-7.gap-1').last()
+    const dayButton = calendarGrid.locator('button:not([disabled])', { hasText: /^\d+$/ }).first()
     await dayButton.click({ force: true }) // Force just in case
 
     // 3. Selecionar um horário
