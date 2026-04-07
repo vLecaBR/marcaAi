@@ -1,14 +1,16 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { addDays, startOfDay } from "date-fns"
-import { CalendarPicker } from "./calendar-picker"
-import { TimeSlotPicker } from "./time-slot-picker"
-import { BookingForm } from "./booking-form"
+import dynamic from "next/dynamic"
 import { buildAvailableWindows } from "@/lib/scheduling/availability"
 import { computeAvailableSlots, groupSlotsByDate, getAvailableDates } from "@/lib/scheduling/slots"
 import type { Slot } from "@/lib/scheduling/types"
 import { cn } from "@/lib/utils"
+
+const BookingForm = dynamic(() => import("./booking-form").then(m => m.BookingForm), { ssr: false })
+const CalendarPicker = dynamic(() => import("./calendar-picker").then(m => m.CalendarPicker), { ssr: false })
+const TimeSlotPicker = dynamic(() => import("./time-slot-picker").then(m => m.TimeSlotPicker), { ssr: false })
 
 const COLOR_MAP: Record<string, string> = {
   SLATE: "bg-slate-500", ROSE: "bg-rose-500", ORANGE: "bg-orange-500",
@@ -51,15 +53,22 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
   const [step, setStep] = useState<Step>("calendar")
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Detecta timezone do visitante
   const viewerTimeZone = useMemo(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
-    []
+    () => isMounted ? Intl.DateTimeFormat().resolvedOptions().timeZone : owner.timeZone,
+    [isMounted, owner.timeZone]
   )
 
   // Calcula slots para os próximos N dias (pure computation, sem fetch)
   const { groupedSlots, availableDates } = useMemo(() => {
+    if (!isMounted) return { groupedSlots: {}, availableDates: [] }
+
     const dateFrom = startOfDay(new Date())
     const dateTo = addDays(dateFrom, eventType.bookingLimitDays ?? 60)
 
@@ -106,6 +115,8 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
             <img
               src={owner.image}
               alt={owner.name ?? ""}
+              fetchPriority="high"
+              loading="eager"
               className={cn(
                 "h-14 w-14 rounded-full ring-2 shrink-0 object-cover",
                 owner.theme === "LIGHT" ? "ring-slate-200" : "ring-zinc-800"
@@ -142,7 +153,7 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
                 </span>
               )}
               <span className={owner.theme === "LIGHT" ? "text-slate-400" : "text-zinc-600"}>
-                Seu fuso: {viewerTimeZone}
+                {isMounted ? `Seu fuso: ${viewerTimeZone}` : "Calculando fuso..."}
               </span>
             </div>
             {eventType.description && (
@@ -161,7 +172,17 @@ export function BookingPageShell({ eventType, owner, schedule }: Props) {
           "rounded-2xl border overflow-hidden transition-all",
           owner.theme === "LIGHT" ? "border-slate-200 bg-white shadow-sm" : "border-zinc-800 bg-zinc-900/40"
         )}>
-          {step === "calendar" ? (
+          {!isMounted ? (
+            <div className="grid lg:grid-cols-[1fr_300px] min-h-[400px]">
+              <div className={cn(
+                "border-b p-6 lg:border-b-0 lg:border-r flex items-center justify-center",
+                owner.theme === "LIGHT" ? "border-slate-200" : "border-zinc-800"
+              )}>
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent" />
+              </div>
+              <div className="p-6 hidden lg:block" />
+            </div>
+          ) : step === "calendar" ? (
             <div className="grid lg:grid-cols-[1fr_300px]">
               <div className={cn(
                 "border-b p-6 lg:border-b-0 lg:border-r",

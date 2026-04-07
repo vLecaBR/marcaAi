@@ -157,6 +157,13 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
+      - name: Seed Database for Lighthouse
+        run: |
+          npx prisma migrate reset --force
+          npx tsx prisma/seed.ts
+        env:
+          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
+
       - name: Build Next.js for Lighthouse
         run: npm run build
         env:
@@ -165,13 +172,6 @@ jobs:
           AUTH_GOOGLE_ID: "mock"
           AUTH_GOOGLE_SECRET: "mock"
           NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-
-      - name: Seed Database for Lighthouse
-        run: |
-          npx prisma migrate reset --force
-          npx tsx prisma/seed.ts
-        env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
