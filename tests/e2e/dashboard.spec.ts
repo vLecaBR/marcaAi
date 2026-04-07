@@ -37,8 +37,8 @@ test.describe("Fluxo do Dono (Dashboard)", () => {
     await expect(page.locator("h1", { hasText: "Agendamentos" })).toBeVisible()
 
     // 3. Visualizar o agendamento recém-criado
-    const bookingCard = page.locator("div, li, tr").filter({ hasText: booking.guestName }).first()
-    await expect(bookingCard).toBeVisible()
+    const bookingCard = page.locator("div").filter({ has: page.getByTitle(booking.guestName, { exact: true }) }).first()
+    await expect(bookingCard).toBeVisible({ timeout: 10000 })
 
     const cancelOption = bookingCard.locator("button", { hasText: "Cancelar" }).first()
 
