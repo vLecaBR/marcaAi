@@ -11,7 +11,19 @@ test.describe("Fluxo do Cliente (Agendamento Público)", () => {
     // 2. Selecionar uma data disponível (simulada)
     // O calendário do marcaAE usa um grid-cols-7 gap-1
     const calendarGrid = page.locator('.grid-cols-7.gap-1').last()
-    const dayButton = calendarGrid.locator('button:not([disabled])', { hasText: /^\d+$/ }).first()
+    let dayButton = calendarGrid.locator('button:not([disabled])', { hasText: /^\d+$/ }).first()
+
+    // Espera até 5s para o botão aparecer (pode estar carregando os dias)
+    try {
+      await dayButton.waitFor({ state: "visible", timeout: 5000 })
+    } catch (e) {
+      // Se não encontrou, pode ser fim do mês. Vamos clicar para o próximo mês.
+      const nextMonthButton = page.locator('.mb-5 button').nth(1)
+      await nextMonthButton.click()
+      await page.waitForTimeout(1000) // Aguarda a troca de mês renderizar
+      dayButton = calendarGrid.locator('button:not([disabled])', { hasText: /^\d+$/ }).first()
+    }
+
     await dayButton.click({ force: true }) // Force just in case
 
     // 3. Selecionar um horário
