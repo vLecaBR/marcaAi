@@ -1,11 +1,8 @@
 import { test as base, Page, BrowserContext } from "@playwright/test"
 // @ts-ignore
 import { encode } from "next-auth/jwt"
-// @ts-ignore
-import { PrismaClient } from "@prisma/client"
+import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
-
-const prisma = new PrismaClient()
 
 // Extender o objeto `test` do Playwright
 export const test = base.extend<{
