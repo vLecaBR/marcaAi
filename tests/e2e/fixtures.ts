@@ -31,7 +31,7 @@ export const test = base.extend<{
         onboarded: user.onboarded,
       },
       secret: process.env.AUTH_SECRET || "test-secret-never-use-in-prod",
-      salt: process.env.AUTH_SECRET || "test-secret-never-use-in-prod",
+      salt: "authjs.session-token",
     })
 
     // Injeta o cookie no contexto do navegador
@@ -101,7 +101,7 @@ export const test = base.extend<{
         onboarded: user.onboarded,
       },
       secret: process.env.AUTH_SECRET || "test-secret-never-use-in-prod",
-      salt: process.env.AUTH_SECRET || "test-secret-never-use-in-prod",
+      salt: "authjs.session-token",
     })
 
     await context.addCookies([

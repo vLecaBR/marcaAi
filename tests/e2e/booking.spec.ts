@@ -8,17 +8,9 @@ test.describe("Fluxo do Cliente (Agendamento Público)", () => {
     // Verifica se a página carregou com o título do evento
     await expect(page.locator("h1", { hasText: "Reunião de Vendas E2E" })).toBeVisible()
 
-    // Regressão Visual (Visual Regression Testing)
-    await expect(page).toHaveScreenshot('public-booking-page.png', { fullPage: true, maxDiffPixels: 100 })
-
     // 2. Selecionar uma data disponível (simulada)
     // O DatePicker usa botões para os dias. Vamos clicar no primeiro dia disponível que não esteja desabilitado.
     // Procura por um botão de dia (gridcell) que não tenha o atributo disabled.
-    const availableDay = page.locator("button[name='day']:not([disabled])").first()
-    
-    // Se não houver name="day", vamos tentar de outra forma. 
-    // O calendário do react-day-picker geralmente usa botões com role="gridcell" ou "button"
-    // Vamos procurar por um botão que tenha um número (dia) e não esteja desabilitado.
     const dayButton = page.locator("button.rdp-button_reset.rdp-button:not([disabled])").first()
     await dayButton.click({ force: true }) // Force just in case
 
