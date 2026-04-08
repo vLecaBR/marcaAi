@@ -1,36 +1,37 @@
-# MarcaAí
+# MarcaAí / People OS
 
-MarcaAí é uma plataforma SaaS moderna de agendamentos online projetada especialmente para o público brasileiro (Barbearias, Clínicas, Terapias, Consultorias, etc.). Com ela, profissionais podem criar páginas públicas elegantes para compartilhar com clientes e evitar o famoso "bate-volta" no WhatsApp tentando achar um horário em comum.
+MarcaAí é uma plataforma SaaS moderna de agendamentos online projetada especialmente para o público brasileiro (Barbearias, Clínicas, Terapias, Consultorias, etc.). Com ela, profissionais e equipes podem criar páginas públicas elegantes para compartilhar com clientes, acabando com as longas trocas de mensagens no WhatsApp para encontrar um horário disponível.
 
 ## 🚀 Funcionalidades Principais
 
-*   **Páginas Públicas Premium:** Uma vitrine estilo "Link in bio" (ex: `marcaai.com/barbearia-do-ze`) com design escuro, moderno, contendo todos os serviços disponíveis.
-*   **Múltiplos Serviços:** O profissional pode oferecer "Corte de Cabelo", "Barba", ou "Consulta de 1h", com durações e locais diferentes (Presencial, Google Meet, Zoom, Telefone).
-*   **Integração com Google Calendar:** Sincronização bidirecional e prevenção de conflitos verificando a agenda real (FreeBusy API) do Google.
-*   **Links de Reunião Automáticos:** Geração automática de links do Google Meet quando o serviço configurado for para encontros online e a reunião for confirmada.
+*   **Páginas Públicas Premium:** Vitrines estilo "Link in bio" (ex: `marcaai.com/barbearia-do-ze`) com design customizável (claro/escuro, cores da marca) e listagem de todos os serviços.
+*   **Gestão de Equipes (B2B):** Suporte completo para times (Clínicas, Estúdios), com perfis de `OWNER`, `ADMIN` e `MEMBER`.
+*   **Múltiplos Serviços & Customização:** Ofereça reuniões online (Google Meet, Zoom, Teams), presenciais ou por telefone. Defina duração, buffers de tempo (antes/depois) e limites de agendamento futuro.
+*   **Onboarding Dinâmico:** Formulários customizados na etapa de agendamento (texto, textarea, telefone, etc.) para captar as informações certas de cada cliente.
 *   **Gestão de Disponibilidade Avançada:**
-    *   **Múltiplos Intervalos:** Suporte nativo para pausas para o almoço (ex: Seg a Sex das 09h às 12h e 13h às 18h).
-    *   **Férias e Feriados:** Bloqueio de datas específicas no calendário (Schedule Exceptions).
-*   **Perguntas Customizadas (Onboarding):** Crie formulários flexíveis (texto, textarea, telefone, etc.) para os clientes responderem ao realizarem um agendamento.
-*   **Fluxo de Aprovação:** Serviços podem ser de aprovação automática (corte de cabelo) ou exigirem confirmação manual pelo painel (mentorias/consultas). Cancelamentos e reagendamentos podem ser feitos através do Dashboard e sincronizados.
-*   **Cobrança Antecipada (Mercado Pago):** Geração dinâmica de Pix "Copia e Cola" e QR Code via Mercado Pago, para cobrar sinais/pagamentos antecipados, liberando a vaga somente após confirmação via webhook.
-*   **Notificações Multicanal:**
-    *   📧 E-mails transacionais (Resend) para convidados e profissionais.
-    *   💬 Lembretes e notificações automáticas de WhatsApp (via Evolution API) para reduzir o *no-show*.
-*   **Equipes / Multi-Profissionais:** Capacidade de criar "Equipes" (ex. Clínicas) e adicionar múltiplos membros com permissões de Owner, Admin ou Member.
-*   **Anti Double-Booking:** Sistema transacional de banco de dados (`FOR UPDATE SKIP LOCKED`) para impedir sobreposições de horários de forma segura, acoplado a verificações do Google Calendar.
+    *   **Horários Recorrentes:** Múltiplos intervalos de horários por dia (ex: pausas para almoço).
+    *   **Férias e Feriados:** Bloqueios pontuais (Exceptions) e sobreposições de horários de forma flexível.
+*   **Integrações Poderosas:**
+    *   **Google Calendar:** Prevenção de conflitos e geração automática de links de reuniões.
+    *   **WhatsApp (Evolution API):** Lembretes e notificações automáticas de WhatsApp para reduzir o *no-show*.
+    *   **E-mails Transacionais (Resend):** Comunicações elegantes (via React Email) e automáticas para convidados e profissionais.
+*   **Monetização e Cobranças:**
+    *   **Stripe:** Gestão de Assinaturas (SaaS B2B) para as equipes cadastradas.
+    *   **Mercado Pago:** Cobranças antecipadas (Pix "Copia e Cola" e QR Code) liberando a vaga somente após a confirmação do pagamento (Webhooks).
+*   **Anti Double-Booking:** Arquitetura robusta de banco de dados (`FOR UPDATE SKIP LOCKED`) para impedir sobreposições de horários de forma segura e concorrente.
 
 ## 🛠 Tecnologias Utilizadas
 
-*   **Framework:** [Next.js 15](https://nextjs.org/) (App Router, Server Actions)
+*   **Framework:** [Next.js 15+](https://nextjs.org/) (App Router, Server Actions) & React 19
 *   **Linguagem:** TypeScript
-*   **Estilos:** Tailwind CSS + [Lucide Icons](https://lucide.dev/)
+*   **Estilos:** [Tailwind CSS v4](https://tailwindcss.com/) + [Lucide Icons](https://lucide.dev/)
 *   **Banco de Dados:** PostgreSQL (Hospedado no [Neon](https://neon.tech/))
 *   **ORM:** [Prisma](https://www.prisma.io/)
-*   **Autenticação:** [NextAuth.js v5 (Auth.js)](https://authjs.dev/) - Suporte a Google OAuth e Magic Links.
+*   **Autenticação:** [NextAuth.js v5 (Auth.js)](https://authjs.dev/)
 *   **E-mails:** [Resend](https://resend.com/) + React Email
-*   **Pagamentos:** [Mercado Pago SDK](https://www.mercadopago.com.br/developers/) (QR Code Pix & Webhooks)
+*   **Pagamentos & Assinaturas:** [Stripe](https://stripe.com/) (Assinaturas SaaS) e [Mercado Pago SDK](https://www.mercadopago.com.br/developers/) (Agendamentos)
 *   **Validação:** Zod + React Hook Form
+*   **Testes:** [Vitest](https://vitest.dev/) (Testes Unitários) e [Playwright](https://playwright.dev/) (Testes E2E)
 
 ## 💻 Como Rodar o Projeto (Desenvolvimento)
 
@@ -39,17 +40,26 @@ MarcaAí é uma plataforma SaaS moderna de agendamentos online projetada especia
    ```bash
    npm install
    ```
-3. Crie um arquivo `.env` baseado no seu ambiente (você precisará configurar chaves do Google OAuth, Neon PostgreSQL, Resend e Mercado Pago). Exemplo de `.env`:
+3. Crie um arquivo `.env` na raiz baseado no `.env.example` ou nas variáveis abaixo (requer chaves do Google OAuth, Neon PostgreSQL, Resend, Stripe e Mercado Pago). Exemplo:
    ```env
    DATABASE_URL="postgresql://user:pass@host/db?sslmode=require"
+   
    AUTH_SECRET="seu_segredo_super_forte_aqui"
    AUTH_URL="http://localhost:3000"
    AUTH_GOOGLE_ID="google_client_id"
    AUTH_GOOGLE_SECRET="google_client_secret"
+   
    RESEND_API_KEY="re_..."
-   RESEND_FROM_EMAIL="People OS <noreply@seudominio.com>"
+   RESEND_FROM_EMAIL="MarcaAí <noreply@seudominio.com>"
+   
    NEXT_PUBLIC_APP_URL="http://localhost:3000"
+   
+   # Pagamentos
    MERCADOPAGO_ACCESS_TOKEN="APP_USR-..."
+   STRIPE_SECRET_KEY="sk_test_..."
+   STRIPE_WEBHOOK_SECRET="whsec_..."
+   
+   # Integração WhatsApp
    WHATSAPP_API_URL="http://seu-servidor-evolution-api.com"
    WHATSAPP_API_KEY="sua_chave_de_api"
    ```
@@ -64,9 +74,17 @@ MarcaAí é uma plataforma SaaS moderna de agendamentos online projetada especia
    ```
 6. Acesse `http://localhost:3000`.
 
+## 🧪 Testes
+
+O projeto adota uma rigorosa cobertura de testes unitários e de integração/E2E:
+
+- **Testes Unitários:** Rode `npm run test` (ou `npm run test:watch` para modo interativo com Vitest).
+- **Testes E2E (UI):** Rode `npm run test:e2e:ui` para abrir a interface gráfica do Playwright, ou `npm run test:e2e` para execução headless em background.
+- **Cobertura de Testes:** Rode `npm run test:coverage` para gerar o relatório de cobertura detalhado.
+
 ## 📦 Cron Jobs e Lembretes (WhatsApp/E-mail)
 
-Para o sistema de lembretes automáticos de WhatsApp rodar, existe uma rota configurada em `/api/cron/reminders`. Na Vercel, isso é configurado criando o arquivo `vercel.json`:
+Para o sistema de lembretes automáticos de WhatsApp e e-mail funcionar, existe uma rota configurada em `/api/cron/reminders`. Na Vercel, isso é configurado criando o arquivo `vercel.json`:
 
 ```json
 {
@@ -78,7 +96,7 @@ Para o sistema de lembretes automáticos de WhatsApp rodar, existe uma rota conf
   ]
 }
 ```
-*(No exemplo acima, ele varre a agenda a cada hora para disparar os lembretes do dia, buscando agendamentos que ocorrem nas próximas 2 horas).*
+*(Esta rotina verifica a agenda a cada hora para disparar os lembretes do dia para os compromissos futuros)*
 
 ---
-*Desenvolvido com foco em alta conversão e estabilidade.*
+*Desenvolvido com foco em alta conversão, flexibilidade B2B e estabilidade.*
