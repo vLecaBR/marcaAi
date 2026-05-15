@@ -1,6 +1,5 @@
 import type { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
-import Resend from "next-auth/providers/resend"
 import { env } from "@/lib/env"
 
 export default {
@@ -18,9 +17,6 @@ export default {
           scope: "openid email profile https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events",
         },
       },
-    }),
-    Resend({
-      from: "no-reply@marcaai.com",
     }),
   ],
   secret: process.env.AUTH_SECRET,

@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
+import Resend from "next-auth/providers/resend"
 import { prisma } from "@/lib/prisma"
 import authConfig from "./auth.config"
 
@@ -7,6 +8,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
 
   ...authConfig,
+  providers: [
+    ...authConfig.providers,
+    Resend({
+      from: "no-reply@marcaai.com",
+    }),
+  ],
 
   callbacks: {
     async signIn({ user, account, profile }) {
