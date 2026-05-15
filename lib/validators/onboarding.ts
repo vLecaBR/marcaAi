@@ -47,5 +47,17 @@ export const availabilitySchema = z.object({
   )
 })
 
+export const onboardingSchema = z.object({
+  username: z
+    .string()
+    .min(3, "O nome de usuário deve ter no mínimo 3 caracteres.")
+    .max(20, "O nome de usuário deve ter no máximo 20 caracteres.")
+    .regex(/^[a-z0-9-]+$/, "Apenas letras minúsculas, números e hífens são permitidos.")
+    .transform((val) => val.toLowerCase()),
+  timeZone: z.string().min(1, "Fuso horário é obrigatório."),
+  theme: z.enum(["DARK", "LIGHT", "SYSTEM"]).default("DARK"),
+})
+
 export type ProfileInput = z.infer<typeof profileSchema>
 export type AvailabilityInput = z.infer<typeof availabilitySchema>
+export type OnboardingData = z.infer<typeof onboardingSchema>
