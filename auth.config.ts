@@ -4,6 +4,7 @@ import Resend from "next-auth/providers/resend"
 import { env } from "@/lib/env"
 
 export default {
+  debug: true,
   providers: [
     Google({
       clientId: env.AUTH_GOOGLE_ID,
