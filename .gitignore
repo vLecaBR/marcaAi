@@ -42,3 +42,10 @@ next-env.d.ts
 
 /app/generated/prisma
 spec
+
+# testing reports
+/coverage
+/playwright-report
+/test-results
+/.last-run.json
+report.json

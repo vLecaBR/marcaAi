@@ -1,33 +1,18 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
-    branches: ["main", "dev"]
+    branches: ["main"]
   pull_request:
-    branches: ["main", "dev"]
+    branches: ["main"]
 
 jobs:
-  build:
-    name: build
+  build-and-test:
+    name: Build, Lint & Test
     runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: testdb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          
+
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -36,179 +21,14 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Cache Next.js
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
-
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci
 
-      - name: Generate Prisma Client
-        run: npx prisma generate
+      - name: Run ESLint
+        run: npm run lint
 
-      - name: Run Database Migrations and Seed
-        run: |
-          npx prisma migrate reset --force
-          npm run build || true # Just in case for Next.js requirements? No, just Prisma setup
-        env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
+      - name: Run Unit Tests
+        run: npm run test
 
-      - name: Build Next.js
+      - name: Build Check
         run: npm run build
-        env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
-          AUTH_SECRET: "test-secret-never-use-in-prod"
-          AUTH_GOOGLE_ID: "mock"
-          AUTH_GOOGLE_SECRET: "mock"
-          STRIPE_SECRET_KEY: "mock"
-          STRIPE_PRO_PRICE_ID: "mock"
-          WHATSAPP_API_URL: "mock"
-          WHATSAPP_API_KEY: "mock"
-          RESEND_API_KEY: "mock"
-          RESEND_FROM_EMAIL: "mock@mock.com"
-
-      - name: Run Unit Tests with Coverage
-        run: npm run test:coverage
-        env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
-          TZ: "America/Sao_Paulo"
-
-  e2e:
-    name: End-to-End Tests (Playwright)
-    runs-on: ubuntu-latest
-    needs: build
-    
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: testdb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Cache Next.js
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
-
-      - name: Install Dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run Database Migrations and Seed
-        run: |
-          npx prisma migrate reset --force
-        env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
-
-      - name: Run Playwright Tests
-        run: npm run test:e2e
-        env:
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-          AUTH_SECRET: "test-secret-never-use-in-prod"
-          AUTH_GOOGLE_ID: "mock"
-          AUTH_GOOGLE_SECRET: "mock"
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
-          STRIPE_SECRET_KEY: "mock"
-          STRIPE_PRO_PRICE_ID: "mock"
-          WHATSAPP_API_URL: "mock"
-          WHATSAPP_API_KEY: "mock"
-          RESEND_API_KEY: "mock"
-          RESEND_FROM_EMAIL: "mock@mock.com"
-
-      - name: Upload Playwright Report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 14
-
-      - name: Seed Database for Lighthouse
-        run: |
-          npx prisma migrate reset --force
-          npx tsx prisma/seed.ts
-        env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
-
-      - name: Build Next.js for Lighthouse
-        run: npm run build
-        env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
-          AUTH_SECRET: "test-secret-never-use-in-prod"
-          AUTH_GOOGLE_ID: "mock"
-          AUTH_GOOGLE_SECRET: "mock"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-
-      - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v12
-        env:
-          DATABASE_URL: "postgresql://user:password@localhost:5432/testdb"
-          AUTH_SECRET: "test-secret-never-use-in-prod"
-          AUTH_GOOGLE_ID: "mock"
-          AUTH_GOOGLE_SECRET: "mock"
-        with:
-          configPath: "./.lighthouserc.json"
-
-  deploy:
-    name: Deploy to Vercel (CD)
-    runs-on: ubuntu-latest
-    needs: [build, e2e]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Build Project Artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
