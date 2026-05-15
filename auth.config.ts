@@ -5,6 +5,7 @@ import { env } from "@/lib/env"
 
 export default {
   debug: true,
+  session: { strategy: "jwt" },
   providers: [
     Google({
       clientId: env.AUTH_GOOGLE_ID,
