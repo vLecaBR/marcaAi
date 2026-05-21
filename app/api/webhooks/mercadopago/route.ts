@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { env } from "@/lib/env"
 
 // In a real application, you'd want to verify the MercadoPago signature
 // using x-signature or checking the IP, but for this prototype we'll
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
     // Usually you would query MercadoPago API to get the payment details
     // using `paymentId` to confirm it's actually PAID.
     // For this prototype, we'll assume it's paid or just fetch it if we have the token.
-    const token = process.env.MERCADOPAGO_ACCESS_TOKEN
+    const token = env.MERCADOPAGO_ACCESS_TOKEN
     if (!token) {
       return NextResponse.json({ status: "error", message: "Missing token" }, { status: 500 })
     }
