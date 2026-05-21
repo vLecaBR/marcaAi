@@ -55,7 +55,7 @@ export async function approveBookingAction(uid: string) {
   }
 
   await prisma.booking.update({
-    where: { uid },
+    where: { uid, userId: session.user.id },
     data: { 
       status: "CONFIRMED",
       meetingId: finalMeetingId,

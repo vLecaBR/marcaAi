@@ -66,7 +66,7 @@ export async function removeExceptionAction(id: string) {
   if (!exception) return { success: false, error: "Bloqueio não encontrado ou sem permissão" }
 
   await prisma.scheduleException.delete({
-    where: { id },
+    where: { id, userId: session.user.id },
   })
 
   revalidatePath("/settings/availability")

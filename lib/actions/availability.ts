@@ -47,7 +47,7 @@ export async function saveAvailabilityAction(
 
   await prisma.$transaction([
     prisma.schedule.update({
-      where: { id: scheduleId },
+      where: { id: scheduleId, userId: session.user.id },
       data: { timeZone },
     }),
     prisma.scheduleAvailability.deleteMany({

@@ -69,12 +69,19 @@ export async function upsertEventTypeAction(
   }
 
   const eventType = await prisma.$transaction(async (tx: any) => {
-    const event = await tx.eventType.upsert({
-      where: { id: id ?? "" },
-      create: { ...data, userId: session.user.id },
-      update: data,
-      select: { id: true, slug: true },
-    })
+    let event;
+    if (id) {
+      event = await tx.eventType.update({
+        where: { id, userId: session.user.id },
+        data: data,
+        select: { id: true, slug: true },
+      })
+    } else {
+      event = await tx.eventType.create({
+        data: { ...data, userId: session.user.id },
+        select: { id: true, slug: true },
+      })
+    }
 
     if (questions) {
       // Clear old questions
@@ -119,7 +126,7 @@ export async function toggleEventTypeAction(
   if (!eventType) return { success: false, error: "Evento não encontrado." }
 
   await prisma.eventType.update({
-    where: { id },
+    where: { id, userId: session.user.id },
     data: { isActive },
   })
 
@@ -141,7 +148,7 @@ export async function deleteEventTypeAction(
 
   if (!eventType) return { success: false, error: "Evento não encontrado." }
 
-  await prisma.eventType.delete({ where: { id } })
+  await prisma.eventType.delete({ where: { id, userId: session.user.id } })
 
   revalidatePath("/dashboard/event-types")
   return { success: true, data: undefined }
