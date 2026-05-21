@@ -157,7 +157,7 @@ export async function createBooking(
           `
 
           if (conflictingRows.length > 0) {
-            throw new ConflictError(`Horário já reservado na repetição da semana ${i + 1}.`)
+            throw new ConflictError("Este horário acabou de ser reservado por outra pessoa. Por favor, escolha outro horário.")
           }
 
           const newBooking = await tx.booking.create({
@@ -380,7 +380,7 @@ export async function createBooking(
     }
 
     const message = mapPrismaError(err, "Erro interno ao criar agendamento.")
-    if (message === "Horário reservado simultaneamente ou conflito de transação.") {
+    if (message === "Este horário acabou de ser reservado por outra pessoa. Por favor, escolha outro horário.") {
       return { status: "conflict", message }
     }
 

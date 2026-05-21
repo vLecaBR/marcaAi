@@ -7,7 +7,7 @@ export function mapPrismaError(err: any, defaultMessage = "Erro interno no servi
       case "P2025":
         return "Registro não encontrado.";
       case "P2034":
-        return "Horário reservado simultaneamente ou conflito de transação.";
+        return "Este horário acabou de ser reservado por outra pessoa. Por favor, escolha outro horário.";
       default:
         return defaultMessage;
     }
