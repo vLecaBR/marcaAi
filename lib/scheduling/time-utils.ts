@@ -158,15 +158,33 @@ export function generateSlotsInWindow(
 /**
  * Retorna um array de datas (meia-noite UTC) entre dateFrom e dateTo inclusive.
  */
-export function eachDayBetween(dateFrom: Date, dateTo: Date): Date[] {
+export function eachDayBetween(dateFrom: Date, dateTo: Date, timeZone?: string): Date[] {
   const days: Date[] = []
-  const cursor = startOfDay(dateFrom)
-  const end = startOfDay(dateTo)
+  
+  if (timeZone) {
+    const fromLocal = toZonedTime(dateFrom, timeZone)
+    const toLocal = toZonedTime(dateTo, timeZone)
+    
+    const cursor = new Date(fromLocal)
+    cursor.setHours(12, 0, 0, 0) // 12:00 PM safely avoids DST issues
+    
+    const end = new Date(toLocal)
+    end.setHours(12, 0, 0, 0)
+    
+    let current = new Date(cursor)
+    while (current.getTime() <= end.getTime()) {
+      days.push(fromZonedTime(current, timeZone))
+      current.setDate(current.getDate() + 1)
+    }
+  } else {
+    const cursor = startOfDay(dateFrom)
+    const end = startOfDay(dateTo)
 
-  let current = cursor
-  while (!isAfter(current, end)) {
-    days.push(new Date(current))
-    current = addMinutes(current, 60 * 24)
+    let current = cursor
+    while (!isAfter(current, end)) {
+      days.push(new Date(current))
+      current = addMinutes(current, 60 * 24)
+    }
   }
 
   return days

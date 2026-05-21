@@ -18,7 +18,7 @@ export function buildAvailableWindows(
   dateFrom: Date,
   dateTo: Date
 ): DayAvailability[] {
-  const days = eachDayBetween(dateFrom, dateTo)
+  const days = eachDayBetween(dateFrom, dateTo, schedule.timeZone)
   const result: DayAvailability[] = []
 
   for (const day of days) {
