@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
   try {
     if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session
+      const session = event.data.object as any
 
       if (!session.subscription) {
         return new NextResponse("No subscription associated with checkout session", { status: 400 })
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     }
 
     if (event.type === "invoice.payment_succeeded") {
-      const invoice = event.data.object as Stripe.Invoice
+      const invoice = event.data.object as any
 
       if (!invoice.subscription) {
         return new NextResponse(null, { status: 200 })
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
 
     if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
       // 3. O event.data.object para esses eventos já é Stripe.Subscription, sem necessidade do retrieve extra
-      const subscription = event.data.object as Stripe.Subscription
+      const subscription = event.data.object as any
 
       await prisma.subscription.update({
         where: {

@@ -28,7 +28,7 @@ describe("Onboarding Server Actions", () => {
 
   describe("completeProfileAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await completeProfileAction({
         name: "Test",
@@ -78,7 +78,7 @@ describe("Onboarding Server Actions", () => {
 
   describe("completeOnboardingAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await completeOnboardingAction()
       expect(result).toEqual({ success: false, error: "Não autorizado." })

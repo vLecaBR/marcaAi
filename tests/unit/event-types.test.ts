@@ -42,7 +42,7 @@ describe("Event Types Server Actions", () => {
 
   describe("getEventTypesAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await getEventTypesAction()
       expect(result).toEqual({ success: false, error: "Não autorizado." })
@@ -65,7 +65,7 @@ describe("Event Types Server Actions", () => {
 
   describe("upsertEventTypeAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await upsertEventTypeAction({ title: "T", slug: "s", duration: 30 } as any)
       expect(result).toEqual({ success: false, error: "Não autorizado." })
@@ -122,7 +122,7 @@ describe("Event Types Server Actions", () => {
 
   describe("toggleEventTypeAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await toggleEventTypeAction("eventId", true)
       expect(result).toEqual({ success: false, error: "Não autorizado." })
@@ -150,7 +150,7 @@ describe("Event Types Server Actions", () => {
 
   describe("deleteEventTypeAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await deleteEventTypeAction("eventId")
       expect(result).toEqual({ success: false, error: "Não autorizado." })

@@ -1,5 +1,5 @@
 import { test as base, Page, BrowserContext } from "@playwright/test"
-// @ts-ignore
+/* eslint-disable react-hooks/rules-of-hooks */
 import { encode } from "next-auth/jwt"
 import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"

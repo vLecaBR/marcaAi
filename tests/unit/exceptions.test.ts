@@ -32,7 +32,7 @@ describe("Exceptions Server Actions", () => {
 
   describe("addExceptionAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await addExceptionAction({
         scheduleId: "cuid123456789012345678901",
@@ -93,7 +93,7 @@ describe("Exceptions Server Actions", () => {
 
   describe("removeExceptionAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await removeExceptionAction("exc123")
       expect(result).toEqual({ success: false, error: "Não autorizado" })

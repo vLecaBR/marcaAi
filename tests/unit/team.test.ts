@@ -44,7 +44,7 @@ describe("Team Server Actions", () => {
 
   describe("upsertTeamAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await upsertTeamAction({ name: "Team 1", slug: "team-1" })
       expect(result).toEqual({ success: false, error: "Não autorizado." })
@@ -99,7 +99,7 @@ describe("Team Server Actions", () => {
 
   describe("inviteTeamMemberAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await inviteTeamMemberAction({ teamId: "cuid123456789012345678901", email: "test@test.com", role: "MEMBER" })
       expect(result).toEqual({ success: false, error: "Não autorizado." })
@@ -138,7 +138,7 @@ describe("Team Server Actions", () => {
 
   describe("removeTeamMemberAction", () => {
     it("deve retornar erro se não autenticado", async () => {
-      // @ts-ignore
+      // @ts-expect-error - mock
       mockSession.user.id = null
       const result = await removeTeamMemberAction("teamId", "targetId")
       expect(result).toEqual({ success: false, error: "Não autorizado." })

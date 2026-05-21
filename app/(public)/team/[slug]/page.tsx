@@ -21,9 +21,10 @@ const LOCATION_LABELS: Record<string, string> = {
   PHONE: "Telefone", IN_PERSON: "Presencial", CUSTOM: "Local remoto",
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const team = await prisma.team.findUnique({
-    where: { slug: params.slug }
+    where: { slug }
   })
   
   if (!team) return { title: "Equipe não encontrada" }
@@ -34,8 +35,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function PublicTeamPage({ params }: { params: { slug: string } }) {
-  const { slug } = params
+export default async function PublicTeamPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
 
   const team = await prisma.team.findUnique({
     where: { slug },

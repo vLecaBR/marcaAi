@@ -84,10 +84,10 @@ export default async function DashboardPage() {
   ])
 
   // Monta stats
-  const totalBookings = bookingStats.reduce((acc, s) => acc + s._count._all, 0)
-  const confirmedCount = bookingStats.find((s) => s.status === "CONFIRMED")?._count._all ?? 0
-  const pendingCount   = bookingStats.find((s) => s.status === "PENDING")?._count._all ?? 0
-  const cancelledCount = bookingStats.find((s) => s.status === "CANCELLED")?._count._all ?? 0
+  const totalBookings = bookingStats.reduce((acc: number, s: any) => acc + s._count._all, 0)
+  const confirmedCount = bookingStats.find((s: any) => s.status === "CONFIRMED")?._count._all ?? 0
+  const pendingCount   = bookingStats.find((s: any) => s.status === "PENDING")?._count._all ?? 0
+  const cancelledCount = bookingStats.find((s: any) => s.status === "CANCELLED")?._count._all ?? 0
 
   const firstName = session.user.name?.split(" ")[0] ?? "Usuário"
   const username  = session.user.username
@@ -187,7 +187,7 @@ export default async function DashboardPage() {
             <EmptyEventTypes />
           ) : (
             <div className="space-y-3">
-              {eventTypes.map((et) => (
+              {eventTypes.map((et: any) => (
                 <div
                   key={et.id}
                   className={cn(
@@ -261,7 +261,7 @@ export default async function DashboardPage() {
             <EmptyBookings />
           ) : (
             <div className="space-y-3">
-              {upcomingBookings.map((booking) => (
+              {upcomingBookings.map((booking: any) => (
                 <div
                   key={booking.id}
                   className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5 space-y-3 transition-colors hover:bg-zinc-900/80"

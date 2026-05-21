@@ -32,7 +32,7 @@ async function main() {
   const availability = schedule.availabilities[0]
   // Find next occurrence of availability.dayOfWeek
   const now = new Date()
-  let targetDate = new Date(now)
+  const targetDate = new Date(now)
   targetDate.setDate(now.getDate() + 1) // start from tomorrow
   while (targetDate.getDay() !== availability.dayOfWeek) {
     targetDate.setDate(targetDate.getDate() + 1)

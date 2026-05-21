@@ -29,7 +29,7 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
 
   if (!team) redirect("/dashboard/teams")
 
-  const currentMember = team.members.find(m => m.userId === session.user.id)
+  const currentMember = team.members.find((m: any) => m.userId === session.user.id)
   if (!currentMember) redirect("/dashboard/teams")
 
   const isSubscribed = team.subscription?.status === "active"

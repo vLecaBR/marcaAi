@@ -43,7 +43,7 @@ describe("Billing Server Actions", () => {
   })
 
   it("deve retornar erro se não autenticado", async () => {
-    // @ts-ignore
+    // @ts-expect-error - mock
     mockSession.user.id = null
     const result = await createCheckoutSessionAction("team-1")
     expect(result).toEqual({ error: "Unauthorized" })
