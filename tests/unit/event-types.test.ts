@@ -20,6 +20,7 @@ vi.mock("@/lib/prisma", () => ({
       upsert: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      create: vi.fn(),
     },
     eventTypeQuestion: {
       deleteMany: vi.fn(),
@@ -96,7 +97,7 @@ describe("Event Types Server Actions", () => {
 
     it("deve criar um novo evento com perguntas", async () => {
       vi.mocked(prisma.eventType.findFirst).mockResolvedValueOnce(null)
-      vi.mocked(prisma.eventType.upsert).mockResolvedValueOnce({ id: "new-event", slug: "test-slug" } as any)
+      vi.mocked(prisma.eventType.create).mockResolvedValueOnce({ id: "new-event", slug: "test-slug" } as any)
 
       const result = await upsertEventTypeAction({
         title: "Test",
@@ -112,7 +113,7 @@ describe("Event Types Server Actions", () => {
       })
 
       expect(prisma.$transaction).toHaveBeenCalled()
-      expect(prisma.eventType.upsert).toHaveBeenCalled()
+      expect(prisma.eventType.create).toHaveBeenCalled()
       expect(prisma.eventTypeQuestion.deleteMany).toHaveBeenCalledWith({ where: { eventTypeId: "new-event" } })
       expect(prisma.eventTypeQuestion.createMany).toHaveBeenCalled()
       
@@ -141,7 +142,7 @@ describe("Event Types Server Actions", () => {
 
       const result = await toggleEventTypeAction("eventId", false)
       expect(prisma.eventType.update).toHaveBeenCalledWith({
-        where: { id: "eventId" },
+        where: { id: "eventId", userId: "test-user-id" },
         data: { isActive: false },
       })
       expect(result).toEqual({ success: true, data: undefined })
@@ -169,7 +170,7 @@ describe("Event Types Server Actions", () => {
 
       const result = await deleteEventTypeAction("eventId")
       expect(prisma.eventType.delete).toHaveBeenCalledWith({
-        where: { id: "eventId" },
+        where: { id: "eventId", userId: "test-user-id" },
       })
       expect(result).toEqual({ success: true, data: undefined })
     })

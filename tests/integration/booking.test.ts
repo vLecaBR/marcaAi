@@ -30,12 +30,20 @@ describe("Booking Server Actions Integration", () => {
   let testSchedule: any
 
   beforeEach(async () => {
-    // Limpar o banco antes de cada teste
-    await prisma.booking.deleteMany()
-    await prisma.scheduleAvailability.deleteMany()
-    await prisma.schedule.deleteMany()
-    await prisma.eventType.deleteMany()
-    await prisma.user.deleteMany()
+    try {
+      // Limpar o banco antes de cada teste
+      await prisma.bookingResponse.deleteMany()
+      await prisma.booking.deleteMany()
+      await prisma.scheduleException.deleteMany()
+      await prisma.scheduleAvailability.deleteMany()
+      await prisma.schedule.deleteMany()
+      await prisma.eventTypeQuestion.deleteMany()
+      await prisma.eventType.deleteMany()
+      await prisma.user.deleteMany()
+    } catch (e: any) {
+      console.error("PRISMA ERROR:", e)
+      throw e
+    }
 
     testUser = await prisma.user.create({
       data: {
@@ -119,7 +127,7 @@ describe("Booking Server Actions Integration", () => {
     expect(result2.status).toBe("conflict")
     
     if (result2.status === "conflict") {
-      expect(result2.message).toMatch(/Horário (já reservado|reservado simultaneamente)/)
+      expect(result2.message).toMatch(/reservado por outra pessoa/)
     }
   })
 

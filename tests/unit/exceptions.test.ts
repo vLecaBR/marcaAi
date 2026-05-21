@@ -112,7 +112,7 @@ describe("Exceptions Server Actions", () => {
       
       const result = await removeExceptionAction("exc123")
       expect(prisma.scheduleException.delete).toHaveBeenCalledWith({
-        where: { id: "exc123" },
+        where: { id: "exc123", userId: "test-user-id" },
       })
       expect(result).toEqual({ success: true })
     })
