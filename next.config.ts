@@ -8,10 +8,6 @@ const nextConfig: NextConfig = {
     // O GitHub Actions já é responsável por rodar o TypeScript e testes.
     ignoreBuildErrors: true,
   },
-  eslint: {
-    // Ignora ESLint no build da Vercel pelo mesmo motivo acima.
-    ignoreDuringBuilds: true,
-  },
   async headers() {
     return [
       {
