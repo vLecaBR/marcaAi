@@ -171,7 +171,7 @@ export function eachDayBetween(dateFrom: Date, dateTo: Date, timeZone?: string):
     const end = new Date(toLocal)
     end.setHours(12, 0, 0, 0)
     
-    let current = new Date(cursor)
+    const current = new Date(cursor)
     while (current.getTime() <= end.getTime()) {
       days.push(fromZonedTime(current, timeZone))
       current.setDate(current.getDate() + 1)
