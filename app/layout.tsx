@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter, Geist_Mono } from "next/font/google"
 import { auth } from "@/auth"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: "People OS", template: "%s | People OS" },
   description: "Agendamento inteligente para profissionais de alto padrão.",
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default async function RootLayout({
