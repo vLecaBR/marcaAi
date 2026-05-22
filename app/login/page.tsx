@@ -1,3 +1,4 @@
+import { Metadata } from "next"
 import { signIn } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -5,6 +6,10 @@ import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Logo } from "@/components/ui/logo"
 import { Mail } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Entrar",
+}
 
 export default function LoginPage() {
   return (
@@ -62,6 +67,10 @@ export default function LoginPage() {
               <Mail size={16} /> Enviar link mágico
             </Button>
           </form>
+
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Ao continuar, você concorda com nossos <a href="/termos" className="underline">Termos de Uso</a> e <a href="/privacidade" className="underline">Política de Privacidade</a>.
+          </p>
         </Card>
       </div>
     </div>
