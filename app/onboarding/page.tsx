@@ -4,10 +4,23 @@ import { useState, useEffect } from "react"
 import { submitOnboarding } from "./actions"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Logo } from "@/components/ui/logo"
+import { ArrowRight, ArrowLeft, Check, Link2, Settings } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+const steps = [
+  { id: 1, title: "Seu link", icon: Link2 },
+  { id: 2, title: "Preferências", icon: Settings },
+]
 
 export default function OnboardingPage() {
   const { data: session, update } = useSession()
   const router = useRouter()
+  const [step, setStep] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [timeZone, setTimeZone] = useState("America/Sao_Paulo")
@@ -16,12 +29,16 @@ export default function OnboardingPage() {
     setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone)
   }, [])
 
+  const next = () => (step < 2 ? setStep(step + 1) : null)
+  const back = () => (step > 1 ? setStep(step - 1) : null)
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
 
     const formData = new FormData(e.currentTarget)
+    formData.set("timeZone", timeZone)
     
     try {
       const result = await submitOnboarding(formData)
@@ -33,7 +50,6 @@ export default function OnboardingPage() {
       }
 
       if (result.success) {
-        // Atualiza a sessão no cliente e redireciona
         await update({ onboarded: true })
         router.push("/dashboard")
       }
@@ -44,84 +60,117 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4">
-      <div className="w-full max-w-md space-y-8 rounded-xl bg-zinc-900 p-8 shadow-2xl ring-1 ring-white/10">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">Bem-vindo(a)!</h2>
-          <p className="mt-2 text-sm text-zinc-400">
-            Vamos configurar o seu perfil para começar.
-          </p>
-        </div>
+    <div className="min-h-screen bg-muted/30 dark:bg-background flex flex-col">
+      <header className="p-6 flex items-center justify-center">
+        <Logo />
+      </header>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="rounded-md bg-red-500/10 p-4 text-sm text-red-500 border border-red-500/20">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium leading-6 text-white">
-              Nome de Usuário (URL)
-            </label>
-            <div className="mt-2 flex rounded-md bg-zinc-800 shadow-sm ring-1 ring-inset ring-white/10 focus-within:ring-2 focus-within:ring-inset focus-within:ring-violet-500">
-              <span className="flex select-none items-center pl-3 text-zinc-500 sm:text-sm">
-                marcaai.com/
-              </span>
-              <input
-                type="text"
-                name="username"
-                id="username"
-                required
-                className="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-white focus:ring-0 sm:text-sm sm:leading-6"
-                placeholder="seunome"
-              />
-            </div>
+      <div className="flex-1 flex items-start justify-center px-6 pb-16 pt-8">
+        <Card className="w-full max-w-2xl p-10 rounded-2xl shadow-sm border-border/60">
+          <div className="flex items-center justify-between mb-2">
+            {steps.map((s, i) => (
+              <div key={s.id} className="flex-1 flex items-center">
+                <div className={`flex items-center gap-2.5 ${i === 0 ? "" : "ml-2"}`}>
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center transition ${
+                      step > s.id
+                        ? "bg-primary text-primary-foreground"
+                        : step === s.id
+                        ? "bg-primary text-primary-foreground ring-4 ring-primary/15"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {step > s.id ? <Check size={16} /> : <s.icon size={16} />}
+                  </div>
+                  <span className={`text-sm hidden sm:inline ${step >= s.id ? "" : "text-muted-foreground"}`}>
+                    {s.title}
+                  </span>
+                </div>
+                {i < steps.length - 1 && (
+                  <div className={`flex-1 h-px mx-3 ${step > s.id ? "bg-primary" : "bg-border"}`} />
+                )}
+              </div>
+            ))}
           </div>
+          <Progress value={(step / 2) * 100} className="mt-6 h-1" />
 
-          <div>
-            <label htmlFor="timeZone" className="block text-sm font-medium leading-6 text-white">
-              Fuso Horário
-            </label>
-            <div className="mt-2">
-              <input
-                type="text"
-                name="timeZone"
-                id="timeZone"
-                readOnly
-                value={timeZone}
-                className="block w-full rounded-md border-0 bg-zinc-800 py-1.5 text-zinc-400 shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-violet-500 sm:text-sm sm:leading-6 px-3 cursor-not-allowed opacity-75"
-              />
+          <form onSubmit={handleSubmit}>
+            {error && (
+              <div className="mt-6 rounded-xl bg-destructive/10 p-4 text-sm text-destructive border border-destructive/20">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-9 min-h-[220px]">
+              {step === 1 && (
+                <div>
+                  <h2 style={{ fontSize: 24, fontWeight: 600 }}>Escolha seu link</h2>
+                  <p className="text-sm text-muted-foreground mt-1.5">É aqui que as pessoas vão marcar um horário com você.</p>
+                  <div className="mt-7">
+                    <label className="text-sm font-medium">URL da sua agenda</label>
+                    <div className="mt-1.5 flex items-center rounded-xl border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring/30 bg-background">
+                      <span className="px-3 py-2.5 bg-muted text-sm text-muted-foreground border-r border-input">marcaai.com/</span>
+                      <input 
+                        name="username" 
+                        required 
+                        className="flex-1 px-3 py-2.5 bg-transparent outline-none text-sm" 
+                        placeholder="seunome" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div>
+                  <h2 style={{ fontSize: 24, fontWeight: 600 }}>Preferências</h2>
+                  <p className="text-sm text-muted-foreground mt-1.5">Ajuste os detalhes finais da sua conta.</p>
+                  <div className="mt-7 space-y-5">
+                    <div>
+                      <label className="text-sm font-medium">Tema de Preferência</label>
+                      <div className="mt-1.5">
+                        <Select name="theme" defaultValue="DARK">
+                          <SelectTrigger className="h-11 rounded-xl">
+                            <SelectValue placeholder="Selecione um tema" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="DARK">Escuro</SelectItem>
+                            <SelectItem value="LIGHT">Claro</SelectItem>
+                            <SelectItem value="SYSTEM">Sistema</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Fuso Horário</label>
+                      <Input className="mt-1.5 h-11 rounded-xl bg-muted/50 cursor-not-allowed" readOnly value={timeZone} />
+                      <p className="text-xs text-muted-foreground mt-2">Detectado automaticamente pelo seu navegador.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="mt-2 text-xs text-zinc-500">Detectado automaticamente pelo seu navegador.</p>
-          </div>
 
-          <div>
-            <label htmlFor="theme" className="block text-sm font-medium leading-6 text-white">
-              Tema de Preferência
-            </label>
-            <div className="mt-2">
-              <select
-                id="theme"
-                name="theme"
-                className="block w-full rounded-md border-0 bg-zinc-800 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-violet-500 sm:text-sm sm:leading-6 px-3"
-                defaultValue="DARK"
-              >
-                <option value="DARK">Escuro</option>
-                <option value="LIGHT">Claro</option>
-                <option value="SYSTEM">Sistema</option>
-              </select>
+            <div className="mt-8 flex items-center justify-between">
+              {step > 1 ? (
+                <Button type="button" variant="ghost" onClick={back} className="rounded-xl">
+                  <ArrowLeft size={16} className="mr-1" /> Voltar
+                </Button>
+              ) : (
+                <div />
+              )}
+              {step < 2 ? (
+                <Button type="button" onClick={next} className="rounded-xl h-11 px-6">
+                  Continuar <ArrowRight size={16} className="ml-1" />
+                </Button>
+              ) : (
+                <Button type="submit" disabled={isLoading} className="rounded-xl h-11 px-6">
+                  {isLoading ? "Salvando..." : "Concluir"} <Check size={16} className="ml-1" />
+                </Button>
+              )}
             </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="flex w-full justify-center rounded-md bg-violet-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? "Salvando..." : "Concluir Configuração"}
-          </button>
-        </form>
+          </form>
+        </Card>
       </div>
     </div>
   )
