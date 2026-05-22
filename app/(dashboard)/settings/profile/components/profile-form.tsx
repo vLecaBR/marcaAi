@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation"
 import { profileSchema, type ProfileInput } from "@/lib/validators/onboarding"
 import { completeProfileAction } from "@/lib/actions/onboarding"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui-new/button"
-import { Input } from "@/components/ui-new/input"
-import { Textarea } from "@/components/ui-new/textarea"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 
 const TIMEZONES = [
   { value: "America/Sao_Paulo", label: "Brasília (GMT-3)" },

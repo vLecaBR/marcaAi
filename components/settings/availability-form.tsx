@@ -7,10 +7,10 @@ import { availabilitySchema, type AvailabilityInput } from "@/lib/validators/onb
 import { saveAvailabilityAction } from "@/lib/actions/availability"
 import { cn } from "@/lib/utils"
 import { Plus, X } from "lucide-react"
-import { Card } from "@/components/ui-new/card"
-import { Switch } from "@/components/ui-new/switch"
-import { Input } from "@/components/ui-new/input"
-import { Button } from "@/components/ui-new/button"
+import { Card } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 const DAY_LABELS = [
   "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"

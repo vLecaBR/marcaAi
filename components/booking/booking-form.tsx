@@ -9,9 +9,9 @@ import { ptBR } from "date-fns/locale"
 import { format } from "date-fns"
 import type { Slot } from "@/lib/scheduling/types"
 import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui-new/input"
-import { Textarea } from "@/components/ui-new/textarea"
-import { Button } from "@/components/ui-new/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
 import { ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react"
 
 const bookingFormSchema = z.object({

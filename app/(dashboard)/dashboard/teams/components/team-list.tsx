@@ -4,9 +4,9 @@ import { useState } from "react"
 import Link from "next/link"
 import { TeamForm } from "./team-form"
 import { Users, Settings, Plus, ArrowUpRight } from "lucide-react"
-import { Card } from "@/components/ui-new/card"
-import { Button } from "@/components/ui-new/button"
-import { Badge } from "@/components/ui-new/badge"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 type TeamData = {

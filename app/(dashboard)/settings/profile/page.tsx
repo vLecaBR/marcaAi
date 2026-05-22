@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { ProfileForm } from "./components/profile-form"
 import type { Metadata } from "next"
-import { Card } from "@/components/ui-new/card"
+import { Card } from "@/components/ui/card"
 
 export const metadata: Metadata = { title: "Meu Perfil | People OS" }
 

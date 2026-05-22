@@ -4,7 +4,7 @@ import { useState } from "react"
 import { EventTypeCard } from "./event-type-card"
 import { EventTypeForm } from "./event-type-form"
 import type { EventTypeInput } from "@/lib/validators/event-type"
-import { Card } from "@/components/ui-new/card"
+import { Card } from "@/components/ui/card"
 import { Plus } from "lucide-react"
 
 type EventType = {

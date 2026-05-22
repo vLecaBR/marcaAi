@@ -4,9 +4,9 @@ import { useState } from "react"
 import { Calendar as CalendarIcon, Trash2, Plus, CalendarOff, Palmtree } from "lucide-react"
 import { addExceptionAction, removeExceptionAction } from "@/lib/actions/exceptions"
 import { cn } from "@/lib/utils"
-import { Card } from "@/components/ui-new/card"
-import { Button } from "@/components/ui-new/button"
-import { Input } from "@/components/ui-new/input"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import {
@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui-new/dialog"
+} from "@/components/ui/dialog"
 
 export function ExceptionsManager({ 
   scheduleId, 
