@@ -98,7 +98,7 @@ export function EventTypeCard({ eventType, username, onEdit }: EventTypeCardProp
                 <Clock size={11} className="mr-1"/> {eventType.duration} min
               </Badge>
             </div>
-            <div className="text-xs text-muted-foreground mt-1 font-mono truncate">marcaai.com/{username}/{eventType.slug}</div>
+            <div className="text-xs text-muted-foreground mt-1 font-mono truncate">marca-ai-app.vercel.app/{username}/{eventType.slug}</div>
             <div className="text-xs text-muted-foreground mt-2">{eventType._count.bookings} agendamento{eventType._count.bookings !== 1 ? 's' : ''}</div>
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">

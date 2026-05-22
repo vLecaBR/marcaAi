@@ -139,7 +139,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         <div className="md:col-span-2">
           <label className="text-sm font-medium">URL de agendamento</label>
           <div className="mt-1.5 flex items-center rounded-xl border border-input overflow-hidden focus-within:ring-3 focus-within:ring-ring/50 focus-within:border-ring transition-[color,box-shadow]">
-            <span className="px-3 py-2.5 bg-muted text-sm text-muted-foreground border-r border-input h-11 flex items-center">marcaai.com/</span>
+            <span className="px-3 py-2.5 bg-muted text-sm text-muted-foreground border-r border-input h-11 flex items-center">marca-ai-app.vercel.app/</span>
             <input
               {...register("username")}
               placeholder="anacosta"

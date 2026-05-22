@@ -109,7 +109,7 @@ export default function OnboardingPage() {
                   <div className="mt-7">
                     <label className="text-sm font-medium">URL da sua agenda</label>
                     <div className="mt-1.5 flex items-center rounded-xl border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring/30 bg-background">
-                      <span className="px-3 py-2.5 bg-muted text-sm text-muted-foreground border-r border-input">marcaai.com/</span>
+                      <span className="px-3 py-2.5 bg-muted text-sm text-muted-foreground border-r border-input">marca-ai-app.vercel.app/</span>
                       <input 
                         name="username" 
                         required 

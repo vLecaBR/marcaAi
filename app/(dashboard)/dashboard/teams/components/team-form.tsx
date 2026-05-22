@@ -119,7 +119,7 @@ export function TeamForm({ open, onClose, defaultValues }: TeamFormProps) {
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-zinc-300">Slug (URL)</label>
             <input {...register("slug")} placeholder="barbearia-do-ze" className={inputClass} />
-            <p className="text-xs text-zinc-600">Aparece na URL: marcaai.com/equipe/slug</p>
+            <p className="text-xs text-zinc-600">Aparece na URL: marca-ai-app.vercel.app/equipe/slug</p>
             {errors.slug && <p className="text-xs text-rose-400">{errors.slug.message}</p>}
           </div>
 

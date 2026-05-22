@@ -11,7 +11,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     ...authConfig.providers,
     Resend({
-      from: "no-reply@marcaai.com",
+      from: "no-reply@marca-ai-app.vercel.app",
     }),
   ],
 

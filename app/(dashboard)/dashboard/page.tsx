@@ -89,7 +89,7 @@ export default async function DashboardPage() {
   const firstName = session.user.name?.split(" ")[0] ?? "Usuário"
   const username  = session.user.username
 
-  const publicLink = username ? `marcaai.com/${username}` : ""
+  const publicLink = username ? `marca-ai-app.vercel.app/${username}` : ""
 
   const formatBookingTime = (date: Date) => {
     if (isToday(date)) return `Hoje · ${format(date, "HH:mm")}`

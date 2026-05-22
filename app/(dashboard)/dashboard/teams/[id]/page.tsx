@@ -85,7 +85,7 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
               <div>
                 <p className="font-medium text-zinc-300">Link Público</p>
                 <a href={`/team/${team.slug}`} target="_blank" rel="noreferrer" className="text-violet-400 hover:underline">
-                  marcaai.com/team/{team.slug}
+                  marca-ai-app.vercel.app/team/{team.slug}
                 </a>
               </div>
               {currentMember.role === "OWNER" && (

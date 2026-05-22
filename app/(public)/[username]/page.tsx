@@ -109,7 +109,7 @@ export default async function UserPublicPage({ params }: Props) {
           <h1 className="mt-5" style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.5 }}>
             {user.name}
           </h1>
-          <p className="text-muted-foreground mt-1">marcaai.com/{username}</p>
+          <p className="text-muted-foreground mt-1">marca-ai-app.vercel.app/{username}</p>
           {user.bio && (
             <p className="max-w-md mt-3 text-sm text-muted-foreground" style={{ lineHeight: 1.6 }}>
               {user.bio}
