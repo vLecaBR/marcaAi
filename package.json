@@ -112,5 +112,12 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "overrides": {
+    "react-day-picker": {
+      "date-fns": "-fns",
+      "react": "",
+      "react-dom": "-dom"
+    }
   }
 }

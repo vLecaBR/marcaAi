@@ -1,42 +1,29 @@
-import { auth } from "@/auth"
+import { auth, signOut } from "@/auth"
 import { redirect } from "next/navigation"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
-import { Calendar, CheckCircle2, Home, Link as LinkIcon, LogOut, Users, User } from "lucide-react"
-import { signOut } from "@/auth"
-
-const NAV_ITEMS = [
-  {
-    href: "/dashboard",
-    label: "Início",
-    icon: <Home className="h-5 w-5" />,
-  },
-  {
-    href: "/dashboard/event-types",
-    label: "Serviços & Eventos",
-    icon: <LinkIcon className="h-5 w-5" />,
-  },
-  {
-    href: "/dashboard/bookings",
-    label: "Agendamentos",
-    icon: <CheckCircle2 className="h-5 w-5" />,
-  },
-  {
-    href: "/dashboard/teams",
-    label: "Equipes",
-    icon: <Users className="h-5 w-5" />,
-  },
-  {
-    href: "/settings/availability",
-    label: "Disponibilidade",
-    icon: <Calendar className="h-5 w-5" />,
-  },
-  {
-    href: "/settings/profile",
-    label: "Meu Perfil",
-    icon: <User className="h-5 w-5" />,
-  },
-]
+import { Logo } from "@/components/ui/logo"
+import { Input } from "@/components/ui/input"
+import { NavLink } from "@/components/dashboard/nav-link"
+import { DevNav } from "@/components/dashboard/dev-nav"
+import {
+  Home,
+  Calendar,
+  Layers,
+  Users,
+  Settings as SettingsIcon,
+  Clock,
+  LogOut,
+  Search,
+  Bell,
+  ChevronDown,
+} from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default async function DashboardLayout({
   children,
@@ -46,100 +33,92 @@ export default async function DashboardLayout({
   const session = await auth()
   if (!session?.user) redirect("/login")
 
+  const userInitials = session.user.name?.[0]?.toUpperCase() ?? "U"
+
   return (
-    <div className="flex min-h-screen bg-[#09090b]">
+    <div className="min-h-screen bg-muted/30 dark:bg-background flex">
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-800/60 bg-[#09090b]">
-        {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-zinc-800/60 px-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600">
-            <Calendar className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-base font-bold tracking-tight text-white">
-            Marca<span className="text-violet-400">Aí</span>
-          </span>
+      <aside className="w-64 bg-card border-r border-border/60 flex flex-col sticky top-0 h-screen">
+        <div className="p-5 border-b border-border/60">
+          <Logo size={22} />
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 space-y-1 px-4 py-6">
-          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4">
-            Menu Principal
-          </p>
-          {NAV_ITEMS.map((item) => (
-            <NavItem key={item.href} href={item.href} icon={item.icon}>
-              {item.label}
-            </NavItem>
-          ))}
+        <nav className="flex-1 p-3 overflow-y-auto">
+          <div className="space-y-0.5">
+            <NavLink href="/dashboard" icon={Home} exact>Início</NavLink>
+            <NavLink href="/dashboard/bookings" icon={Calendar}>Meus agendamentos</NavLink>
+            <NavLink href="/dashboard/event-types" icon={Layers}>Tipos de eventos</NavLink>
+            <NavLink href="/dashboard/teams" icon={Users}>Equipes</NavLink>
+          </div>
+
+          <div className="mt-6 mb-2 px-3 text-xs text-muted-foreground uppercase tracking-wider" style={{ fontWeight: 600 }}>
+            Configurações
+          </div>
+          <div className="space-y-0.5">
+            <NavLink href="/settings/profile" icon={SettingsIcon}>Perfil</NavLink>
+            <NavLink href="/settings/availability" icon={Clock}>Disponibilidade</NavLink>
+          </div>
         </nav>
 
-        {/* User */}
-        <div className="border-t border-zinc-800/60 p-4">
-          <div className="flex items-center gap-3 rounded-xl bg-zinc-900/40 px-3 py-3 border border-zinc-800/50">
-            {session.user.image ? (
-              <img
-                src={session.user.image}
-                alt={session.user.name ?? ""}
-                className="h-9 w-9 rounded-full ring-2 ring-zinc-800"
-              />
-            ) : (
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-600/20 text-sm font-medium text-violet-400 ring-2 ring-zinc-800">
-                {session.user.name?.[0]?.toUpperCase() ?? "U"}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">
-                {session.user.name}
-              </p>
-              <p className="truncate text-xs text-zinc-500">
-                {session.user.email}
-              </p>
-            </div>
-          </div>
-          <div className="mt-2">
-            <form action={async () => {
-              "use server"
-              await signOut()
-            }}>
-              <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-rose-500/10 hover:text-rose-400">
-                <LogOut className="h-4 w-4" />
-                Sair da conta
+        <div className="p-3 border-t border-border/60">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition outline-none">
+                {session.user.image ? (
+                  <img src={session.user.image} alt="User" className="w-8 h-8 rounded-full" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-xs font-semibold">
+                    {userInitials}
+                  </div>
+                )}
+                <div className="flex-1 text-left min-w-0">
+                  <div className="text-sm truncate font-medium">{session.user.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{session.user.email}</div>
+                </div>
+                <ChevronDown size={14} className="text-muted-foreground shrink-0" />
               </button>
-            </form>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <form action={async () => {
+                "use server"
+                await signOut()
+              }}>
+                <button type="submit" className="w-full">
+                  <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sair</span>
+                  </DropdownMenuItem>
+                </button>
+              </form>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1">
-        <div className="mx-auto max-w-6xl px-8 py-10">
-          {children}
-        </div>
-      </main>
-    </div>
-  )
-}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="h-16 bg-card border-b border-border/60 px-6 flex items-center justify-between sticky top-0 z-10">
+          <div className="relative w-80 max-w-full">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar agendamentos, eventos…" className="pl-9 h-10 rounded-xl bg-muted/50 border-0" />
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="w-10 h-10 rounded-xl hover:bg-muted flex items-center justify-center text-muted-foreground transition relative">
+              <Bell size={18} />
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+            </button>
+          </div>
+        </header>
 
-function NavItem({
-  href,
-  icon,
-  children,
-}: {
-  href: string
-  icon: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
-        "text-zinc-400 hover:bg-zinc-800/60 hover:text-white hover:bg-zinc-800"
-      )}
-    >
-      <div className="text-zinc-500 transition-colors group-hover:text-violet-400">
-        {icon}
+        <main className="flex-1 p-8 max-w-7xl w-full mx-auto">
+          {children}
+        </main>
       </div>
-      {children}
-    </Link>
+      
+      {/* Development Navigation Tool */}
+      <DevNav />
+    </div>
   )
 }
