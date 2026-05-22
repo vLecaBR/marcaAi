@@ -8,6 +8,8 @@ import {
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui-new/button"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface CalendarPickerProps {
   availableDates: string[]           // "yyyy-MM-dd"
@@ -60,47 +62,43 @@ export function CalendarPicker({
   return (
     <div className="w-full select-none">
       {/* Navegação de mês */}
-      <div className="mb-5 flex items-center justify-between">
-        <button
-          onClick={() => setViewMonth((m) => subMonths(m, 1))}
-          disabled={isSameMonth(viewMonth, today)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition-all hover:bg-zinc-800 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-        </button>
-
-        <span className="text-sm font-medium capitalize text-white">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold capitalize text-foreground">
           {format(viewMonth, "MMMM yyyy", { locale: ptBR })}
-        </span>
-
-        <button
-          onClick={() => setViewMonth((m) => addMonths(m, 1))}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition-all hover:bg-zinc-800 hover:text-white"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Cabeçalho dias da semana */}
-      <div className="mb-2 grid grid-cols-7 text-center">
-        {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
-          <div key={d} className="py-1 text-xs font-medium text-zinc-600">
-            {d}
-          </div>
-        ))}
+        </h3>
+        <div className="flex items-center gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setViewMonth((m) => subMonths(m, 1))}
+            disabled={isSameMonth(viewMonth, today)}
+            className="h-8 w-8 rounded-lg"
+          >
+            <ChevronLeft size={16} />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setViewMonth((m) => addMonths(m, 1))}
+            className="h-8 w-8 rounded-lg"
+          >
+            <ChevronRight size={16} />
+          </Button>
+        </div>
       </div>
 
       {/* Células */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
+        {/* Cabeçalho dias da semana */}
+        {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
+          <div key={i} className="text-center text-xs text-muted-foreground py-1.5">
+            {d}
+          </div>
+        ))}
         {calendarDays.map((date, idx) => {
           const inMonth   = isSameMonth(date, viewMonth)
           const available = isDateAvailable(date)
           const selected  = isDateSelected(date)
-          const todayDate = isToday(date)
           const dateKey   = format(date, "yyyy-MM-dd")
 
           return (
@@ -109,21 +107,16 @@ export function CalendarPicker({
               disabled={!available || !inMonth}
               onClick={() => onSelectDate(dateKey)}
               className={cn(
-                "relative flex h-9 w-full items-center justify-center rounded-lg text-sm transition-all",
+                "aspect-square rounded-lg text-sm transition flex items-center justify-center relative",
                 !inMonth && "opacity-0 pointer-events-none",
-                inMonth && !available && "text-zinc-700 cursor-default",
+                inMonth && !available && "text-muted-foreground/40 cursor-not-allowed",
                 inMonth && available && !selected &&
-                  "text-white hover:bg-zinc-800 cursor-pointer font-medium",
+                  "bg-violet-50 text-violet-700 hover:bg-violet-100 cursor-pointer dark:bg-violet-900/30 dark:text-violet-400 dark:hover:bg-violet-900/50",
                 selected &&
-                  "bg-violet-600 text-white font-semibold shadow-lg shadow-violet-600/20",
-                todayDate && !selected &&
-                  "ring-1 ring-zinc-600"
+                  "bg-primary text-primary-foreground font-semibold shadow-md"
               )}
             >
               {format(date, "d")}
-              {available && !selected && inMonth && (
-                <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-violet-500 opacity-70" />
-              )}
             </button>
           )
         })}

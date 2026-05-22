@@ -5,6 +5,10 @@ import dynamic from "next/dynamic"
 import Image from "next/image"
 import type { Slot } from "@/lib/scheduling/types"
 import { cn } from "@/lib/utils"
+import { Card } from "@/components/ui-new/card"
+import { Logo } from "@/components/ui-new/logo"
+import { Clock, Video, Globe, ArrowLeft, Calendar as CalendarIcon, Phone, MapPin, Link as LinkIcon } from "lucide-react"
+import Link from "next/link"
 
 const BookingForm = dynamic(() => import("./booking-form").then(m => m.BookingForm), {
   loading: () => <div className="flex justify-center p-12"><div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent" /></div>
@@ -13,18 +17,16 @@ const TimeSlotPicker = dynamic(() => import("./time-slot-picker").then(m => m.Ti
   loading: () => <div className="flex justify-center p-12"><div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent" /></div>
 })
 const CalendarPicker = dynamic(() => import("./calendar-picker").then(m => m.CalendarPicker), {
-  loading: () => <div className="h-[300px] w-full animate-pulse rounded-xl bg-zinc-200/50 dark:bg-zinc-800/50" />
+  loading: () => <div className="h-[300px] w-full animate-pulse rounded-xl bg-muted/50" />
 })
 
-const COLOR_MAP: Record<string, string> = {
-  SLATE: "bg-slate-500", ROSE: "bg-rose-500", ORANGE: "bg-orange-500",
-  AMBER: "bg-amber-500", EMERALD: "bg-emerald-500", TEAL: "bg-teal-500",
-  CYAN: "bg-cyan-500", VIOLET: "bg-violet-500", FUCHSIA: "bg-fuchsia-500",
-}
-
-const LOCATION_LABELS: Record<string, string> = {
-  GOOGLE_MEET: "Google Meet", ZOOM: "Zoom", TEAMS: "Teams",
-  PHONE: "Telefone", IN_PERSON: "Presencial", CUSTOM: "Online",
+const LOCATION_LABELS: Record<string, { label: string, icon: React.ElementType }> = {
+  GOOGLE_MEET: { label: "Google Meet", icon: Video },
+  ZOOM: { label: "Zoom", icon: Video },
+  TEAMS: { label: "Teams", icon: Video },
+  PHONE: { label: "Telefone", icon: Phone },
+  IN_PERSON: { label: "Presencial", icon: MapPin },
+  CUSTOM: { label: "Online", icon: LinkIcon },
 }
 
 type Step = "calendar" | "form"
@@ -110,145 +112,121 @@ export function BookingPageShell({ eventType, owner, schedule, initialAvailableD
     setStep("calendar")
   }
 
+  const LocIcon = LOCATION_LABELS[eventType.locationType]?.icon ?? MapPin
+  const locLabel = LOCATION_LABELS[eventType.locationType]?.label ?? "Local"
+  
+  const userInitials = owner.name?.[0]?.toUpperCase() ?? "U"
+
   return (
-    <div className={cn(
-      "flex min-h-screen flex-col items-center justify-start px-4 py-12",
-      owner.theme === "LIGHT" ? "text-slate-900" : "text-white"
-    )}>
-      <div className="w-full max-w-4xl">
-
-        {/* Header do evento */}
-        <div className="mb-8 flex items-start gap-5">
-          {owner.image ? (
-            <Image
-              src={owner.image}
-              alt={owner.name ?? ""}
-              width={56}
-              height={56}
-              priority={true}
-              className={cn(
-                "h-14 w-14 rounded-full ring-2 shrink-0 object-cover",
-                owner.theme === "LIGHT" ? "ring-slate-200" : "ring-zinc-800"
-              )}
-            />
-          ) : (
-            <div className={cn(
-              "flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-lg font-semibold",
-              owner.theme === "LIGHT" ? "bg-slate-200 text-slate-500" : "bg-violet-600/20 text-violet-400"
-            )}>
-              {owner.name?.[0]?.toUpperCase() ?? "U"}
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className={owner.theme === "LIGHT" ? "text-slate-500" : "text-zinc-500"}>{owner.name}</p>
-            <h1 className={cn(
-              "mt-0.5 text-xl font-semibold",
-              owner.theme === "LIGHT" ? "text-slate-900" : "text-white"
-            )}>
-              {eventType.title}
-            </h1>
-            <div className={cn(
-              "mt-2 flex flex-wrap items-center gap-3 text-xs",
-              owner.theme === "LIGHT" ? "text-slate-500" : "text-zinc-500"
-            )}>
-              <span className="flex items-center gap-1.5">
-                <span className={cn("h-2 w-2 rounded-full", COLOR_MAP[eventType.color])} />
-                {eventType.duration} min
-              </span>
-              <span>{LOCATION_LABELS[eventType.locationType]}</span>
-              {eventType.requiresConfirm && (
-                <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-amber-400">
-                  Confirmação manual
-                </span>
-              )}
-              <span className={owner.theme === "LIGHT" ? "text-slate-400" : "text-zinc-600"}>
-                Seu fuso: {viewerTimeZone}
-              </span>
-            </div>
-            {eventType.description && (
-              <p className={cn(
-                "mt-3 text-sm max-w-lg",
-                owner.theme === "LIGHT" ? "text-slate-600" : "text-zinc-400"
-              )}>
-                {eventType.description}
-              </p>
-            )}
-          </div>
+    <div className="min-h-screen bg-muted/30">
+      <header className="px-6 py-5 bg-background border-b border-border/60">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <Link href={`/${owner.username}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={16} /> Voltar
+          </Link>
+          <Link href="/">
+            <Logo size={22} />
+          </Link>
         </div>
+      </header>
 
-        {/* Painel principal */}
-        <div className={cn(
-          "rounded-2xl border overflow-hidden transition-all",
-          owner.theme === "LIGHT" ? "border-slate-200 bg-white shadow-sm" : "border-zinc-800 bg-zinc-900/40"
-        )}>
-          {step === "calendar" ? (
-            <div className="grid lg:grid-cols-[1fr_300px]">
-              <div className={cn(
-                "border-b p-6 lg:border-b-0 lg:border-r",
-                owner.theme === "LIGHT" ? "border-slate-200" : "border-zinc-800"
-              )}>
-                <p className={cn(
-                  "mb-5 text-sm font-medium",
-                  owner.theme === "LIGHT" ? "text-slate-700" : "text-zinc-300"
-                )}>
-                  Selecione uma data
-                </p>
-                <CalendarPicker
-                  availableDates={availableDates}
-                  selectedDate={selectedDate}
-                  onSelectDate={(d) => {
-                    setSelectedDate(d)
-                    setSelectedSlot(null)
-                  }}
-                  bookingLimitDays={eventType.bookingLimitDays ?? 60}
+      <main className="max-w-5xl mx-auto px-4 md:px-6 py-10">
+        <Card className="rounded-2xl border-border/60 overflow-hidden shadow-sm p-0">
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr]">
+            {/* Left: event details */}
+            <div className="p-7 border-b lg:border-b-0 lg:border-r border-border/60 bg-card">
+              {owner.image ? (
+                <Image
+                  src={owner.image}
+                  alt={owner.name ?? ""}
+                  width={48}
+                  height={48}
+                  priority={true}
+                  className="w-12 h-12 rounded-full ring-2 ring-background shrink-0 object-cover mb-4"
                 />
-              </div>
-              <div className="p-6">
-                {!selectedDate ? (
-                  <div className="flex h-full flex-col items-center justify-center py-12 text-center">
-                    <svg
-                      className="mb-3 h-10 w-10 text-zinc-700"
-                      fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor" strokeWidth={1.25}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                    </svg>
-                    <p className="text-sm text-zinc-600">
-                      Selecione uma data para ver os horários disponíveis.
-                    </p>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white mb-4" style={{ fontWeight: 600 }}>
+                  {userInitials}
+                </div>
+              )}
+              <div className="text-sm text-muted-foreground">{owner.name}</div>
+              <h2 className="mt-1" style={{ fontSize: 22, fontWeight: 600 }}>
+                {eventType.title}
+              </h2>
+
+              <div className="mt-6 space-y-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2.5">
+                  <Clock size={16} /> {eventType.duration} minutos
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <LocIcon size={16} /> {locLabel}
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Globe size={16} /> {viewerTimeZone}
+                </div>
+                {selectedSlot && (
+                  <div className="flex items-center gap-2.5 text-foreground pt-2 mt-2 border-t border-border">
+                    <CalendarIcon size={16} className="text-primary" />
+                    {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeStyle: 'short', timeZone: viewerTimeZone }).format(new Date(selectedSlot.start))}
                   </div>
-                ) : (
-                  <TimeSlotPicker
-                    slots={slotsForSelectedDate}
-                    selectedDate={selectedDate}
-                    viewerTimeZone={viewerTimeZone}
-                    duration={eventType.duration}
-                    onSelectSlot={handleSelectSlot}
-                    eventTypeId={eventType.id}
-                    ownerId={owner.id}
-                  />
                 )}
               </div>
-            </div>
-          ) : (
-            <BookingForm
-              slot={selectedSlot!}
-              eventType={eventType}
-              owner={owner}
-              viewerTimeZone={viewerTimeZone}
-              onBack={handleBack}
-            />
-          )}
-        </div>
 
-        <p className={cn(
-          "mt-8 text-center text-xs",
-          owner.theme === "LIGHT" ? "text-slate-400" : "text-zinc-700"
-        )}>
-          Agendamento via{" "}
-          <span className={owner.theme === "LIGHT" ? "text-slate-500 font-medium" : "text-zinc-500 font-medium"}>People OS</span>
-        </p>
-      </div>
+              {eventType.description && (
+                <p className="mt-6 text-sm text-muted-foreground whitespace-pre-wrap" style={{ lineHeight: 1.6 }}>
+                  {eventType.description}
+                </p>
+              )}
+            </div>
+
+            {/* Right: calendar + slots, or form */}
+            {step === "calendar" ? (
+              <div className="p-7 grid grid-cols-1 md:grid-cols-[1fr_180px] gap-6">
+                <div>
+                  <CalendarPicker
+                    availableDates={availableDates}
+                    selectedDate={selectedDate}
+                    onSelectDate={(d) => {
+                      setSelectedDate(d)
+                      setSelectedSlot(null)
+                    }}
+                    bookingLimitDays={eventType.bookingLimitDays ?? 60}
+                  />
+                </div>
+
+                <div>
+                  <div className="text-sm mb-3" style={{ fontWeight: 600 }}>
+                    {selectedDate ? new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }).format(new Date(selectedDate + 'T00:00:00')) : "Escolha um dia"}
+                  </div>
+                  {!selectedDate ? (
+                     <div className="text-sm text-muted-foreground">Selecione uma data no calendário.</div>
+                  ) : (
+                    <TimeSlotPicker
+                      slots={slotsForSelectedDate}
+                      selectedDate={selectedDate}
+                      viewerTimeZone={viewerTimeZone}
+                      duration={eventType.duration}
+                      onSelectSlot={handleSelectSlot}
+                      eventTypeId={eventType.id}
+                      ownerId={owner.id}
+                    />
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="p-7">
+                <BookingForm
+                  slot={selectedSlot!}
+                  eventType={eventType}
+                  owner={owner}
+                  viewerTimeZone={viewerTimeZone}
+                  onBack={handleBack}
+                />
+              </div>
+            )}
+          </div>
+        </Card>
+      </main>
     </div>
   )
 }
