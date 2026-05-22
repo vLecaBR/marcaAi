@@ -4,16 +4,26 @@ import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
-import { CalendarDays, Clock, Users, Link as LinkIcon } from "lucide-react"
+import { Calendar, Clock, Video, MoreHorizontal, XCircle } from "lucide-react"
 import { BookingActions } from "./components/booking-actions"
+import { Card } from "@/components/ui-new/card"
+import { Badge } from "@/components/ui-new/badge"
+import { Button } from "@/components/ui-new/button"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui-new/tabs"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Agendamentos | MarcaAí" }
+export const metadata: Metadata = { title: "Agendamentos | People OS" }
 
 const COLOR_MAP: Record<string, string> = {
-  SLATE: "bg-slate-500", ROSE: "bg-rose-500", ORANGE: "bg-orange-500",
-  AMBER: "bg-amber-500", EMERALD: "bg-emerald-500", TEAL: "bg-teal-500",
-  CYAN: "bg-cyan-500", VIOLET: "bg-violet-500", FUCHSIA: "bg-fuchsia-500",
+  SLATE: "from-slate-500 to-slate-600",
+  ROSE: "from-rose-500 to-rose-600",
+  ORANGE: "from-orange-500 to-orange-600",
+  AMBER: "from-amber-500 to-amber-600",
+  EMERALD: "from-emerald-500 to-emerald-600",
+  TEAL: "from-teal-500 to-teal-600",
+  CYAN: "from-cyan-500 to-cyan-600",
+  VIOLET: "from-violet-500 to-violet-600",
+  FUCHSIA: "from-fuchsia-500 to-fuchsia-600",
 }
 
 export default async function BookingsPage() {
@@ -25,178 +35,154 @@ export default async function BookingsPage() {
     orderBy: { startTime: "desc" },
     include: {
       eventType: {
-        select: { title: true, color: true, locationType: true },
+        select: { title: true, color: true, locationType: true, duration: true },
       },
     },
   })
 
   // Separa os bookings
   const pending = bookings.filter((b: any) => b.status === "PENDING" && b.startTime > new Date())
-  const upcoming = bookings.filter((b: any) => b.status === "CONFIRMED" && b.startTime > new Date())
-  const past = bookings.filter((b: any) => b.startTime <= new Date() || b.status === "CANCELLED")
+  const upcoming = bookings.filter((b: any) => b.status === "CONFIRMED" && b.startTime > new Date()).sort((a: any, b: any) => a.startTime.getTime() - b.startTime.getTime())
+  const past = bookings.filter((b: any) => b.status === "CONFIRMED" && b.startTime <= new Date())
+  const canceled = bookings.filter((b: any) => b.status === "CANCELLED" || (b.status === "PENDING" && b.startTime <= new Date()))
 
-  return (
-    <div className="space-y-8 pb-12">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            Agendamentos
-          </h1>
-          <p className="mt-2 text-zinc-400">
-            Visualize e gerencie seus horários marcados.
-          </p>
-        </div>
-      </div>
+  const getInitials = (name: string) => name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase()
 
-      <div className="space-y-10">
-        {/* PENDENTES (Aprovação Manual) */}
-        {pending.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              Aguardando Aprovação ({pending.length})
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {pending.map((booking: any) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))}
-            </div>
-          </section>
-        )}
+  const renderBookingRow = (b: any, type: "upcoming" | "pending" | "past" | "canceled") => {
+    const isConfirmed = b.status === "CONFIRMED"
+    const isPending = b.status === "PENDING"
+    const isCanceled = b.status === "CANCELLED"
+    
+    let badgeText = ""
+    let badgeClass = ""
+    
+    if (isCanceled) {
+      badgeText = "Cancelado"
+      badgeClass = "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-900"
+    } else if (isPending) {
+      badgeText = "Pendente"
+      badgeClass = "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-900"
+    } else if (type === "past") {
+      badgeText = "Passado"
+      badgeClass = "bg-slate-50 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200 dark:border-slate-800"
+    } else {
+      badgeText = "Confirmado"
+      badgeClass = "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900"
+    }
 
-        {/* PRÓXIMOS */}
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Próximos Confirmados</h2>
-          {upcoming.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 py-16 text-center">
-              <CalendarDays className="mx-auto mb-4 h-8 w-8 text-zinc-700" />
-              <p className="text-sm font-medium text-white">Nenhum agendamento futuro</p>
-              <p className="mt-1 text-xs text-zinc-500">Sua agenda está livre por enquanto.</p>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {upcoming.map((booking: any) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* HISTÓRICO */}
-        {past.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Histórico e Cancelados</h2>
-            <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 divide-y divide-zinc-800/60">
-              {past.slice(0, 10).map((booking: any) => (
-                <div key={booking.id} className="flex items-center justify-between p-4 hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="hidden sm:flex h-12 w-12 flex-col items-center justify-center rounded-lg bg-zinc-950 border border-zinc-800 opacity-60">
-                      <span className="text-xs font-medium text-zinc-500">
-                        {format(booking.startTime, "MMM", { locale: ptBR }).toUpperCase()}
-                      </span>
-                      <span className="text-lg font-bold text-white">
-                        {format(booking.startTime, "dd")}
-                      </span>
-                    </div>
-                    <div>
-                      <p className={cn("font-medium text-white", booking.status === "CANCELLED" && "line-through text-zinc-500")}>
-                        {booking.guestName}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500">
-                        {booking.eventType.title} • {format(booking.startTime, "HH:mm")}
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <span className={cn(
-                      "rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide",
-                      booking.status === "CONFIRMED" ? "bg-zinc-800 text-zinc-400" :
-                      booking.status === "CANCELLED" ? "bg-rose-500/10 text-rose-400" :
-                      "bg-zinc-800 text-zinc-500"
-                    )}>
-                      {booking.status === "CANCELLED" ? "Cancelado" : booking.status === "CONFIRMED" ? "Confirmado" : "Pendente"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function BookingCard({ booking }: { booking: {
-  id: string
-  uid: string
-  guestName: string
-  guestEmail: string
-  startTime: Date
-  endTime: Date
-  status: string
-  eventType: {
-    title: string
-    color: string
-    locationType: string
-  }
-} }) {
-  const isPending = booking.status === "PENDING"
-
-  return (
-    <div className={cn(
-      "flex flex-col rounded-2xl border bg-zinc-900/40 p-5 transition-all",
-      isPending ? "border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.1)]" : "border-zinc-800/60 hover:border-zinc-700/80"
-    )}>
-      {/* Header do Card */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 flex-col items-center justify-center rounded-lg bg-zinc-950 border border-zinc-800">
-            <span className="text-[10px] font-medium text-zinc-500">
-              {format(booking.startTime, "MMM", { locale: ptBR }).toUpperCase()}
-            </span>
-            <span className="text-sm font-bold text-white">
-              {format(booking.startTime, "dd")}
-            </span>
+    return (
+      <div key={b.id} className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-muted/30 transition">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${COLOR_MAP[b.eventType.color] || "from-violet-500 to-fuchsia-500"} shrink-0 flex items-center justify-center text-white text-sm`} style={{ fontWeight: 600 }}>
+            {getInitials(b.guestName)}
           </div>
-          <div>
-            <p className="font-semibold text-white truncate max-w-[150px]" title={booking.guestName}>
-              {booking.guestName}
-            </p>
-            <p className="text-xs text-zinc-500 truncate max-w-[150px]" title={booking.guestEmail}>
-              {booking.guestEmail}
-            </p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="text-sm font-medium truncate">{b.guestName}</div>
+              <Badge variant="outline" className={`rounded-full text-xs font-normal border ${badgeClass}`}>
+                {badgeText}
+              </Badge>
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5 truncate">{b.guestEmail}</div>
+            
+            {/* Show on mobile, hide on desktop */}
+            <div className="sm:hidden text-sm text-muted-foreground mt-1 truncate">{b.eventType.title} · {b.eventType.duration}m</div>
           </div>
         </div>
-      </div>
-
-      {/* Detalhes (Serviço / Hora) */}
-      <div className="space-y-2.5 mb-5 flex-1">
-        <div className="flex items-center gap-2 text-sm text-zinc-300">
-          <div className={cn("h-2 w-2 rounded-full shrink-0", COLOR_MAP[booking.eventType.color])} />
-          <span className="truncate">{booking.eventType.title}</span>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-zinc-400">
-          <Clock className="h-4 w-4 shrink-0" />
-          <span>
-            {format(booking.startTime, "HH:mm")} - {format(booking.endTime, "HH:mm")}
+        
+        {/* Show on desktop, hide on mobile */}
+        <div className="hidden sm:block text-sm text-muted-foreground w-1/4 truncate">{b.eventType.title} · {b.eventType.duration}m</div>
+        
+        <div className="text-sm flex items-center gap-1.5 sm:w-1/4 text-muted-foreground">
+          <Calendar size={14} className="shrink-0" /> 
+          <span className="truncate">
+            {format(b.startTime, "dd MMM", { locale: ptBR })} · {format(b.startTime, "HH:mm")}
           </span>
         </div>
+        
+        <div className="flex items-center gap-2 mt-2 sm:mt-0">
+          {(type === "upcoming" || type === "pending") && (
+            <BookingActions uid={b.uid} status={b.status} />
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>Meus agendamentos</h1>
+          <p className="text-muted-foreground mt-1">Todas as suas reuniões passadas e futuras.</p>
+        </div>
       </div>
 
-      {/* Ações / Status Base */}
-      <div className="mt-auto pt-4 border-t border-zinc-800/60 flex items-center justify-between">
-        {isPending ? (
-          <BookingActions uid={booking.uid} status={booking.status} />
-        ) : (
-          <>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 font-medium text-emerald-400 text-xs">
-              Confirmado
-            </span>
-            <BookingActions uid={booking.uid} status={booking.status} />
-          </>
-        )}
-      </div>
+      <Tabs defaultValue="upcoming" className="w-full">
+        <TabsList className="rounded-xl w-full sm:w-auto overflow-x-auto flex sm:inline-flex no-scrollbar justify-start">
+          <TabsTrigger value="upcoming" className="rounded-lg shrink-0">Próximos</TabsTrigger>
+          <TabsTrigger value="pending" className="rounded-lg shrink-0">
+            Pendentes
+            {pending.length > 0 && (
+              <span className="ml-1.5 flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="past" className="rounded-lg shrink-0">Passados</TabsTrigger>
+          <TabsTrigger value="canceled" className="rounded-lg shrink-0">Cancelados</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="upcoming" className="mt-5 outline-none">
+          <Card className="rounded-2xl border-border/60 divide-y divide-border/60 shadow-sm overflow-hidden">
+            {upcoming.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center">
+                <Calendar className="mx-auto mb-3 text-muted-foreground" size={32}/>
+                <p className="text-muted-foreground text-sm">Nenhum agendamento confirmado para o futuro.</p>
+              </div>
+            ) : (
+              upcoming.map(b => renderBookingRow(b, "upcoming"))
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pending" className="mt-5 outline-none">
+          <Card className="rounded-2xl border-border/60 divide-y divide-border/60 shadow-sm overflow-hidden">
+            {pending.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center">
+                <Clock className="mx-auto mb-3 text-muted-foreground" size={32}/>
+                <p className="text-muted-foreground text-sm">Nenhum agendamento aguardando aprovação.</p>
+              </div>
+            ) : (
+              pending.map(b => renderBookingRow(b, "pending"))
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="past" className="mt-5 outline-none">
+          <Card className="rounded-2xl border-border/60 divide-y divide-border/60 shadow-sm overflow-hidden">
+            {past.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center">
+                <Calendar className="mx-auto mb-3 text-muted-foreground opacity-50" size={32}/>
+                <p className="text-muted-foreground text-sm">Nenhuma reunião passada encontrada.</p>
+              </div>
+            ) : (
+              past.map(b => renderBookingRow(b, "past"))
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="canceled" className="mt-5 outline-none">
+          <Card className="rounded-2xl border-border/60 divide-y divide-border/60 shadow-sm overflow-hidden">
+            {canceled.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center">
+                <XCircle className="mx-auto mb-3 text-muted-foreground" size={32}/>
+                <p className="text-muted-foreground text-sm">Nenhum agendamento cancelado.</p>
+              </div>
+            ) : (
+              canceled.map(b => renderBookingRow(b, "canceled"))
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

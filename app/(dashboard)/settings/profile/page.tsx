@@ -3,8 +3,9 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { ProfileForm } from "./components/profile-form"
 import type { Metadata } from "next"
+import { Card } from "@/components/ui-new/card"
 
-export const metadata: Metadata = { title: "Meu Perfil | MarcaAí" }
+export const metadata: Metadata = { title: "Meu Perfil | People OS" }
 
 export default async function ProfilePage() {
   const session = await auth()
@@ -17,15 +18,15 @@ export default async function ProfilePage() {
   if (!user) redirect("/login")
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Meu Perfil</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Atualize suas informações pessoais e sua URL pública.
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>Perfil</h1>
+        <p className="text-muted-foreground mt-1">
+          Gerencie como você aparece para quem agenda com você.
         </p>
       </div>
 
-      <div className="max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+      <Card className="p-7 rounded-2xl border-border/60 max-w-3xl shadow-sm">
         <ProfileForm 
           user={{
             name: user.name,
@@ -38,7 +39,7 @@ export default async function ProfilePage() {
             brandColor: user.brandColor,
           }}
         />
-      </div>
+      </Card>
     </div>
   )
 }

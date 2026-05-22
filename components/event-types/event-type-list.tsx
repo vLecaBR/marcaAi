@@ -4,6 +4,8 @@ import { useState } from "react"
 import { EventTypeCard } from "./event-type-card"
 import { EventTypeForm } from "./event-type-form"
 import type { EventTypeInput } from "@/lib/validators/event-type"
+import { Card } from "@/components/ui-new/card"
+import { Plus } from "lucide-react"
 
 type EventType = {
   id: string
@@ -58,17 +60,15 @@ export function EventTypeList({ eventTypes, username, teams = [] }: EventTypeLis
         ))}
 
         {/* Botão de novo evento */}
-        <button
+        <Card 
           onClick={() => setIsFormOpen(true)}
-          className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-700 bg-transparent text-zinc-500 transition-all hover:border-violet-600/50 hover:bg-violet-600/5 hover:text-violet-400"
+          className="p-5 rounded-2xl border-dashed border-2 border-border hover:border-primary/50 hover:bg-violet-50/30 dark:hover:bg-violet-900/10 transition cursor-pointer flex flex-col items-center justify-center min-h-[180px] text-muted-foreground shadow-none"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-current">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3 text-muted-foreground">
+            <Plus size={20}/>
           </div>
-          <span className="text-sm font-medium">Novo tipo de evento</span>
-        </button>
+          <div className="text-sm font-medium">Criar novo tipo de evento</div>
+        </Card>
       </div>
 
       <EventTypeForm

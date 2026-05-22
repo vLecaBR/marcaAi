@@ -47,13 +47,12 @@ export default async function EventTypesPage() {
   })
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Tipos de Evento</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Crie e gerencie os tipos de reunião que as pessoas podem agendar com você.
-        </p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>Tipos de eventos</h1>
+        <p className="text-muted-foreground mt-1">Crie eventos para compartilhar e receber agendamentos na sua agenda.</p>
       </div>
+      
       <EventTypeList
         eventTypes={eventTypes as any}
         username={user?.username ?? ""}

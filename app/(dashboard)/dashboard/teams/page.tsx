@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { TeamList } from "./components/team-list"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Equipes | MarcaAí" }
+export const metadata: Metadata = { title: "Equipes | People OS" }
 
 export default async function TeamsPage() {
   const session = await auth()
@@ -18,7 +18,7 @@ export default async function TeamsPage() {
     },
     include: {
       members: {
-        include: { user: { select: { name: true, image: true, email: true } } }
+        include: { user: { select: { id: true, name: true, image: true, email: true } } }
       },
       _count: { select: { eventTypes: true } }
     },
@@ -26,15 +26,15 @@ export default async function TeamsPage() {
   })
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Equipes</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Crie organizações e convide outros profissionais para agendas compartilhadas.
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>Equipes</h1>
+        <p className="text-muted-foreground mt-1">
+          Faça agendamentos junto com seus colegas de equipe.
         </p>
       </div>
 
-      <TeamList teams={myTeams} currentUserId={session.user.id} />
+      <TeamList teams={myTeams as any} currentUserId={session.user.id} />
     </div>
   )
 }

@@ -3,7 +3,11 @@
 import { useState } from "react"
 import Link from "next/link"
 import { TeamForm } from "./team-form"
-import { Users, MoreVertical, Plus, ArrowRight } from "lucide-react"
+import { Users, Settings, Plus, ArrowUpRight } from "lucide-react"
+import { Card } from "@/components/ui-new/card"
+import { Button } from "@/components/ui-new/button"
+import { Badge } from "@/components/ui-new/badge"
+import { cn } from "@/lib/utils"
 
 type TeamData = {
   id: string
@@ -12,7 +16,7 @@ type TeamData = {
   description: string | null
   theme: string
   brandColor: string | null
-  members: { role: string; user: { name: string | null; image: string | null; email: string } }[]
+  members: { role: string; user: { id: string; name: string | null; image: string | null; email: string } }[]
   _count: { eventTypes: number }
 }
 
@@ -35,81 +39,82 @@ export function TeamList({ teams, currentUserId }: TeamListProps) {
     setIsFormOpen(false)
   }
 
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "OWNER": return "Proprietário"
+      case "ADMIN": return "Administrador"
+      case "MEMBER": return "Membro"
+      default: return role
+    }
+  }
+
+  const GRADIENTS = [
+    "from-violet-500 to-fuchsia-500",
+    "from-blue-500 to-cyan-500",
+    "from-emerald-500 to-teal-500",
+    "from-amber-500 to-orange-500",
+    "from-rose-500 to-pink-500",
+  ]
+
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {teams.map((team) => (
-          <div
-            key={team.id}
-            className="flex flex-col justify-between rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 transition-all hover:border-zinc-700 hover:bg-zinc-900/60"
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600/20 text-violet-400">
-                  <Users className="h-5 w-5" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {teams.map((team, index) => {
+          const myMembership = team.members.find(m => m.user.id === currentUserId)
+          const gradient = GRADIENTS[index % GRADIENTS.length]
+
+          return (
+            <Card key={team.id} className="rounded-2xl border-border/60 overflow-hidden hover:shadow-md transition">
+              <div className={cn("h-20 bg-gradient-to-br", gradient)} />
+              <div className="p-5 -mt-7">
+                <div className="w-14 h-14 rounded-2xl bg-card border-4 border-card shadow-sm flex items-center justify-center mb-3">
+                  <Users className="text-primary" size={22}/>
                 </div>
-                <button
-                  onClick={() => handleEdit(team)}
-                  className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-white transition-colors"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </button>
-              </div>
-              <h3 className="mt-4 text-base font-semibold text-white">
-                {team.name}
-              </h3>
-              <p className="mt-1 text-sm text-zinc-400 line-clamp-2">
-                {team.description || "Sem descrição"}
-              </p>
-              <div className="mt-4 flex gap-3 text-xs text-zinc-500">
-                <span>{team.members.length} membro(s)</span>
-                <span>•</span>
-                <span>{team._count.eventTypes} evento(s)</span>
-              </div>
-            </div>
-            
-            <div className="mt-5 border-t border-zinc-800 pt-4 flex items-center justify-between">
-              <div className="flex -space-x-2">
-                {team.members.slice(0, 5).map((member, i) => (
-                  <div 
-                    key={i} 
-                    className="h-8 w-8 rounded-full ring-2 ring-zinc-900 bg-zinc-800 flex items-center justify-center overflow-hidden"
-                    title={`${member.user.name || member.user.email} (${member.role})`}
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-semibold truncate">{team.name}</h3>
+                  {myMembership && (
+                    <Badge variant="secondary" className="rounded-full text-xs shrink-0">
+                      {getRoleLabel(myMembership.role)}
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {team.members.length} membro{team.members.length !== 1 ? 's' : ''}
+                </div>
+                <div className="mt-5 flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-lg flex-1 gap-1.5 h-9"
+                    onClick={() => handleEdit(team)}
                   >
-                    {member.user.image ? (
-                      <img src={member.user.image} alt={member.user.name || ""} className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-xs font-medium text-white">{member.user.name?.[0]?.toUpperCase() || member.user.email[0].toUpperCase()}</span>
-                    )}
-                  </div>
-                ))}
-                {team.members.length > 5 && (
-                  <div className="h-8 w-8 rounded-full ring-2 ring-zinc-900 bg-zinc-800 flex items-center justify-center">
-                    <span className="text-xs font-medium text-white">+{team.members.length - 5}</span>
-                  </div>
-                )}
+                    <Settings size={13}/> Gerenciar
+                  </Button>
+                  <Button 
+                    asChild 
+                    size="sm" 
+                    className="rounded-lg flex-1 gap-1.5 h-9"
+                  >
+                    <Link href={`/dashboard/teams/${team.id}`}>
+                      Abrir <ArrowUpRight size={13}/>
+                    </Link>
+                  </Button>
+                </div>
               </div>
-              
-              <Link 
-                href={`/dashboard/teams/${team.id}`}
-                className="flex items-center gap-1 text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors"
-              >
-                Gerenciar <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-          </div>
-        ))}
+            </Card>
+          )
+        })}
 
         {/* Botão Nova Equipe */}
-        <button
+        <Card 
           onClick={() => setIsFormOpen(true)}
-          className="flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-700 bg-transparent text-zinc-500 transition-all hover:border-violet-600/50 hover:bg-violet-600/5 hover:text-violet-400"
+          className="rounded-2xl border-dashed border-2 border-border hover:border-primary/50 hover:bg-violet-50/30 dark:hover:bg-violet-900/10 transition cursor-pointer flex flex-col items-center justify-center min-h-[220px] text-muted-foreground shadow-none p-5"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-current">
-            <Plus className="h-5 w-5" />
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3 text-muted-foreground">
+            <Plus size={20}/>
           </div>
-          <span className="text-sm font-medium">Nova Equipe</span>
-        </button>
+          <div className="text-sm font-medium">Criar nova equipe</div>
+        </Card>
       </div>
 
       <TeamForm

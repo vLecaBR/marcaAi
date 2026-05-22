@@ -5,7 +5,7 @@ import { AvailabilityForm } from "@/components/settings/availability-form"
 import { ExceptionsManager } from "@/components/settings/exceptions/exceptions-manager"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Disponibilidade | MarcaAí" }
+export const metadata: Metadata = { title: "Disponibilidade | People OS" }
 
 export default async function AvailabilityPage() {
   const session = await auth()
@@ -42,28 +42,20 @@ export default async function AvailabilityPage() {
   }
 
   return (
-    <div className="space-y-12 pb-12 max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Disponibilidade</h1>
-        <p className="mt-2 text-zinc-400">
-          Configure seus dias e horários de trabalho.
-        </p>
+    <div>
+      <div className="mb-6">
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>Disponibilidade</h1>
+        <p className="text-muted-foreground mt-1">Defina quando você está livre para receber reuniões.</p>
       </div>
       
-      <div className="space-y-6">
-        <div className="border-b border-zinc-800 pb-4">
-          <h2 className="text-xl font-semibold text-white">Horários Fixos</h2>
-          <p className="text-sm text-zinc-400 mt-1">Sua semana de trabalho padrão, incluindo pausas para almoço.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2">
+          <AvailabilityForm schedule={schedule} />
         </div>
-        <AvailabilityForm schedule={schedule} />
-      </div>
 
-      <div className="space-y-6 pt-6">
-        <div className="border-b border-zinc-800 pb-4">
-          <h2 className="text-xl font-semibold text-white">Férias e Exceções</h2>
-          <p className="text-sm text-zinc-400 mt-1">Dias específicos em que você NÃO estará disponível.</p>
+        <div className="h-fit">
+          <ExceptionsManager scheduleId={schedule.id} exceptions={schedule.exceptions} />
         </div>
-        <ExceptionsManager scheduleId={schedule.id} exceptions={schedule.exceptions} />
       </div>
     </div>
   )
