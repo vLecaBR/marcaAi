@@ -7,6 +7,7 @@ import type { Metadata } from "next"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { CopyLinkButton } from "@/components/dashboard/copy-link-button"
 import { Calendar, Clock, Video, TrendingUp, Users, CheckCircle2, ArrowUpRight } from "lucide-react"
 import { isToday, isTomorrow, format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -177,7 +178,7 @@ export default async function DashboardPage() {
             {publicLink || "Configure seu perfil"}
           </div>
           <div className="mt-4 flex gap-2">
-            <Button variant="secondary" className="flex-1 rounded-xl text-primary font-medium hover:bg-white/90">Copiar link</Button>
+            <CopyLinkButton link={publicLink} />
             {username && (
               <Button asChild variant="secondary" className="flex-1 rounded-xl text-primary font-medium hover:bg-white/90">
                 <Link href={`/${username}`} target="_blank">Acessar</Link>
