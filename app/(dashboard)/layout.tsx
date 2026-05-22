@@ -4,6 +4,7 @@ import { Logo } from "@/components/ui/logo"
 import { Input } from "@/components/ui/input"
 import { NavLink } from "@/components/dashboard/nav-link"
 import { DevNav } from "@/components/dashboard/dev-nav"
+import { NotificationButton } from "@/components/dashboard/notification-button"
 import {
   Home,
   Calendar,
@@ -85,10 +86,7 @@ export default async function DashboardLayout({
       <header className="md:hidden h-16 bg-card border-b border-border/60 px-4 flex items-center justify-between sticky top-0 z-20">
         <Logo size={22} />
         <div className="flex items-center gap-3">
-          <button className="w-9 h-9 rounded-xl hover:bg-muted flex items-center justify-center text-muted-foreground transition relative">
-            <Bell size={18} />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
-          </button>
+          <NotificationButton />
           <UserDropdown session={session} userInitials={userInitials} mobile={true} />
         </div>
       </header>
@@ -130,10 +128,7 @@ export default async function DashboardLayout({
             <Input placeholder="Buscar agendamentos, eventos…" className="pl-9 h-10 rounded-xl bg-muted/50 border-0" />
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-10 h-10 rounded-xl hover:bg-muted flex items-center justify-center text-muted-foreground transition relative">
-              <Bell size={18} />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
-            </button>
+            <NotificationButton />
           </div>
         </header>
 

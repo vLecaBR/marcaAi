@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Clock, Copy, ExternalLink, Trash2, MapPin, Video, Phone, Link as LinkIcon } from "lucide-react"
 
+import { toast } from "sonner"
+
 const COLOR_MAP: Record<EventTypeInput["color"], string> = {
   SLATE:   "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
   ROSE:    "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
@@ -72,6 +74,7 @@ export function EventTypeCard({ eventType, username, onEdit }: EventTypeCardProp
 
   function handleCopyLink() {
     navigator.clipboard.writeText(absolutePublicUrl)
+    toast.success("Link copiado para a área de transferência!")
   }
 
   const Icon = LOCATION_ICONS[eventType.locationType]

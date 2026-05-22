@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Agendamentos | People OS" }
+export const metadata: Metadata = { title: "Agendamentos | Marca AI" }
 
 const COLOR_MAP: Record<string, string> = {
   SLATE: "from-slate-500 to-slate-600",

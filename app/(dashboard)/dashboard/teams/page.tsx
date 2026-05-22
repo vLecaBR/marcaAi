@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { TeamList } from "./components/team-list"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Equipes | People OS" }
+export const metadata: Metadata = { title: "Equipes | Marca AI" }
 
 export default async function TeamsPage() {
   const session = await auth()

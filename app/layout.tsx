@@ -3,6 +3,7 @@ import { Inter, Geist_Mono } from "next/font/google"
 import { auth } from "@/auth"
 import { cn } from "@/lib/utils"
 import { AuthProvider } from "@/components/auth-provider"
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
 const inter = Inter({
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: { default: "People OS", template: "%s | People OS" },
+  title: { default: "Marca AI", template: "%s | Marca AI" },
   description: "Agendamento inteligente para profissionais de alto padrão.",
 }
 
@@ -46,6 +47,7 @@ export default async function RootLayout({
         <AuthProvider session={session}>
           {children}
         </AuthProvider>
+        <Toaster />
       </body>
     </html>
   )

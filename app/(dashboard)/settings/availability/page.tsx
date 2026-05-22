@@ -5,7 +5,7 @@ import { AvailabilityForm } from "@/components/settings/availability-form"
 import { ExceptionsManager } from "@/components/settings/exceptions/exceptions-manager"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Disponibilidade | People OS" }
+export const metadata: Metadata = { title: "Disponibilidade | Marca AI" }
 
 export default async function AvailabilityPage() {
   const session = await auth()

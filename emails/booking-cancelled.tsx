@@ -24,7 +24,7 @@ export function BookingCancelledEmail({ data, cancelReason, appUrl }: Props) {
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={{ marginBottom: "32px" }}>
-            <Heading style={styles.logo}>People OS</Heading>
+            <Heading style={styles.logo}>Marca AI</Heading>
           </Section>
 
           <Section style={{ marginBottom: "16px" }}>
@@ -69,7 +69,7 @@ export function BookingCancelledEmail({ data, cancelReason, appUrl }: Props) {
           </Section>
 
           <Hr style={styles.hr} />
-          <Text style={styles.footer}>People OS · Agendamento inteligente</Text>
+          <Text style={styles.footer}>Marca AI · Agendamento inteligente</Text>
         </Container>
       </Body>
     </Html>

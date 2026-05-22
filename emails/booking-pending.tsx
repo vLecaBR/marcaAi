@@ -24,7 +24,7 @@ export function BookingPendingEmail({ data, appUrl }: Props) {
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={{ marginBottom: "32px" }}>
-            <Heading style={styles.logo}>People OS</Heading>
+            <Heading style={styles.logo}>Marca AI</Heading>
           </Section>
 
           <Section style={{ marginBottom: "16px" }}>
@@ -93,7 +93,7 @@ export function BookingPendingEmail({ data, appUrl }: Props) {
           </Text>
 
           <Hr style={{ borderColor: "#27272a", margin: "0 0 24px" }} />
-          <Text style={styles.footer}>People OS · Agendamento inteligente</Text>
+          <Text style={styles.footer}>Marca AI · Agendamento inteligente</Text>
         </Container>
       </Body>
     </Html>

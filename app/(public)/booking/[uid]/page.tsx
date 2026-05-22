@@ -408,7 +408,7 @@ export default async function BookingConfirmationPage({ params }: Props) {
 
         <p className="mt-8 text-center text-xs text-zinc-700">
           Agendamento via{" "}
-          <span className="text-zinc-500 font-medium">People OS</span>
+          <span className="text-zinc-500 font-medium">Marca AI</span>
         </p>
       </div>
     </main>

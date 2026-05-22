@@ -5,7 +5,7 @@ import { ProfileForm } from "./components/profile-form"
 import type { Metadata } from "next"
 import { Card } from "@/components/ui/card"
 
-export const metadata: Metadata = { title: "Meu Perfil | People OS" }
+export const metadata: Metadata = { title: "Meu Perfil | Marca AI" }
 
 export default async function ProfilePage() {
   const session = await auth()

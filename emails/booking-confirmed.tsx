@@ -31,7 +31,7 @@ export function BookingConfirmedEmail({ data, appUrl }: Props) {
 
           {/* Header */}
           <Section style={styles.header}>
-            <Heading style={styles.logo}>People OS</Heading>
+            <Heading style={styles.logo}>Marca AI</Heading>
           </Section>
 
           {/* Status badge */}
@@ -109,7 +109,7 @@ export function BookingConfirmedEmail({ data, appUrl }: Props) {
 
           <Hr style={styles.divider} />
           <Text style={styles.footer}>
-            People OS · Agendamento inteligente
+            Marca AI · Agendamento inteligente
           </Text>
         </Container>
       </Body>

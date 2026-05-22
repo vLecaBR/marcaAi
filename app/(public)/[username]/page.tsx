@@ -87,7 +87,7 @@ export default async function UserPublicPage({ params }: Props) {
             <Logo size={24} />
           </Link>
           <Link href="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            Powered by People OS
+            Powered by Marca AI
           </Link>
         </div>
       </header>

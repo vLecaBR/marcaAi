@@ -158,7 +158,7 @@ export default async function RootPage() {
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_left,white,transparent_50%)] pointer-events-none" />
             <div className="relative">
               <h2 className="text-white" style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.1 }}>Seu tempo, suas regras.</h2>
-              <p className="mt-3 text-white/85 max-w-md mx-auto">Junte-se a dezenas de profissionais que agendam de forma inteligente com a People OS.</p>
+              <p className="mt-3 text-white/85 max-w-md mx-auto">Junte-se a dezenas de profissionais que agendam de forma inteligente com a Marca AI.</p>
               <Button asChild size="lg" variant="secondary" className="mt-7 h-12 px-7 rounded-xl text-primary font-medium hover:bg-white/90">
                 <Link href="/login">Criar minha conta grátis</Link>
               </Button>

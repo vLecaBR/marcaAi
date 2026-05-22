@@ -5,7 +5,7 @@ test.describe("Jornada Pública e Navegação", () => {
     await page.goto("/")
     
     // Verifica se a landing page do MarcaAí carregou corretamente
-    await expect(page).toHaveTitle(/People OS/)
+    await expect(page).toHaveTitle(/Marca AI/)
     
     // Procura por um botão ou link que leva ao login
     const loginLink = page.locator('a[href="/login"]')

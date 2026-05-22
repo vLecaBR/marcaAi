@@ -25,7 +25,7 @@ export function BookingOwnerNotifyEmail({ data, appUrl }: Props) {
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={{ marginBottom: "32px" }}>
-            <Heading style={styles.logo}>People OS</Heading>
+            <Heading style={styles.logo}>Marca AI</Heading>
           </Section>
 
           <Heading style={styles.heading}>
@@ -104,7 +104,7 @@ export function BookingOwnerNotifyEmail({ data, appUrl }: Props) {
           </Section>
 
           <Hr style={{ borderColor: "#27272a", margin: "0 0 24px" }} />
-          <Text style={styles.footer}>People OS · Agendamento inteligente</Text>
+          <Text style={styles.footer}>Marca AI · Agendamento inteligente</Text>
         </Container>
       </Body>
     </Html>
