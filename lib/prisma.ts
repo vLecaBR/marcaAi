@@ -8,10 +8,10 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  let connectionString = process.env.DATABASE_URL!
+  let connectionString = process.env.DATABASE_URL || ""
   
-  // Appends the parameter recommended by pg warning if it's not present
-  if (!connectionString.includes("uselibpqcompat=true")) {
+  // Appends the parameter recommended by pg warning if it's not present and string is not empty
+  if (connectionString && !connectionString.includes("uselibpqcompat=true")) {
     const separator = connectionString.includes("?") ? "&" : "?"
     connectionString += `${separator}uselibpqcompat=true&sslmode=require`
   }
