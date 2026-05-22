@@ -10,7 +10,7 @@ export function Logo({ size = 28 }: { size?: number }) {
         <CalendarCheck2 size={size - 6} />
       </div>
       <span style={{ fontWeight: 700, fontSize: 18, letterSpacing: -0.3 }}>
-        Slottly
+        Marca AI
       </span>
     </div>
   );

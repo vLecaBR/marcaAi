@@ -101,18 +101,18 @@ export default async function DashboardLayout({
 
         <nav className="flex-1 p-3 overflow-y-auto">
           <div className="space-y-0.5">
-            <NavLink href="/dashboard" icon={Home} exact>Início</NavLink>
-            <NavLink href="/dashboard/bookings" icon={Calendar}>Meus agendamentos</NavLink>
-            <NavLink href="/dashboard/event-types" icon={Layers}>Tipos de eventos</NavLink>
-            <NavLink href="/dashboard/teams" icon={Users}>Equipes</NavLink>
+            <NavLink href="/dashboard" icon={<Home />} exact>Início</NavLink>
+            <NavLink href="/dashboard/bookings" icon={<Calendar />}>Meus agendamentos</NavLink>
+            <NavLink href="/dashboard/event-types" icon={<Layers />}>Tipos de eventos</NavLink>
+            <NavLink href="/dashboard/teams" icon={<Users />}>Equipes</NavLink>
           </div>
 
           <div className="mt-6 mb-2 px-3 text-xs text-muted-foreground uppercase tracking-wider" style={{ fontWeight: 600 }}>
             Configurações
           </div>
           <div className="space-y-0.5">
-            <NavLink href="/settings/profile" icon={SettingsIcon}>Perfil</NavLink>
-            <NavLink href="/settings/availability" icon={Clock}>Disponibilidade</NavLink>
+            <NavLink href="/settings/profile" icon={<SettingsIcon />}>Perfil</NavLink>
+            <NavLink href="/settings/availability" icon={<Clock />}>Disponibilidade</NavLink>
           </div>
         </nav>
 
@@ -144,11 +144,11 @@ export default async function DashboardLayout({
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[68px] bg-card border-t border-border/60 flex items-center justify-around px-2 z-20 pb-safe">
-        <NavLink href="/dashboard" icon={Home} exact variant="mobile">Início</NavLink>
-        <NavLink href="/dashboard/bookings" icon={Calendar} variant="mobile">Agenda</NavLink>
-        <NavLink href="/dashboard/event-types" icon={Layers} variant="mobile">Eventos</NavLink>
-        <NavLink href="/dashboard/teams" icon={Users} variant="mobile">Equipes</NavLink>
-        <NavLink href="/settings/profile" icon={SettingsIcon} variant="mobile">Ajustes</NavLink>
+        <NavLink href="/dashboard" icon={<Home />} exact variant="mobile">Início</NavLink>
+        <NavLink href="/dashboard/bookings" icon={<Calendar />} variant="mobile">Agenda</NavLink>
+        <NavLink href="/dashboard/event-types" icon={<Layers />} variant="mobile">Eventos</NavLink>
+        <NavLink href="/dashboard/teams" icon={<Users />} variant="mobile">Equipes</NavLink>
+        <NavLink href="/settings/profile" icon={<SettingsIcon />} variant="mobile">Ajustes</NavLink>
       </nav>
       
       {/* Development Navigation Tool */}

@@ -170,7 +170,7 @@ export default async function RootPage() {
       <footer className="border-t border-border/60 py-8 bg-card">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <Logo size={22} />
-          <span>© {new Date().getFullYear()} People OS. Todos os direitos reservados.</span>
+          <span>© {new Date().getFullYear()} Marca AI. Todos os direitos reservados.</span>
         </div>
       </footer>
     </div>

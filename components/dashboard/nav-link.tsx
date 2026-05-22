@@ -3,16 +3,17 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { cloneElement, ReactElement } from "react"
 
 export function NavLink({ 
   href, 
-  icon: Icon, 
+  icon, 
   children, 
   exact = false,
   variant = "desktop"
 }: { 
   href: string
-  icon: any
+  icon: ReactElement
   children: React.ReactNode
   exact?: boolean
   variant?: "desktop" | "mobile" 
@@ -31,7 +32,10 @@ export function NavLink({
             : "text-muted-foreground hover:text-foreground"
         )}
       >
-        <Icon size={20} className={cn("mb-1", isActive ? "text-primary" : "")} />
+        {cloneElement(icon as any, { 
+          size: 20, 
+          className: cn("mb-1", isActive ? "text-primary" : "") 
+        })}
         <span className="truncate w-full text-center">{children}</span>
       </Link>
     )
@@ -47,7 +51,7 @@ export function NavLink({
           : "text-muted-foreground hover:bg-muted hover:text-foreground"
       )}
     >
-      <Icon size={16} />
+      {cloneElement(icon as any, { size: 16 })}
       {children}
     </Link>
   )
