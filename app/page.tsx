@@ -26,7 +26,7 @@ export default async function RootPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-violet-50/40 via-white to-white dark:from-violet-950/20 dark:via-background dark:to-background">
+    <div className="min-h-screen bg-linear-to-b from-violet-50/40 via-white to-white dark:from-violet-950/20 dark:via-background dark:to-background">
       {/* Nav */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-white/70 dark:bg-background/70 border-b border-border/60">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -60,7 +60,7 @@ export default async function RootPage() {
           </Badge>
           <h1 className="mx-auto max-w-3xl" style={{ fontSize: 56, lineHeight: 1.05, fontWeight: 700, letterSpacing: -1.5 }}>
             Agendamentos que parecem{" "}
-            <span className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent">
               mágica
             </span>
           </h1>
@@ -82,7 +82,7 @@ export default async function RootPage() {
 
           {/* Mock app preview */}
           <div className="mt-16 relative hidden md:block">
-            <div className="absolute -inset-4 bg-gradient-to-r from-violet-200/40 via-fuchsia-200/40 to-violet-200/40 dark:from-violet-900/20 dark:via-fuchsia-900/20 dark:to-violet-900/20 blur-3xl rounded-[40px]" />
+            <div className="absolute -inset-4 bg-linear-to-r from-violet-200/40 via-fuchsia-200/40 to-violet-200/40 dark:from-violet-900/20 dark:via-fuchsia-900/20 dark:to-violet-900/20 blur-3xl rounded-[40px]" />
             <Card className="relative mx-auto max-w-4xl overflow-hidden border-border/60 shadow-2xl rounded-2xl p-0">
               <div className="grid grid-cols-1 md:grid-cols-3 bg-card">
                 <div className="p-6 border-r border-border/60 text-left">
@@ -154,7 +154,7 @@ export default async function RootPage() {
 
         {/* CTA */}
         <section className="max-w-5xl mx-auto px-6 pb-24">
-          <Card className="rounded-3xl bg-gradient-to-br from-violet-600 to-fuchsia-600 border-0 p-8 sm:p-12 text-center text-white overflow-hidden relative shadow-lg">
+          <Card className="rounded-3xl bg-linear-to-br from-violet-600 to-fuchsia-600 border-0 p-8 sm:p-12 text-center text-white overflow-hidden relative shadow-lg">
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_left,white,transparent_50%)] pointer-events-none" />
             <div className="relative">
               <h2 className="text-white" style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.1 }}>Seu tempo, suas regras.</h2>
