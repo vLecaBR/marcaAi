@@ -49,6 +49,6 @@ npm-debug.log*
 yarn-debug.log*
 .pnpm-debug.log*
 
-# ── Documentação interna (specs, ADRs, backlog) — NÃO versionar ──
-# Mantida apenas localmente; não deve aparecer no Git.
-/docs/
+# ── Dumps de banco (dados pessoais — jamais commitar) ──
+*.dump
+*.backup
