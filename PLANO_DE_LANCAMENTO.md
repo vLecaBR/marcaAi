@@ -19,7 +19,7 @@
 | Docker Desktop no PC do dono | ✅ instalado e funcionando (engine Linux/WSL2) — imagem `postgres:18-alpine` já baixada |
 | PostgreSQL 17 nativo no Windows | ⚠️ instalado via `winget install PostgreSQL.PostgreSQL.17` durante o backup — **provavelmente roda como serviço do Windows na porta 5432** e vai conflitar com o Postgres do Docker. Tratado na F0. |
 | F0 — Higiene do repo e ambiente de dev | ✅ concluída na branch `fase-0-higiene` (aguardando revisão/merge); pendente do dono: parar o serviço do PostgreSQL 17 nativo (admin) |
-| LGPD contínua (`goul4rt/lgpd-skills`) | 📌 incorporada ao plano (§5.0, gates por fase, D12). Instalação das skills aguarda seu ok (D12). |
+| LGPD contínua (`goul4rt/lgpd-skills`) | 📌 incorporada ao plano (§5.0, gates por fase, D12). Skills instaladas em `.claude/skills/` (cópia fixa, commit `d85d79a`, D12 ✅ 06/11/2026). Ainda não executei o `lgpd-audit` de linha de base. |
 | Próxima fase | ▶️ **F1 — Banco local (sair do Supabase)** |
 
 **Mudanças no plano desde a primeira versão:**
@@ -489,7 +489,7 @@ CI (`.github/workflows/ci.yml`):
 | D9 | Destino do backup externo | Cloudflare R2 (já vai usar a Cloudflare) | F9 |
 | D10 | Prazo de retenção de dados de pacientes | Definir com advogado | F7 |
 | D11 | Domínio definitivo | — | F9/F10 |
-| D12 | Instalar as skills `goul4rt/lgpd-skills` (plugin ou cópia fixada em `.claude/skills/`)? | Sim, copiando para `.claude/skills/` após revisar o repo (versão fixa) | F1 |
+| D12 | Instalar as skills `goul4rt/lgpd-skills`? | ✅ **Decidido: cópia fixa em `.claude/skills/`** (commit `d85d79a`, revisado; ver `.claude/skills/LGPD-SKILLS-VERSION.md`) | F1 |
 | D13 | Quem será o encarregado (DPO) e qual advogado revisa política/termos/DPAs? | Definir antes da F7 | F7 |
 
 ---
