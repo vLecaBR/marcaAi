@@ -4,7 +4,7 @@
 > Execute **uma fase por vez**, na ordem. Ao terminar cada fase: marque os checkboxes (`- [x]`),
 > preencha o "Registro de execução" no fim do arquivo, rode as verificações da fase e **pare para o
 > dono revisar** antes de seguir. Itens marcados com 🧑 são **decisões do dono** — pergunte antes
-> de implementar. Nunca comite segredos.
+> de implementar. Nunca comite segredos. **Conformidade LGPD é contínua:** toda fase passa pelo "gate LGPD" da §5.0 (skills do repositório [goul4rt/lgpd-skills](https://github.com/goul4rt/lgpd-skills)).
 
 **Data do diagnóstico:** 06/11/2026 · **Última atualização do plano:** 06/11/2026 (backup do Supabase concluído) · **Último commit analisado:** `866566d` (05/08/2026) · branch `main` sincronizada com `origin/main` (github.com/vLecaBR/marcaAi)
 
@@ -19,6 +19,7 @@
 | Docker Desktop no PC do dono | ✅ instalado e funcionando (engine Linux/WSL2) — imagem `postgres:18-alpine` já baixada |
 | PostgreSQL 17 nativo no Windows | ⚠️ instalado via `winget install PostgreSQL.PostgreSQL.17` durante o backup — **provavelmente roda como serviço do Windows na porta 5432** e vai conflitar com o Postgres do Docker. Tratado na F0. |
 | F0 — Higiene do repo e ambiente de dev | ✅ concluída na branch `fase-0-higiene` (aguardando revisão/merge); pendente do dono: parar o serviço do PostgreSQL 17 nativo (admin) |
+| LGPD contínua (`goul4rt/lgpd-skills`) | 📌 incorporada ao plano (§5.0, gates por fase, D12). Instalação das skills aguarda seu ok (D12). |
 | Próxima fase | ▶️ **F1 — Banco local (sair do Supabase)** |
 
 **Mudanças no plano desde a primeira versão:**
@@ -207,6 +208,41 @@ Itens encontrados lendo o código. Cada um vira tarefa numa fase.
 
 ---
 
+### 5.0 Conformidade LGPD contínua (transversal — vale para TODAS as fases)
+
+MarcaAí trata **dado de saúde (dado sensível, LGPD art. 11)** de pacientes. A conformidade não é uma fase única (F7): é um **gate em cada fase**, apoiado nas Agent Skills de [goul4rt/lgpd-skills](https://github.com/goul4rt/lgpd-skills) (MIT; LGPD, resoluções ANPD 2/2022, 4/2023, 15/2024, 18/2024, 19/2024 e ECA Digital).
+
+**Instalação (🧑 D12 — só após seu ok; é código/instruções de terceiros, então revisar o repo antes):**
+```
+/plugin marketplace add goul4rt/lgpd-skills
+/plugin install lgpd-skills@lgpd-skills
+```
+Alternativa mais controlada: clonar, revisar e copiar `skills/lgpd-*` para `.claude/skills/` do projeto (fixa a versão no repo).
+
+**Regras de uso:**
+- Os artefatos das skills ficam em **`.lgpd/`** na raiz (`STATUS.md`, `data-map.md`, `legal-basis.md`, `ROPA.md`, `RIPD/`, `dsar/`, `incidents/`, `vendors/`, `transfers/`, `policies/`, `encarregado.md`, `gaps.md`…), **versionados no git e revisados em PR**. Jamais colocar dados pessoais reais ali (só descrições).
+- As skills assumem Next.js + Prisma + Better Auth; o MarcaAí é **Next.js + .NET/EF Core + JWT próprio**. Usar o que é agnóstico (inventário, base legal, ROPA, RIPD, política, DPA, resposta a incidentes, retenção) e **adaptar** o que é específico de stack (consent ledger, audit log, DSAR) para C#/EF Core, seguindo as convenções do repo.
+- **Não substitui advogado/DPO** (disclaimer do próprio repo): texto de política, termos, DPA, cláusulas e decisão de notificar a ANPD passam por revisão jurídica (🧑).
+- Pipeline de partida: **C (híbrido)** — código existente + funcionalidades novas. Primeiro passo: `lgpd-audit` para gerar `.lgpd/STATUS.md` e `gaps.md` de linha de base.
+- A cada fase: rodar o gate, atualizar `.lgpd/STATUS.md`, registrar lacunas novas em `gaps.md` e citar o resultado no relatório de fim de fase.
+
+**Gates LGPD por fase:**
+
+| Fase | Gate (skills) |
+|---|---|
+| F0/F1 | Instalar skills (D12); `lgpd-audit` de linha de base; `lgpd-data-mapping` (inventário real das tabelas — `users`, `bookings`, `booking_responses`, etc.). Importar o dump do Supabase em **dev** é tratamento de dado pessoal real: base legal/finalidade registradas, dump fora do repo, banco de dev não exposto, e descartar o dado quando não for mais necessário (`lgpd-retention-erasure`). |
+| F2 | Nenhum dado novo; revisar `npm audit`/CVEs como medida de segurança (art. 46). |
+| F3 | Remoção de PII dos logs (`lgpd-audit-logging`); correção do IDOR e do magic link = controles de segurança art. 46; `lgpd-legal-basis` para o formulário público de agendamento. |
+| F4 | `lgpd-consent-schema` (consentimento no booking); `lgpd-dsar` (exportar/excluir paciente e conta — endpoints do art. 18); `lgpd-retention-erasure` (política + job); `lgpd-anonymization` onde couber; novo campo (`specialty`, `registrationNumber`…) entra no `data-map`. |
+| F5 | `lgpd-vendor-audit` + `lgpd-dpa` para **Stripe** e **Mercado Pago**; `lgpd-international-transfer` (Stripe/US); revisar minimização do que é enviado aos provedores. |
+| F6 | `lgpd-vendor-audit`/`lgpd-dpa`/`lgpd-international-transfer` para **Resend, Google (OAuth/Calendar), Cloudflare, Evolution/WhatsApp**; revisar escopos OAuth mínimos; e-mails sem dado de saúde no corpo. |
+| F7 | Executa o grosso: `lgpd-legal-basis`, `lgpd-ropa`, `lgpd-ripd` (dado sensível de saúde → RIPD obrigatoriamente), `lgpd-privacy-policy`, `lgpd-dpo-encarregado`, `lgpd-encryption-keys`, `lgpd-incident-response`, `lgpd-eca-digital-minors` (avaliar se pacientes menores se aplicam). |
+| F8 | Testes automatizados cobrindo DSAR (exportar/excluir), consentimento gravado e anonimização. |
+| F9 | Backup criptografado (`lgpd-encryption-keys`), BitLocker, controle de acesso ao PC; runbook inclui o **plano de resposta a incidentes** (prazo de 3 dias úteis — Res. 15/2024) e teste de mesa; Cloudflare/R2 no inventário de operadores. |
+| F10 | **Go/no-go LGPD:** `.lgpd/STATUS.md` sem pendência crítica, ROPA/RIPD/política/DPA revisados por advogado, encarregado designado e divulgado, canal do titular funcionando. Sem isso, não abrir para pacientes reais. |
+
+---
+
 ### ⚡ Ação imediata (antes da F0) — dados do Supabase ✅ CONCLUÍDA em 06/11/2026
 
 O projeto do Supabase foi reativado pelo dono e o banco foi exportado com `pg_dump`.
@@ -368,7 +404,8 @@ Frontend:
 - [ ] **Rate limiting** (achado #5) com o `Microsoft.AspNetCore.RateLimiting` nativo: magic link (ex.: 5/hora por e-mail e 20/hora por IP), `POST /bookings` (por IP), `GET /slots`, `/auth/refresh`. Atrás do Cloudflare, usar o header `CF-Connecting-IP` para o IP real (configurar `ForwardedHeaders` corretamente — hoje `KnownNetworks/KnownProxies` estão limpos, aceitando qualquer proxy).
 - [ ] **Headers de segurança** no Next: adicionar `Content-Security-Policy` (permitindo Stripe JS e o domínio da API), `Permissions-Policy`. Já existem HSTS/X-Frame/nosniff/Referrer.
 - [ ] **CORS/cookies em produção:** `Cors:FrontendOrigin=https://app.SEUDOMINIO.com.br`; cookies `Secure` (já automático em https); validar que o antiforgery funciona via BFF.
-- [ ] **LGPD (dado de saúde é dado sensível):**
+- [ ] **LGPD (dado de saúde é dado sensível)** — executar com as skills do §5.0 (`lgpd-*`), gerando os artefatos em `.lgpd/`:
+  - [ ] ROPA, RIPD, base legal por atividade, designação do encarregado, DPAs com operadores e plano de incidentes (`.lgpd/`).
   - [ ] Páginas `/privacidade` e `/termos` (🧑 texto revisado por advogado; MarcaAí atua como **operadora** dos dados dos pacientes e o profissional como **controlador** — deixar isso nos termos).
   - [ ] Checkbox de consentimento no formulário público de agendamento (com link para a política) e registro de data/versão do consentimento no `Booking`.
   - [ ] Direitos do titular: o profissional consegue exportar (CSV) e excluir/anonimizar dados de um paciente; o usuário consegue excluir a própria conta.
@@ -427,7 +464,7 @@ CI (`.github/workflows/ci.yml`):
 - [ ] 🧑 Domínio comprado e na Cloudflare; e-mail do domínio funcionando.
 - [ ] Stripe em **modo live**: chaves live, preços live, webhooks live apontando para `https://api.SEUDOMINIO/api/v1/webhooks/stripe` e `/stripe/connect` (com a API version do Stripe.net da F2).
 - [ ] Google OAuth: app publicado (login com escopos básicos); verificação dos escopos de Calendar submetida.
-- [ ] Termos, privacidade, consentimento e canal do DPO no ar.
+- [ ] Termos, privacidade, consentimento e canal do DPO no ar. **Gate LGPD do §5.0 aprovado** (`.lgpd/STATUS.md` sem pendência crítica + revisão jurídica).
 - [ ] Rotacionar todos os segredos usados em dev/Render/Vercel/Supabase; `Jwt:SigningKey` de produção exclusivo.
 - [ ] Teste de fumaça em produção: cadastro → onboarding → tipo de consulta → agendamento público → pagamento real pequeno → e-mail recebido → lembrete → cancelamento/reembolso.
 - [ ] 🧑 Beta fechado com 3–5 profissionais conhecidos antes de abrir; canal de suporte (WhatsApp/e-mail) visível no dashboard.
@@ -452,6 +489,8 @@ CI (`.github/workflows/ci.yml`):
 | D9 | Destino do backup externo | Cloudflare R2 (já vai usar a Cloudflare) | F9 |
 | D10 | Prazo de retenção de dados de pacientes | Definir com advogado | F7 |
 | D11 | Domínio definitivo | — | F9/F10 |
+| D12 | Instalar as skills `goul4rt/lgpd-skills` (plugin ou cópia fixada em `.claude/skills/`)? | Sim, copiando para `.claude/skills/` após revisar o repo (versão fixa) | F1 |
+| D13 | Quem será o encarregado (DPO) e qual advogado revisa política/termos/DPAs? | Definir antes da F7 | F7 |
 
 ---
 
@@ -462,6 +501,7 @@ CI (`.github/workflows/ci.yml`):
 - Rateio interno da clínica (`RevenueShareRule`, coluna "sua fatia").
 - Migrar Server Actions-proxy (`lib/actions/*`) para o BFF (ADR-0001).
 - recharts v3, transferência de propriedade da clínica, relatórios avançados.
+- Manter a rotina LGPD: reexecutar `lgpd-audit` a cada release relevante, atualizar ROPA/RIPD quando entrar novo dado/operador, teste de mesa de incidente semestral, `/plugin marketplace update lgpd-skills` para acompanhar mudanças normativas.
 - Migração do PC para uma VPS (mesmo compose + restaurar backup + trocar o destino do túnel).
 
 ---
