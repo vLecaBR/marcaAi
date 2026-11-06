@@ -85,9 +85,9 @@ flowchart LR
 |---|---|
 | **Frontend** | Next.js 16 (App Router, RSC) · React 19 · TypeScript strict · Tailwind v4 (CSS-first) · Framer Motion (`motion` v12) · React Hook Form + Zod · Radix UI · recharts |
 | **Backend** | .NET 10 · C# · Clean Architecture (Api / Application / Domain / Infrastructure) · EF Core (Npgsql) |
-| **Banco** | PostgreSQL — **Supabase** (Session pooler, porta 5432); migrations aplicadas no boot |
+| **Banco** | PostgreSQL 18 (Docker Compose; dev na porta 5433); migrations aplicadas no boot |
 | **Pagamentos** | Stripe (cartão + Elements) · PIX |
-| **Deploy** | Frontend na **Vercel** · Backend em container (Docker / Render) |
+| **Deploy** | Self-hosting: Docker Compose + Cloudflare Tunnel (ver `PLANO_DE_LANCAMENTO.md`) |
 
 ---
 
@@ -121,8 +121,8 @@ marcaAi/
 ### Pré-requisitos
 
 - **.NET SDK 10** — para a API
-- **Node.js 20+** e **npm** — para o frontend
-- **PostgreSQL** — uma instância local **ou** um projeto **Supabase** (recomendado)
+- **Node.js 24+** e **npm** — para o frontend
+- **Docker Desktop** — Postgres 18 + Mailpit de dev (`docker compose -f docker-compose.dev.yml up -d`; Postgres em `localhost:5433`, Mailpit UI em http://localhost:8025)
 
 ### 1️⃣ Backend (API .NET) — suba primeiro
 
@@ -131,10 +131,11 @@ O frontend depende da API em `http://localhost:5080`, então comece por ela.
 ```bash
 cd backend
 
-# Configure a string de conexão (Supabase Session pooler ou Postgres local).
+# Suba a infra de dev na raiz: docker compose -f docker-compose.dev.yml up -d
+# Configure a string de conexão (Postgres do compose, porta 5433).
 # Em dev, use os User Secrets do .NET (não vaza no git) OU appsettings.Development.json:
 dotnet user-secrets set "ConnectionStrings:Default" \
-  "Host=localhost;Port=5432;Database=marcaai;Username=postgres;Password=postgres" \
+  "Host=localhost;Port=5433;Database=marcaai;Username=marcaai;Password=marcaai" \
   --project src/MarcaAi.Api
 
 # Restaura, aplica migrations no boot e sobe a API (ouve em http://localhost:5080).

@@ -97,18 +97,18 @@ MarcaAi.Api/
 ## Como rodar (dev)
 
 Pré-requisitos: **.NET 10 SDK**, `dotnet-ef` (`dotnet tool install --global dotnet-ef`),
-e um PostgreSQL (Supabase ou o `docker-compose.yml` local do repositório raiz).
+e o Postgres de dev: `docker compose -f docker-compose.dev.yml up -d` na raiz (porta **5433**).
 
 **1. Segredos (fora do git, via user-secrets):**
 ```bash
 cd src/MarcaAi.Api
-dotnet user-secrets set "ConnectionStrings:Default" "Host=...;Port=5432;Database=postgres;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true"
+dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5433;Database=marcaai;Username=marcaai;Password=marcaai"
 # Opcional (login Google + Calendar):
 dotnet user-secrets set "Google:ClientId" "....apps.googleusercontent.com"
 dotnet user-secrets set "Google:ClientSecret" "..."
 ```
-> O `appsettings.Development.json` versionado aponta para o Postgres local do docker; o
-> user-secrets sobrepõe com o banco real. **Nunca** comite senhas.
+> O `appsettings.Development.json` versionado aponta para o Postgres local do docker (a porta/credenciais
+> serão alinhadas ao compose na F1); o user-secrets sobrepõe. **Nunca** comite senhas.
 
 **2. Banco (primeira vez / banco vazio):**
 ```bash

@@ -2,6 +2,9 @@
   "name": "marcaai",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
@@ -95,9 +98,9 @@
   },
   "overrides": {
     "react-day-picker": {
-      "date-fns": "-fns",
-      "react": "",
-      "react-dom": "-dom"
+      "date-fns": "$date-fns",
+      "react": "$react",
+      "react-dom": "$react-dom"
     }
   }
 }
