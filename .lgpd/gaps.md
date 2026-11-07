@@ -31,6 +31,12 @@ Severidade: 🔴 crítica · 🟠 alta · 🟡 média. Fase = fase do `PLANO_DE_
 
 **Atualização F3 (06/11/2026):** G05 (IDOR) ✅ corrigido e testado · G06 (magic link em log) ✅ fail-fast em produção · G07 (PII em logs) ✅ removida (corpo de provedores só em Debug; senders simulados sem PII em Information) · G13 parcial (Hangfire protegido; rate limiting segue na F7).
 
+**Atualização F5 (07/11/2026):**
+- **G22 (novo, 🟡):** a *descrição* enviada a Stripe/Mercado Pago é `Consulta: <título do tipo>` — pode revelar contratação de serviço de saúde. Sugestão: descrição genérica. Decisão do dono.
+- **G23 (novo, 🟠):** DPA/termos com Stripe e Mercado Pago ainda não arquivados e mecanismo de transferência internacional do Stripe não confirmado (`.lgpd/vendors/`, `.lgpd/transfers/`).
+- Tokens OAuth do vendedor Mercado Pago agora **cifrados** (Data Protection); a chave precisa persistir (`DataProtection:KeysPath`) e entrar no backup (F9).
+- `processed_webhook_events` guarda só (provedor, id do evento, data) — sem dado pessoal; limpeza periódica entra na F7.
+
 **Atualização F4 (06/11/2026):**
 - G03 (canal do titular) 🟡 **parcial**: endpoints e tela `/settings/privacy` para exportar/anonimizar paciente e exportar/excluir conta (prazo imediato, Art. 19). Falta: canal para o **paciente** pedir direto (hoje o pedido passa pelo profissional, que é o controlador), registro dos pedidos e fluxo de correção.
 - G04 (consentimento) 🟡 **parcial**: checkbox obrigatório no formulário + `ConsentAt`/`ConsentVersion` gravados no booking (versão `rascunho-2026-11` até a política revisada). Falta: **texto jurídico revisado** e a página `/privacidade` (G01 segue aberto).
