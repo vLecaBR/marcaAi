@@ -122,15 +122,27 @@ var googleId = builder.Configuration["Google:ClientId"];
 var googleSecret = builder.Configuration["Google:ClientSecret"];
 if (!string.IsNullOrWhiteSpace(googleId) && !string.IsNullOrWhiteSpace(googleSecret))
 {
+    // LOGIN: só escopos não sensíveis (openid email profile) — permite publicar o app no Google sem esperar a
+    // verificação dos escopos de Calendar (achado #15). Não guarda tokens.
     authBuilder.AddGoogle(options =>
     {
         options.SignInScheme = "ext";
         options.ClientId = googleId;
         options.ClientSecret = googleSecret;
         options.CallbackPath = "/api/v1/auth/google/callback";
-        options.AccessType = "offline";   // garante refresh_token
+        options.SaveTokens = false;
+    });
+
+    // "CONECTAR GOOGLE AGENDA": fluxo opcional e separado (GoogleCalendarIntegrationController), com escopo de Calendar
+    // e refresh_token (offline). Callback próprio.
+    authBuilder.AddGoogle("GoogleCalendar", options =>
+    {
+        options.SignInScheme = "ext";
+        options.ClientId = googleId;
+        options.ClientSecret = googleSecret;
+        options.CallbackPath = "/api/v1/integrations/google-calendar/callback";
+        options.AccessType = "offline";
         options.SaveTokens = true;
-        options.Scope.Add("https://www.googleapis.com/auth/calendar.readonly");
         options.Scope.Add("https://www.googleapis.com/auth/calendar.events");
         options.AdditionalAuthorizationParameters["prompt"] = "consent";
     });

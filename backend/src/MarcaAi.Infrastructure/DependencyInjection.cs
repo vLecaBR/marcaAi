@@ -105,12 +105,16 @@ public static class DependencyInjection
         // E-mail: Resend se houver API key; senão, loga o link no console (dev).
         if (!string.IsNullOrWhiteSpace(configuration["Resend:ApiKey"]))
             services.AddHttpClient<IMagicLinkSender, ResendMagicLinkSender>();
+        else if (!string.IsNullOrWhiteSpace(configuration["Smtp:Host"]))
+            services.AddScoped<IMagicLinkSender, SmtpMagicLinkSender>(); // dev: Mailpit
         else
             services.AddScoped<IMagicLinkSender, LoggingMagicLinkSender>();
 
         // E-mail client (notificações): Resend se houver key; senão log.
         if (!string.IsNullOrWhiteSpace(configuration["Resend:ApiKey"]))
             services.AddHttpClient<IEmailClient, ResendEmailClient>();
+        else if (!string.IsNullOrWhiteSpace(configuration["Smtp:Host"]))
+            services.AddScoped<IEmailClient, SmtpEmailClient>(); // dev: Mailpit
         else
             services.AddScoped<IEmailClient, LoggingEmailClient>();
 

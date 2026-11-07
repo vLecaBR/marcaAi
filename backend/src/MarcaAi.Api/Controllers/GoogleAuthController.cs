@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace MarcaAi.Api.Controllers;
 
 /// <summary>
-/// Login via Google (OAuth code flow). O handler "Google" (Program.cs) processa o CallbackPath
+/// Login via Google (OAuth code flow, só identidade; a agenda é conectada em outro fluxo). O handler "Google" (Program.cs) processa o CallbackPath
 /// e assina no cookie temporário "ext"; aqui finalizamos: provisionamos o usuário e guardamos os
 /// tokens do Calendar na Account.
 ///
@@ -77,18 +77,13 @@ public sealed class GoogleAuthController(
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(googleSub))
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Perfil do Google incompleto.");
 
-        long? expiresUnix = DateTimeOffset.TryParse(result.Properties.GetTokenValue("expires_at"), out var eo)
-            ? eo.ToUnixTimeSeconds()
-            : null;
-
-        var user = await provisioning.FindOrCreateWithGoogleAsync(new GoogleProfile(
-            Email: email,
-            Name: name,
-            GoogleUserId: googleSub,
-            AccessToken: result.Properties.GetTokenValue("access_token"),
-            RefreshToken: result.Properties.GetTokenValue("refresh_token"),
-            ExpiresAtUnix: expiresUnix,
-            Scope: result.Properties.GetTokenValue("scope")), ct);
+        // Login não guarda tokens do Google (escopos só de identidade). Calendar é conectado à parte.
+        var user = await provisioning.FindOrCreateByEmailAsync(email, ct);
+        if (string.IsNullOrWhiteSpace(user.Name) && !string.IsNullOrWhiteSpace(name))
+        {
+            user.Name = name;
+            await db.SaveChangesAsync(ct);
+        }
 
         await HttpContext.SignOutAsync("ext"); // limpa o cookie temporário do handshake
 

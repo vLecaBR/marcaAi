@@ -26,25 +26,13 @@ public sealed class ResendMagicLinkSender(
         }
 
         var from = config["Resend:FromEmail"] ?? "MarcaAí <onboarding@resend.dev>";
-        var html = $"""
-            <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
-              <h2 style="margin:0 0 8px">Seu acesso ao MarcaAí</h2>
-              <p style="color:#475569">Clique no botão abaixo para entrar. O link expira em 15 minutos.</p>
-              <p style="margin:24px 0">
-                <a href="{magicLinkUrl}"
-                   style="background:#0f766e;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;display:inline-block">
-                   Entrar
-                </a>
-              </p>
-              <p style="color:#94a3b8;font-size:12px">Se você não solicitou este acesso, ignore este e-mail.</p>
-            </div>
-            """;
+        var html = MagicLinkEmail.Html(magicLinkUrl);
 
         var payload = JsonSerializer.Serialize(new
         {
             from,
             to = new[] { email },
-            subject = "Seu acesso ao MarcaAí",
+            subject = MagicLinkEmail.Subject,
             html,
         });
 

@@ -47,6 +47,10 @@ export const endpoints = {
   public: (username: string) => `/public/${username}`,
   publicTeam: (slug: string) => `/public/team/${slug}`,
   // LGPD — direitos do titular (Art. 18)
+  integrations: {
+    googleCalendar: "/integrations/google-calendar",
+    googleCalendarLink: "/integrations/google-calendar/link",
+  },
   privacy: {
     exportPatient: "/privacy/patients/export",
     anonymizePatient: "/privacy/patients/anonymize",

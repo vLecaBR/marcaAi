@@ -43,7 +43,9 @@ public sealed class AuthController(
         });
         await db.SaveChangesAsync(ct);
 
-        var link = $"{Request.Scheme}://{Request.Host}/api/v1/auth/magic-link/verify?token={token}";
+        // O link abre o FRONT (`/auth/verify`), que troca o token pela sessão no BFF e grava os cookies no domínio do app.
+        var frontend = (config["Cors:FrontendOrigin"] ?? "http://localhost:3000").TrimEnd('/');
+        var link = $"{frontend}/auth/verify?token={token}";
         await magicLinkSender.SendAsync(email, link, ct);
 
         return Ok(new { message = "Se o e-mail for válido, enviamos um link de acesso." });
@@ -58,7 +60,8 @@ public sealed class AuthController(
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Token ausente.");
 
         var vt = await db.VerificationTokens.FirstOrDefaultAsync(v => v.Token == token, ct);
-        if (vt is null || vt.Expires < DateTime.UtcNow)
+        // Tokens de outros fluxos (handoff do Google, link de integração) têm Identifier com prefixo "xxx:" e NÃO valem como magic link.
+        if (vt is null || vt.Expires < DateTime.UtcNow || vt.Identifier.Contains(':'))
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Link inválido ou expirado.");
 
         db.VerificationTokens.Remove(vt); // uso único

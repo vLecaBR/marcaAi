@@ -31,6 +31,11 @@ Severidade: 🔴 crítica · 🟠 alta · 🟡 média. Fase = fase do `PLANO_DE_
 
 **Atualização F3 (06/11/2026):** G05 (IDOR) ✅ corrigido e testado · G06 (magic link em log) ✅ fail-fast em produção · G07 (PII em logs) ✅ removida (corpo de provedores só em Debug; senders simulados sem PII em Information) · G13 parcial (Hangfire protegido; rate limiting segue na F7).
 
+**Atualização F6 (07/11/2026):**
+- Minimização: o **login** com Google não pede nem guarda tokens/escopos de Calendar; a agenda é opt-in e revogável (revoga no Google ao desconectar).
+- Segurança (Art. 46): e-mails com dados de terceiros agora escapam HTML (corrigida injeção de HTML por nome/título/motivo).
+- Aberto: G09 (tokens do Google em texto em `accounts`) e limpeza de `verification_tokens` expirados → F7.
+
 **Atualização F5 (07/11/2026):**
 - **G22 (novo, 🟡):** a *descrição* enviada a Stripe/Mercado Pago é `Consulta: <título do tipo>` — pode revelar contratação de serviço de saúde. Sugestão: descrição genérica. Decisão do dono.
 - **G23 (novo, 🟠):** DPA/termos com Stripe e Mercado Pago ainda não arquivados e mecanismo de transferência internacional do Stripe não confirmado (`.lgpd/vendors/`, `.lgpd/transfers/`).

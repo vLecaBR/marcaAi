@@ -31,6 +31,8 @@ public static class ProductionConfigValidator
 
         if (string.IsNullOrWhiteSpace(c["Resend:ApiKey"]))
             errors.Add("Resend:ApiKey é obrigatória (sem ela o link de login iria para o log).");
+        if (string.IsNullOrWhiteSpace(c["Resend:FromEmail"]) || c["Resend:FromEmail"]!.Contains("resend.dev", StringComparison.OrdinalIgnoreCase))
+            errors.Add("Resend:FromEmail é obrigatória e deve ser de um domínio verificado no Resend (não resend.dev).");
 
         // Pagamentos: configuração parcial é erro (falha ao subir), não aviso — evita webhook aberto ou token ilegível.
         if (!string.IsNullOrWhiteSpace(c["Stripe:SecretKey"]))

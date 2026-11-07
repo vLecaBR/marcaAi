@@ -23,6 +23,16 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] G23: arquivar DPA do Stripe e do Mercado Pago; confirmar mecanismo de transferência internacional (`.lgpd/vendors/`, `.lgpd/transfers/`).
 - [ ] Limpeza periódica de `processed_webhook_events` (F7).
 
+## F6 — Notificações e integrações
+
+- [ ] **Resend:** criar conta, verificar o domínio (SPF/DKIM/DMARC na Cloudflare), definir `Resend__ApiKey` e `Resend__FromEmail` (`MarcaAí <nao-responda@SEUDOMINIO>`). Em produção a API **não sobe** sem remetente verificado.
+- [ ] Conferir em produção que os e-mails chegam na caixa de entrada (não spam) — critério de aceite da F6.
+- [ ] **Google Cloud Console:** cadastrar **dois** redirect URIs: `https://api.SEUDOMINIO/api/v1/auth/google/callback` (login) e `https://api.SEUDOMINIO/api/v1/integrations/google-calendar/callback` (conectar agenda).
+- [ ] Publicar o app no Google (tela de consentimento) com o login em escopos não sensíveis; **submeter a verificação** do escopo `calendar.events` (necessária para usuários externos na conexão de agenda).
+- [ ] **WhatsApp (D8 = opcional, fora do MVP):** nada foi ligado. Se quiser depois: serviço `evolution` no compose de produção com `profiles: [whatsapp]` (F9), número dedicado, volume baixo. Sem `WhatsApp__ApiUrl/ApiKey` os lembretes saem só por e-mail.
+- [ ] Testar o fluxo real "Conectar Google Agenda" no navegador (consentimento → callback → evento criado na agenda). O backend foi testado até o redirecionamento ao Google.
+- [ ] Tokens do Google em `accounts` continuam em texto no banco (G09) — cifrar na F7.
+
 ## Gerais (de fases anteriores)
 - [ ] Parar o serviço nativo PostgreSQL 17 (porta 5432), como administrador.
 - [ ] D13: definir encarregado (DPO) e advogado para revisar `/privacidade` e `/termos` (G01 — hoje 404).

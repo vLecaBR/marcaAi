@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using MarcaAi.Application.Common.Interfaces;
 using MarcaAi.Application.Features.Notifications;
 using MarcaAi.Domain.Enums;
@@ -17,6 +18,9 @@ public sealed class NotificationService(
     : INotificationService
 {
     private static readonly CultureInfo Br = new("pt-BR");
+
+    /// <summary>Escapa HTML: nome, título, motivo e observações vêm de terceiros (anti-injeção de HTML/phishing por e-mail).</summary>
+    private static string H(string? s) => WebUtility.HtmlEncode(s ?? string.Empty);
     private string AppUrl => (config["App:PublicUrl"] ?? "http://localhost:3000").TrimEnd('/');
 
     public async Task NotifyBookingCreatedAsync(BookingNotification n, CancellationToken ct = default)
@@ -26,10 +30,10 @@ public sealed class NotificationService(
 
         if (n.RequiresConfirm)
         {
-            await Email(n.GuestEmail, $"Solicitação recebida — {n.EventTitle}",
-                Template($"Olá, {n.GuestName}!",
-                    $"Sua solicitação de <b>{n.EventTitle}</b> com {n.OwnerName} foi enviada e aguarda confirmação.",
-                    $"📅 Data sugerida: {whenGuest}", null, manageUrl, "Ver detalhes"), ct);
+            await Email(n.GuestEmail, $"Solicitação de consulta recebida — {n.EventTitle}",
+                Template($"Olá, {H(n.GuestName)}!",
+                    $"Sua solicitação de consulta <b>{H(n.EventTitle)}</b> com {H(n.OwnerName)} foi enviada e aguarda a confirmação do profissional.",
+                    $"📅 Data sugerida: {H(whenGuest)}", null, manageUrl, "Ver detalhes"), ct);
             await Whats(n.GuestPhone,
                 $"Olá, *{n.GuestName}*! ⏳\n\nSua solicitação de *{n.EventTitle}* com {n.OwnerName} foi enviada e aguarda aprovação.\n\n📅 {whenGuest}\n\nAvisaremos quando for confirmada.", ct);
         }
@@ -37,9 +41,9 @@ public sealed class NotificationService(
         {
             var locLine = LocationLine(n);
             await Email(n.GuestEmail, $"Consulta confirmada — {n.EventTitle}",
-                Template($"Olá, {n.GuestName}!",
-                    $"Sua consulta <b>{n.EventTitle}</b> com {n.OwnerName} está <b>confirmada</b>.",
-                    $"📅 Quando: {whenGuest}", locLine, manageUrl, "Gerenciar consulta"), ct);
+                Template($"Olá, {H(n.GuestName)}!",
+                    $"Sua consulta <b>{H(n.EventTitle)}</b> com {H(n.OwnerName)} está <b>confirmada</b>.",
+                    $"📅 Quando: {H(whenGuest)}", H(locLine), manageUrl, "Gerenciar consulta"), ct);
             await Whats(n.GuestPhone,
                 $"Olá, *{n.GuestName}*! 👋\n\nSua consulta de *{n.EventTitle}* com {n.OwnerName} está *CONFIRMADA*.\n\n📅 {whenGuest}" +
                 (locLine is null ? "" : $"\n{locLine}") +
@@ -49,17 +53,17 @@ public sealed class NotificationService(
         var whenOwner = FormatWhen(n.StartTimeUtc, n.OwnerTimeZone);
         await Email(n.OwnerEmail, $"Nova consulta — {n.EventTitle}",
             Template("Você tem uma nova consulta",
-                $"<b>{n.GuestName}</b> ({n.GuestEmail}) agendou <b>{n.EventTitle}</b>.",
-                $"📅 {whenOwner}", n.GuestPhone is null ? null : $"📱 {n.GuestPhone}", null, null), ct);
+                $"<b>{H(n.GuestName)}</b> ({H(n.GuestEmail)}) agendou <b>{H(n.EventTitle)}</b>.",
+                $"📅 {H(whenOwner)}", n.GuestPhone is null ? null : $"📱 {H(n.GuestPhone)}", null, null), ct);
     }
 
     public async Task NotifyBookingCancelledAsync(BookingNotification n, string? reason, CancellationToken ct = default)
     {
         var whenGuest = FormatWhen(n.StartTimeUtc, n.GuestTimeZone);
         await Email(n.GuestEmail, $"Consulta cancelada — {n.EventTitle}",
-            Template($"Olá, {n.GuestName}.",
-                $"A consulta <b>{n.EventTitle}</b> em {whenGuest} foi <b>cancelada</b>.",
-                string.IsNullOrWhiteSpace(reason) ? null : $"Motivo: {reason}", null, null, null), ct);
+            Template($"Olá, {H(n.GuestName)}.",
+                $"A consulta <b>{H(n.EventTitle)}</b> em {H(whenGuest)} foi <b>cancelada</b>.",
+                string.IsNullOrWhiteSpace(reason) ? null : $"Motivo: {H(reason)}", null, null, null), ct);
         await Whats(n.GuestPhone,
             $"Olá, *{n.GuestName}*. ❌\n\nA consulta de *{n.EventTitle}* em {whenGuest} foi *CANCELADA*." +
             (string.IsNullOrWhiteSpace(reason) ? "" : $"\n\nMotivo: {reason}"), ct);
@@ -71,9 +75,9 @@ public sealed class NotificationService(
         var manageUrl = $"{AppUrl}/booking/{n.Uid}";
         var locLine = LocationLine(n);
         await Email(n.GuestEmail, $"Lembrete — {n.EventTitle}",
-            Template($"Lembrete, {n.GuestName}! ⏰",
-                $"Você tem <b>{n.EventTitle}</b> com {n.OwnerName} em breve.",
-                $"📅 {whenGuest}", locLine, manageUrl, "Ver consulta"), ct);
+            Template($"Lembrete de consulta, {H(n.GuestName)}! ⏰",
+                $"Você tem a consulta <b>{H(n.EventTitle)}</b> com {H(n.OwnerName)} em breve.",
+                $"📅 {H(whenGuest)}", H(locLine), manageUrl, "Ver consulta"), ct);
         // Lembrete por WhatsApp é premium (Q7): só dispara se o plano do profissional permitir.
         if (allowWhatsApp)
             await Whats(n.GuestPhone,
@@ -121,8 +125,8 @@ public sealed class NotificationService(
     private static string Template(string title, string body, string? line1, string? line2, string? url, string? cta)
     {
         var extra = string.Concat(
-            line1 is null ? "" : $"<p style=\"margin:4px 0;color:#334155\">{line1}</p>",
-            line2 is null ? "" : $"<p style=\"margin:4px 0;color:#334155\">{line2}</p>");
+            string.IsNullOrEmpty(line1) ? "" : $"<p style=\"margin:4px 0;color:#334155\">{line1}</p>",
+            string.IsNullOrEmpty(line2) ? "" : $"<p style=\"margin:4px 0;color:#334155\">{line2}</p>");
         var button = url is null || cta is null ? "" :
             $"<p style=\"margin:24px 0\"><a href=\"{url}\" style=\"background:#0f766e;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;display:inline-block\">{cta}</a></p>";
         return $"""
