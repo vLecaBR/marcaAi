@@ -218,9 +218,11 @@ builder.Services.AddRateLimiter(o =>
     };
 
     static string Ip(HttpContext c) => c.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    // RateLimit:Multiplier (padrão 1) escala os limites — só os testes de integração aumentam (todos compartilham um IP).
+    var rlMultiplier = Math.Max(1, builder.Configuration.GetValue<int?>("RateLimit:Multiplier") ?? 1);
     void Add(string name, int limit, TimeSpan window) =>
         o.AddPolicy(name, c => RateLimitPartition.GetFixedWindowLimiter($"{name}:{Ip(c)}",
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = window, QueueLimit = 0 }));
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = limit * rlMultiplier, Window = window, QueueLimit = 0 }));
 
     Add("magic-link", 20, TimeSpan.FromHours(1));      // + 5/h por e-mail no controller
     Add("auth-verify", 30, TimeSpan.FromMinutes(10));
@@ -299,3 +301,6 @@ if (!app.Environment.IsDevelopment())
         app.Logger.LogWarning("[Config] {Warning}", w);
 
 app.Run();
+
+// Necessário para WebApplicationFactory<Program> nos testes de integração.
+public partial class Program;

@@ -52,3 +52,6 @@ yarn-debug.log*
 # ── Dumps de banco (dados pessoais — jamais commitar) ──
 *.dump
 *.backup
+
+# Cobertura local dos testes .NET
+backend/tests/.cov/
