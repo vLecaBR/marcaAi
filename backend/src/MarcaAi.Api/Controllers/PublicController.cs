@@ -11,6 +11,27 @@ namespace MarcaAi.Api.Controllers;
 [Route("api/v1/public")]
 public sealed class PublicController(IApplicationDbContext db) : ControllerBase
 {
+    /// <summary>Página pública da clínica: dados da equipe + profissionais já cadastrados (sem e-mail).</summary>
+    [AllowAnonymous]
+    [HttpGet("team/{slug}")]
+    public async Task<ActionResult<PublicTeamDto>> Team(string slug, CancellationToken ct)
+    {
+        var team = await db.Teams.AsNoTracking()
+            .Where(t => t.Slug == slug)
+            .Select(t => new PublicTeamDto(
+                t.Slug, t.Name, t.Description, t.Logo, t.BrandColor, t.Theme,
+                t.Members
+                    .Where(m => m.User.Username != null && m.User.Onboarded)
+                    .OrderBy(m => m.User.Name)
+                    .Select(m => new PublicTeamMemberDto(m.User.Username!, m.User.Name, m.User.Image, m.User.Specialty, m.User.Council))
+                    .ToList()))
+            .FirstOrDefaultAsync(ct);
+
+        return team is null
+            ? Problem(statusCode: StatusCodes.Status404NotFound, detail: "Clínica não encontrada.")
+            : Ok(team);
+    }
+
     [AllowAnonymous]
     [HttpGet("{username}")]
     public async Task<ActionResult<PublicProfileDto>> Profile(string username, CancellationToken ct)
@@ -32,7 +53,10 @@ public sealed class PublicController(IApplicationDbContext db) : ControllerBase
                     .Select(e => new PublicEventTypeDto(
                         e.Id, e.Title, e.Slug, e.Description, e.Duration,
                         e.Color, e.LocationType, e.Price, e.Currency,
-                        e.RequiresConfirm, e.BeforeEventBuffer, e.AfterEventBuffer, e.BookingLimitDays))
+                        e.RequiresConfirm, e.BeforeEventBuffer, e.AfterEventBuffer, e.BookingLimitDays,
+                        e.Questions.OrderBy(q => q.Order)
+                            .Select(q => new PublicQuestionDto(q.Id, q.Label, q.Type, q.Placeholder, q.Required, q.Order))
+                            .ToList()))
                     .ToList()))
             .FirstOrDefaultAsync(ct);
 

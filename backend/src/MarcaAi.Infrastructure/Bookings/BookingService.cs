@@ -9,6 +9,8 @@ using MarcaAi.Domain.Entities;
 using MarcaAi.Domain.Enums;
 using MarcaAi.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace MarcaAi.Infrastructure.Bookings;
 
@@ -27,11 +29,24 @@ public sealed class BookingService(
     IBookingConcurrencyGuard guard,
     IGoogleCalendarService google,
     INotificationService notify,
-    IPixPaymentService pix) : IBookingService
+    IPixPaymentService pix,
+    IEnumerable<ISplitPaymentService> splitProviders,
+    IConfiguration config,
+    ILogger<BookingService> logger) : IBookingService
 {
+    /// <summary>Janela mínima (horas) para reembolso integral no cancelamento pelo paciente (decisão D6).</summary>
+    private const int RefundWindowHours = 24;
+
+    /// <summary>Versão do aviso de privacidade aceito. Atualize ao publicar a política revisada (LGPD).</summary>
+    private string PolicyVersion => config["Privacy:PolicyVersion"] ?? "rascunho-2026-11";
+
     public async Task<CreateBookingResult> CreateAsync(
         CreateBookingRequest request, CancellationToken cancellationToken = default)
     {
+        // LGPD (Arts. 8º e 11): sem aceite do aviso de privacidade não se coleta dado de saúde.
+        if (!request.ConsentAccepted)
+            return CreateBookingResult.ConsentRequired();
+
         var startUtc = request.StartTimeUtc.UtcDateTime;
         var endUtc = request.EndTimeUtc.UtcDateTime;
 
@@ -43,6 +58,19 @@ public sealed class BookingService(
 
         if (eventType is null)
             return CreateBookingResult.EventNotFound();
+
+        // Respostas do formulário pré-consulta: só perguntas deste tipo; obrigatórias preenchidas; tamanho limitado.
+        var questions = await db.EventTypeQuestions.AsNoTracking()
+            .Where(q => q.EventTypeId == eventType.Id).ToListAsync(cancellationToken);
+        var responses = (request.Responses ?? Array.Empty<BookingResponseInput>())
+            .Where(r => !string.IsNullOrWhiteSpace(r.Answer)).ToList();
+        if (responses.Any(r => questions.All(q => q.Id != r.QuestionId)))
+            return CreateBookingResult.InvalidResponses("Resposta para pergunta inexistente.");
+        if (responses.Any(r => r.Answer.Length > 2000))
+            return CreateBookingResult.InvalidResponses("Resposta muito longa (máx. 2000 caracteres).");
+        var missing = questions.FirstOrDefault(q => q.Required && responses.All(r => r.QuestionId != q.Id));
+        if (missing is not null)
+            return CreateBookingResult.InvalidResponses($"Responda a pergunta obrigatória: {missing.Label}");
 
         var requestedMinutes = (int)Math.Round((endUtc - startUtc).TotalMinutes);
         if (requestedMinutes != eventType.Duration)
@@ -83,7 +111,11 @@ public sealed class BookingService(
             GuestTimeZone = request.GuestTimeZone,
             Status = status,
             PaymentStatus = PaymentStatus.UNPAID,
+            ConsentAt = DateTime.UtcNow,
+            ConsentVersion = PolicyVersion,
         };
+        foreach (var r in responses)
+            booking.Responses.Add(new BookingResponse { QuestionId = r.QuestionId, Answer = r.Answer.Trim() });
 
         // Transação explícita (Read Committed) — escopo FECHADO antes de qualquer chamada externa,
         // para o refresh de token do Google não colidir com a transação já commitada.
@@ -187,7 +219,7 @@ public sealed class BookingService(
     }
 
     public async Task<CancelBookingResult> CancelAsync(
-        string uid, string? reason, string? canceledBy, CancellationToken cancellationToken = default)
+        string uid, string? reason, string? canceledBy, string? actorUserId = null, CancellationToken cancellationToken = default)
     {
         var booking = await db.Bookings
             .Include(b => b.EventType)
@@ -198,15 +230,18 @@ public sealed class BookingService(
         if (booking.Status == BookingStatus.CANCELLED)
             return new CancelBookingResult(CancelOutcome.AlreadyCancelled, "Agendamento já está cancelado.");
 
-        var by = string.Equals(canceledBy, "OWNER", StringComparison.OrdinalIgnoreCase)
-            ? CanceledBy.OWNER
-            : CanceledBy.GUEST;
+        // O papel vem da identidade autenticada, nunca do corpo (que é anônimo e forjável).
+        var actorIsManager = actorUserId is not null && await IsOwnerOrManagerAsync(booking, actorUserId, cancellationToken);
+        var by = actorIsManager ? CanceledBy.OWNER : CanceledBy.GUEST;
 
         booking.Status = BookingStatus.CANCELLED;
         booking.CancelReason = reason;
         booking.CanceledAt = DateTime.UtcNow;
         booking.CanceledBy = by;
         await db.SaveChangesAsync(cancellationToken);
+
+        // Reembolso (D6): integral se o paciente cancela com 24h+ de antecedência; sempre que o cancelamento é do profissional.
+        var refund = await TryRefundAsync(booking, by, cancellationToken);
 
         // Remove o evento do Google Calendar (best-effort).
         if (!string.IsNullOrWhiteSpace(booking.MeetingId))
@@ -228,6 +263,93 @@ public sealed class BookingService(
         }
         catch { /* best-effort */ }
 
-        return new CancelBookingResult(CancelOutcome.Success);
+        return new CancelBookingResult(CancelOutcome.Success, Refund: refund);
+    }
+
+    private async Task<string?> TryRefundAsync(Domain.Entities.Booking booking, CanceledBy by, CancellationToken ct)
+    {
+        if (booking.PaymentStatus != PaymentStatus.PAID) return null;
+
+        var eligible = by == CanceledBy.OWNER || (booking.StartTime - DateTime.UtcNow).TotalHours >= RefundWindowHours;
+        if (!eligible) return "NOT_ELIGIBLE";
+
+        var provider = splitProviders.FirstOrDefault(s => s.Provider == booking.PaymentProvider);
+        if (provider is null || string.IsNullOrWhiteSpace(booking.ProviderPaymentId))
+        {
+            logger.LogWarning("[Refund] Booking {Uid} sem provedor/pagamento identificável; reembolso manual necessário.", booking.Uid);
+            return "FAILED";
+        }
+
+        var result = await provider.RefundAsync(booking.ProviderPaymentId!, null, ct);
+        if (result is null)
+        {
+            logger.LogError("[Refund] Falha no reembolso do booking {Uid}; reembolso manual necessário.", booking.Uid);
+            return "FAILED";
+        }
+
+        booking.PaymentStatus = PaymentStatus.REFUNDED;
+        booking.RefundedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return "REFUNDED";
+    }
+
+    private async Task<bool> IsOwnerOrManagerAsync(Domain.Entities.Booking booking, string userId, CancellationToken ct)
+    {
+        if (booking.UserId == userId) return true;
+        if (booking.EventType.TeamId is not { } teamId) return false;
+        var role = await db.TeamMembers.AsNoTracking()
+            .Where(m => m.TeamId == teamId && m.UserId == userId)
+            .Select(m => (TeamRole?)m.Role).FirstOrDefaultAsync(ct);
+        return role is TeamRole.OWNER or TeamRole.ADMIN;
+    }
+
+    public async Task<ConfirmBookingResult> ConfirmAsync(string uid, string actorUserId, CancellationToken cancellationToken = default)
+    {
+        var booking = await db.Bookings
+            .Include(b => b.EventType)
+            .Include(b => b.Owner)
+            .FirstOrDefaultAsync(b => b.Uid == uid, cancellationToken);
+        if (booking is null || !await IsOwnerOrManagerAsync(booking, actorUserId, cancellationToken))
+            return new ConfirmBookingResult(ConfirmOutcome.NotFound);
+        if (booking.Status != BookingStatus.PENDING)
+            return new ConfirmBookingResult(ConfirmOutcome.NotPending, "Só consultas pendentes podem ser aprovadas.");
+
+        booking.Status = BookingStatus.CONFIRMED;
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Google Calendar (best-effort) — mesma regra da criação direta.
+        try
+        {
+            var ev = await google.CreateEventAsync(new CreateGoogleEventInput(
+                UserId: booking.UserId,
+                Title: $"{booking.EventType.Title} com {booking.GuestName}",
+                Description: $"Agendamento via MarcaAí\nPaciente: {booking.GuestName} ({booking.GuestEmail})\nObservações: {booking.GuestNotes ?? "—"}",
+                StartUtc: booking.StartTime,
+                EndUtc: booking.EndTime,
+                GuestName: booking.GuestName,
+                GuestEmail: booking.GuestEmail,
+                CreateMeetLink: booking.EventType.LocationType == LocationType.GOOGLE_MEET), cancellationToken);
+            if (ev is not null)
+            {
+                booking.MeetingId = ev.EventId;
+                booking.MeetingUrl = ev.MeetLink ?? booking.EventType.LocationValue;
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex) { logger.LogWarning(ex, "[Confirm] Google Calendar falhou para o booking {Uid}", booking.Uid); }
+
+        // Notifica o paciente (a mensagem de "criada" com RequiresConfirm=false informa a confirmação).
+        try
+        {
+            await notify.NotifyBookingCreatedAsync(new BookingNotification(
+                booking.Uid, booking.GuestName, booking.GuestEmail, booking.GuestPhone,
+                booking.Owner.Name ?? "Profissional", booking.Owner.Email,
+                booking.EventType.Title, booking.StartTime, booking.EndTime,
+                booking.GuestTimeZone, booking.Owner.TimeZone,
+                booking.EventType.LocationType, booking.MeetingUrl, false), cancellationToken);
+        }
+        catch (Exception ex) { logger.LogWarning(ex, "[Confirm] Notificação falhou para o booking {Uid}", booking.Uid); }
+
+        return new ConfirmBookingResult(ConfirmOutcome.Success);
     }
 }

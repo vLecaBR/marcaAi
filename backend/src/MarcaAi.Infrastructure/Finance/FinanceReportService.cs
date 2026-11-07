@@ -18,6 +18,39 @@ public sealed class FinanceReportService(IApplicationDbContext db) : IFinanceRep
         "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
     };
 
+    public async Task<StatementDto> GetStatementAsync(
+        string userId, DateTime? from, DateTime? to, string? status, string? provider, int page, int pageSize,
+        CancellationToken ct = default)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        // Só consultas com cobrança (preço > 0). Filtros server-side.
+        // (o snapshot PriceCents só nasce ao iniciar o pagamento; antes disso vale o preço do tipo de consulta)
+        var q = db.Bookings.AsNoTracking().Where(b => b.UserId == userId && (b.PriceCents > 0 || b.EventType.Price > 0));
+        if (from is { } f) q = q.Where(b => b.StartTime >= f);
+        if (to is { } t) q = q.Where(b => b.StartTime < t);
+        if (Enum.TryParse<PaymentStatus>(status, true, out var st)) q = q.Where(b => b.PaymentStatus == st);
+        if (Enum.TryParse<PaymentProvider>(provider, true, out var pr)) q = q.Where(b => b.PaymentProvider == pr);
+
+        var total = await q.CountAsync(ct);
+        var rows = await q.OrderByDescending(b => b.StartTime)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(b => new
+            {
+                b.Uid, b.StartTime, b.GuestName, Title = b.EventType.Title,
+                Gross = b.PriceCents ?? b.EventType.Price ?? 0, Fee = b.PlatformFeeCents ?? 0, Net = b.NetToProviderCents,
+                b.PaymentProvider, b.PaymentStatus,
+            })
+            .ToListAsync(ct);
+
+        var items = rows.Select(r => new StatementItemDto(
+            r.Uid, new DateTimeOffset(DateTime.SpecifyKind(r.StartTime, DateTimeKind.Utc)), r.GuestName, r.Title,
+            r.Gross, r.Fee, r.Net ?? (r.Gross - r.Fee), r.PaymentProvider?.ToString(), r.PaymentStatus.ToString()))
+            .ToList();
+        return new StatementDto(items, page, pageSize, total);
+    }
+
     public async Task<FinanceDashboardDto> GetIndividualSummaryAsync(string userId, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;

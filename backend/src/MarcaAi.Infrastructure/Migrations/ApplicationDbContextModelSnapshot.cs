@@ -18,7 +18,7 @@ namespace MarcaAi.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "BookingStatus", new[] { "CANCELLED", "CONFIRMED", "NO_SHOW", "PENDING", "RESCHEDULED" });
@@ -118,6 +118,14 @@ namespace MarcaAi.Infrastructure.Migrations
                     b.Property<CanceledBy?>("CanceledBy")
                         .HasColumnType("\"CanceledBy\"")
                         .HasColumnName("canceledBy");
+
+                    b.Property<DateTime?>("ConsentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consentAt");
+
+                    b.Property<string>("ConsentVersion")
+                        .HasColumnType("text")
+                        .HasColumnName("consentVersion");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -772,6 +780,10 @@ namespace MarcaAi.Infrastructure.Migrations
                         .HasColumnType("\"Theme\"")
                         .HasColumnName("theme");
 
+                    b.Property<DateTime?>("TrialEndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trialEndsAt");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
@@ -840,6 +852,14 @@ namespace MarcaAi.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("brandColor");
 
+                    b.Property<string>("ClinicName")
+                        .HasColumnType("text")
+                        .HasColumnName("clinicName");
+
+                    b.Property<string>("Council")
+                        .HasColumnType("text")
+                        .HasColumnName("council");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("createdAt");
@@ -878,6 +898,14 @@ namespace MarcaAi.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("recurringIndex");
 
+                    b.Property<string>("RegistrationNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("registrationNumber");
+
+                    b.Property<string>("Specialty")
+                        .HasColumnType("text")
+                        .HasColumnName("specialty");
+
                     b.Property<Theme>("Theme")
                         .HasColumnType("\"Theme\"")
                         .HasColumnName("theme");
@@ -886,6 +914,10 @@ namespace MarcaAi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("timeZone");
+
+                    b.Property<DateTime?>("TrialEndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trialEndsAt");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

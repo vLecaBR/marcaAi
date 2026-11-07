@@ -64,6 +64,8 @@ public sealed class BookingsController(
                 Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: result.Message),
             BookingOutcome.Conflict =>
                 Problem(statusCode: StatusCodes.Status409Conflict, detail: result.Message),
+            BookingOutcome.ConsentRequired or BookingOutcome.InvalidResponses =>
+                Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: result.Message),
             _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
         };
     }
@@ -115,15 +117,34 @@ public sealed class BookingsController(
             : Ok(b);
     }
 
+    /// <summary>Aprova manualmente uma consulta PENDING (dono ou gestor da clínica).</summary>
+    [Authorize]
+    [HttpPost("{uid}/confirm")]
+    public async Task<IActionResult> Confirm(string uid, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var result = await bookings.ConfirmAsync(uid, userId, ct);
+        return result.Outcome switch
+        {
+            ConfirmOutcome.Success => NoContent(),
+            ConfirmOutcome.NotFound or ConfirmOutcome.Forbidden =>
+                Problem(statusCode: StatusCodes.Status404NotFound, detail: "Agendamento não encontrado."),
+            ConfirmOutcome.NotPending => Problem(statusCode: StatusCodes.Status409Conflict, detail: result.Message),
+            _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
+        };
+    }
+
     /// <summary>Cancela a consulta pelo uid (paciente ou profissional). Remove o evento do Google.</summary>
     [AllowAnonymous]
     [HttpPost("{uid}/cancel")]
     public async Task<IActionResult> Cancel(string uid, [FromBody] CancelBookingRequest? body, CancellationToken ct)
     {
-        var result = await bookings.CancelAsync(uid, body?.Reason, body?.CanceledBy, ct);
+        var result = await bookings.CancelAsync(uid, body?.Reason, body?.CanceledBy, User.GetUserId(), ct);
         return result.Outcome switch
         {
-            CancelOutcome.Success => NoContent(),
+            CancelOutcome.Success => Ok(new { refund = result.Refund }),
             CancelOutcome.NotFound => Problem(statusCode: StatusCodes.Status404NotFound, detail: result.Message),
             CancelOutcome.AlreadyCancelled => Problem(statusCode: StatusCodes.Status409Conflict, detail: result.Message),
             _ => Problem(statusCode: StatusCodes.Status500InternalServerError),

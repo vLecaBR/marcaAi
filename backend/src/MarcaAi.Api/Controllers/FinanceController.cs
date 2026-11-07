@@ -27,6 +27,17 @@ public sealed class FinanceController(IFinanceReportService finance) : Controlle
         return Ok(dashboard);
     }
 
+    /// <summary>Extrato por consulta do profissional (período, status e provedor opcionais; paginado).</summary>
+    [HttpGet("statement")]
+    public async Task<ActionResult<StatementDto>> Statement(
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] string? status, [FromQuery] string? provider,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken ct = default)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        return Ok(await finance.GetStatementAsync(userId, from?.ToUniversalTime(), to?.ToUniversalTime(), status, provider, page, pageSize, ct));
+    }
+
     /// <summary>Consolidado financeiro da clínica (OWNER/ADMIN). 403 se o chamador não tiver acesso.</summary>
     [HttpGet("teams/{teamId}/summary")]
     public async Task<ActionResult<TeamFinanceSummaryDto>> TeamSummary(string teamId, CancellationToken ct)

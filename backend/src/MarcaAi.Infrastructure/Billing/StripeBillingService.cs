@@ -75,7 +75,10 @@ public sealed class StripeBillingService(
         if (member is null) return null;
 
         var sub = await db.Subscriptions.AsNoTracking().FirstOrDefaultAsync(s => s.TeamId == teamId, ct);
-        var (planCode, active) = BillingStatusMapper.Effective(sub?.Status, sub?.PlanCode);
+        var teamTrialEnds = await db.Teams.AsNoTracking()
+            .Where(t => t.Id == teamId).Select(t => t.TrialEndsAt).FirstOrDefaultAsync(ct);
+        var (planCode, active, status) = BillingStatusMapper.EffectiveWithTrial(
+            sub?.Status, sub?.PlanCode, teamTrialEnds, TrialPolicy.TeamPlan);
 
         // Uso real da clínica no mês corrente.
         var now = DateTime.UtcNow;
@@ -90,10 +93,10 @@ public sealed class StripeBillingService(
         var dto = new BillingStatusDto(
             TeamId: teamId,
             PlanCode: planCode,
-            Status: BillingStatusMapper.MapStatus(sub?.Status),
+            Status: status,
             Active: active,
             CurrentPeriodEnd: sub?.StripeCurrentPeriodEnd,
-            Trial: BillingStatusMapper.Trial(sub?.Status, null),
+            Trial: BillingStatusMapper.Trial(status == "TRIALING" ? "trialing" : sub?.Status, teamTrialEnds),
             Usage: new PlanUsageDto(bookings, members, eventTypes),
             Limits: BillingStatusMapper.Limits(planCode));
         return dto;

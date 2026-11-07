@@ -30,6 +30,19 @@ public static class BillingStatusMapper
         return (effective, live);
     }
 
+    /// <summary>
+    /// Plano efetivo considerando o trial interno: assinatura viva vence; senão, trial ativo concede
+    /// <paramref name="trialPlan"/>; senão, Solo (free). O status vira TRIALING durante o trial interno.
+    /// </summary>
+    public static (string PlanCode, bool Active, string Status) EffectiveWithTrial(
+        string? rawStatus, string? planCode, DateTime? trialEndsAt, string trialPlan)
+    {
+        var (plan, live) = Effective(rawStatus, planCode);
+        if (live) return (plan, true, MapStatus(rawStatus));
+        if (TrialPolicy.IsActive(trialEndsAt)) return (trialPlan, true, "TRIALING");
+        return (plan, false, MapStatus(rawStatus));
+    }
+
     /// <summary>Estado de trial derivado de `status`/`trialEndsAt`.</summary>
     public static TrialStateDto Trial(string? rawStatus, DateTime? trialEndsAt)
     {

@@ -70,6 +70,7 @@ public sealed class UserProvisioning(IApplicationDbContext db) : IUserProvisioni
         Email = email,
         EmailVerified = DateTime.UtcNow,
         Onboarded = false,
+        TrialEndsAt = DateTime.UtcNow.AddDays(MarcaAi.Application.Features.Billing.TrialPolicy.Days),
         Schedules =
         {
             new Schedule

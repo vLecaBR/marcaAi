@@ -65,3 +65,10 @@ public sealed record TeamFinanceSummaryDto(
 /// não é OWNER/ADMIN da clínica (o controller responde 403). Enforcement fino fica no Q6.
 /// </summary>
 public sealed record TeamFinanceReport(bool Allowed, TeamFinanceSummaryDto? Summary);
+
+/// <summary>Linha do extrato (uma consulta com cobrança). Valores em centavos, calculados no servidor.</summary>
+public sealed record StatementItemDto(
+    string BookingUid, DateTimeOffset Date, string GuestName, string EventTypeTitle,
+    int GrossCents, int PlatformFeeCents, int NetToProviderCents, string? Provider, string Status);
+
+public sealed record StatementDto(IReadOnlyList<StatementItemDto> Items, int Page, int PageSize, int Total);

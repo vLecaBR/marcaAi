@@ -2,7 +2,7 @@ using MarcaAi.Application.Features.Payments;
 
 namespace MarcaAi.Application.Features.Bookings;
 
-public enum BookingOutcome { Success, EventNotFound, InvalidDuration, Unavailable, Conflict }
+public enum BookingOutcome { Success, EventNotFound, InvalidDuration, Unavailable, Conflict, ConsentRequired, InvalidResponses }
 
 /// <summary>Confirmação de agendamento.</summary>
 public sealed record BookingConfirmationDto(
@@ -27,6 +27,10 @@ public sealed record CreateBookingResult(
         new(BookingOutcome.InvalidDuration, Message: $"Duração inválida. Esperado: {expected} min.");
     public static CreateBookingResult Unavailable() =>
         new(BookingOutcome.Unavailable, Message: "Este horário está fora da disponibilidade do profissional.");
+    public static CreateBookingResult ConsentRequired() =>
+        new(BookingOutcome.ConsentRequired, Message: "É necessário aceitar o aviso de privacidade para agendar.");
+    public static CreateBookingResult InvalidResponses(string detail) =>
+        new(BookingOutcome.InvalidResponses, Message: detail);
     public static CreateBookingResult Conflict() =>
         new(BookingOutcome.Conflict, Message: "Este horário acabou de ser reservado. Escolha outro horário.");
 }

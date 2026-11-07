@@ -77,7 +77,10 @@ public sealed class UserBillingService(
     public async Task<BillingStatusDto> GetStatusAsync(string userId, CancellationToken ct = default)
     {
         var sub = await db.UserSubscriptions.AsNoTracking().FirstOrDefaultAsync(s => s.UserId == userId, ct);
-        var (planCode, active) = BillingStatusMapper.Effective(sub?.Status, sub?.PlanCode);
+        var userTrialEnds = await db.Users.AsNoTracking()
+            .Where(x => x.Id == userId).Select(x => x.TrialEndsAt).FirstOrDefaultAsync(ct);
+        var (planCode, active, status) = BillingStatusMapper.EffectiveWithTrial(
+            sub?.Status, sub?.PlanCode, userTrialEnds, TrialPolicy.UserPlan);
 
         var now = DateTime.UtcNow;
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -91,10 +94,10 @@ public sealed class UserBillingService(
         return new BillingStatusDto(
             TeamId: "",
             PlanCode: planCode,
-            Status: BillingStatusMapper.MapStatus(sub?.Status),
+            Status: status,
             Active: active,
             CurrentPeriodEnd: sub?.StripeCurrentPeriodEnd,
-            Trial: BillingStatusMapper.Trial(sub?.Status, sub?.TrialEndsAt),
+            Trial: BillingStatusMapper.Trial(status == "TRIALING" ? "trialing" : sub?.Status, sub?.TrialEndsAt ?? userTrialEnds),
             Usage: new PlanUsageDto(bookings, 1, eventTypes),
             Limits: BillingStatusMapper.Limits(planCode));
     }

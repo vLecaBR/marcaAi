@@ -14,6 +14,22 @@ namespace MarcaAi.Api.Controllers;
 [Authorize]
 public sealed class MeController(IApplicationDbContext db) : ControllerBase
 {
+    /// <summary>Perfil editável do profissional autenticado (pré-preenche o formulário).</summary>
+    [HttpGet("profile")]
+    public async Task<ActionResult<ProfileDto>> GetProfile(CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var dto = await db.Users.AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => new ProfileDto(
+                u.Name, u.Username, u.TimeZone, u.Bio, u.Image, u.Theme.ToString(), u.BrandColor,
+                u.Specialty, u.Council, u.RegistrationNumber, u.ClinicName, u.Onboarded))
+            .FirstOrDefaultAsync(ct);
+        return dto is null ? Unauthorized() : Ok(dto);
+    }
+
     /// <summary>Atualiza o perfil. Após isso, chame POST /api/v1/auth/refresh para o token refletir o novo username/onboarded.</summary>
     [HttpPut("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileInput input, CancellationToken ct)
@@ -38,19 +54,20 @@ public sealed class MeController(IApplicationDbContext db) : ControllerBase
         user.Bio = input.Bio;
         if (Enum.TryParse<Theme>(input.Theme, ignoreCase: true, out var theme)) user.Theme = theme;
         if (!string.IsNullOrWhiteSpace(input.BrandColor)) user.BrandColor = input.BrandColor;
+        user.Specialty = Clean(input.Specialty, 120);
+        user.Council = Clean(input.Council, 20);
+        user.RegistrationNumber = Clean(input.RegistrationNumber, 30);
+        user.ClinicName = Clean(input.ClinicName, 120);
 
-        try
-        {
-            await db.SaveChangesAsync(ct);
-        }
-        catch (Exception ex)
-        {
-            // TEMPORÁRIO (debug): expõe a causa real do 500 no corpo da resposta. Remover depois.
-            var detail = ex.InnerException?.Message ?? ex.Message;
-            return Problem(statusCode: StatusCodes.Status500InternalServerError,
-                title: ex.GetType().Name, detail: detail);
-        }
+        await db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    private static string? Clean(string? v, int max)
+    {
+        var t = v?.Trim();
+        if (string.IsNullOrEmpty(t)) return null;
+        return t.Length > max ? t[..max] : t;
     }
 
     /// <summary>Marca o onboarding como concluído.</summary>

@@ -15,6 +15,11 @@ public interface IFinanceReportService
     /// </summary>
     Task<FinanceDashboardDto> GetIndividualSummaryAsync(string userId, CancellationToken cancellationToken = default);
 
+    /// <summary>Extrato por consulta do profissional, paginado e filtrável (período, status de pagamento, provedor).</summary>
+    Task<StatementDto> GetStatementAsync(
+        string userId, DateTime? from, DateTime? to, string? status, string? provider, int page, int pageSize,
+        CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Consolidado da clínica no mês corrente (líquido total, taxas retidas, ticket médio, receita
     /// por profissional). Verifica que o chamador é OWNER/ADMIN da clínica (senão <c>Allowed=false</c>).

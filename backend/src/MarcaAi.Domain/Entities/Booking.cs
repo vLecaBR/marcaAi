@@ -59,6 +59,9 @@ public class Booking
     public string? RecurringEventId { get; set; }
     public int? RecurringIndex { get; set; }
 
+    // Consentimento do titular (paciente) no agendamento — LGPD Arts. 8º e 11. Registrado no ato.
+    public DateTime? ConsentAt { get; set; }
+    public string? ConsentVersion { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

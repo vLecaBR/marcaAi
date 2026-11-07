@@ -12,4 +12,10 @@ public sealed record CreateBookingRequest
     public required DateTimeOffset StartTimeUtc { get; init; }
     public required DateTimeOffset EndTimeUtc { get; init; }
     public required string GuestTimeZone { get; init; }
+    /// <summary>Respostas às perguntas do tipo de consulta (formulário pré-consulta).</summary>
+    public IReadOnlyList<BookingResponseInput>? Responses { get; init; }
+    /// <summary>Aceite do aviso de privacidade/tratamento de dados de saúde (LGPD Arts. 8º e 11). Obrigatório.</summary>
+    public bool ConsentAccepted { get; init; }
 }
+
+public sealed record BookingResponseInput(string QuestionId, string Answer);

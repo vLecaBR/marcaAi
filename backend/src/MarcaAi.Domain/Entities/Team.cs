@@ -12,6 +12,8 @@ public class Team
     public string? Logo { get; set; }
     public Theme Theme { get; set; } = Theme.DARK;
     public string? BrandColor { get; set; } = "#7c3aed";
+    /// <summary>Fim do teste grátis de 30 dias (plano Clínica). Preenchido na criação.</summary>
+    public DateTime? TrialEndsAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

@@ -72,7 +72,11 @@ public sealed class TeamsController(IApplicationDbContext db, IPlanAccessService
         if (await db.Teams.AnyAsync(t => t.Slug == input.Slug, ct))
             return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Este slug já está em uso por outra equipe.");
 
-        var team = new Team { Name = input.Name, Slug = input.Slug, Description = input.Description, Logo = input.Logo };
+        var team = new Team
+        {
+            Name = input.Name, Slug = input.Slug, Description = input.Description, Logo = input.Logo,
+            TrialEndsAt = DateTime.UtcNow.AddDays(MarcaAi.Application.Features.Billing.TrialPolicy.Days),
+        };
         if (Enum.TryParse<Theme>(input.Theme, true, out var th)) team.Theme = th;
         if (!string.IsNullOrWhiteSpace(input.BrandColor)) team.BrandColor = input.BrandColor;
         team.Members.Add(new TeamMember { UserId = userId, Role = TeamRole.OWNER });
