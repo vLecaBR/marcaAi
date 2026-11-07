@@ -26,4 +26,17 @@ public sealed record BookingDetailDto(
     string EventTitle,
     string OwnerName,
     string? MeetingUrl,
-    string GuestTimeZone);
+    string GuestTimeZone,
+    // Campos para pagar, remarcar e "adicionar à agenda" na página pública da consulta.
+    string? OwnerId = null,
+    string? OwnerUsername = null,
+    string? EventTypeId = null,
+    string? EventSlug = null,
+    string? LocationType = null,
+    string? LocationDetail = null,
+    int? PriceCents = null,
+    bool PayOnSite = false,
+    string? PaymentStatus = null,
+    DateTimeOffset? PaymentDueAt = null,
+    int RescheduleCount = 0,
+    int? BookingLimitDays = null);

@@ -114,7 +114,11 @@ public sealed class BookingsController(
             .Select(x => new BookingDetailDto(
                 x.Uid, x.GuestName, x.GuestEmail, x.StartTime, x.EndTime,
                 x.Status, x.EventType.Title, x.Owner.Name ?? "Profissional",
-                x.MeetingUrl, x.GuestTimeZone))
+                x.MeetingUrl, x.GuestTimeZone,
+                x.UserId, x.Owner.Username, x.EventTypeId, x.EventType.Slug, x.EventType.LocationType.ToString(),
+                x.EventType.LocationValue, x.PriceCents ?? x.EventType.Price, x.EventType.PayOnSite,
+                x.PaymentStatus.ToString(), x.PaymentDueAt == null ? null : new DateTimeOffset(DateTime.SpecifyKind(x.PaymentDueAt.Value, DateTimeKind.Utc)),
+                x.RescheduleCount, x.EventType.BookingLimitDays))
             .FirstOrDefaultAsync(ct);
 
         return b is null
