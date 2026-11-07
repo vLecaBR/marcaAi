@@ -139,12 +139,12 @@ builder.Services.AddAuthorization(options =>
 // ─────────────────────────────────────────────────────────────────────────────
 // 6. Hangfire (jobs de lembrete de consulta / no-show) sobre PostgreSQL.
 // ─────────────────────────────────────────────────────────────────────────────
-// Supabase pooler (session mode) limita ~15 clients. Constrangemos o Hangfire a poucos
-// workers e um pool pequeno p/ não estourar (EMAXCONNSESSION). App usa outro pool (ver Infrastructure).
+// Pool e workers configuráveis (Hangfire:MaxPoolSize, default 5; Hangfire:WorkerCount, default 5).
+// A API usa outro pool (ver Infrastructure/DependencyInjection.cs).
 var hangfireConn = new Npgsql.NpgsqlConnectionStringBuilder(
     builder.Configuration.GetConnectionString("Default")!)
 {
-    MaxPoolSize = 3,
+    MaxPoolSize = builder.Configuration.GetValue("Hangfire:MaxPoolSize", 5),
     ApplicationName = "marcaai-hangfire"
 }.ConnectionString;
 
@@ -155,7 +155,7 @@ builder.Services.AddHangfire(cfg => cfg
     .UsePostgreSqlStorage(o => o.UseNpgsqlConnection(hangfireConn)));
 builder.Services.AddHangfireServer(o =>
 {
-    o.WorkerCount = 3;                              // padrão 20 -> conexões demais no pooler
+    o.WorkerCount = builder.Configuration.GetValue("Hangfire:WorkerCount", 5);
     o.SchedulePollingInterval = TimeSpan.FromSeconds(30);
 });
 

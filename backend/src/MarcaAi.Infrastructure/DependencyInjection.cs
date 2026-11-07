@@ -27,10 +27,10 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("ConnectionStrings:Default não configurada.");
 
-        // Pool pequeno p/ o pooler do Supabase (session mode ~15 clients). Hangfire usa outro pool.
+        // Pool configurável (Database:MaxPoolSize, default 20). Hangfire usa outro pool (ver Program.cs).
         var connString = new NpgsqlConnectionStringBuilder(connectionString)
         {
-            MaxPoolSize = 5,
+            MaxPoolSize = configuration.GetValue("Database:MaxPoolSize", 20),
             ApplicationName = "marcaai-api",
         }.ConnectionString;
 
