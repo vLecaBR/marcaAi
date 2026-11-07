@@ -311,7 +311,7 @@ docker run --rm -e PGPASSWORD=$senha -v C:\Code\marcaAi-backup:/backup postgres:
   5. Mostra a contagem de linhas por tabela para conferência.
   - **Plano B** se a restauração completa conflitar com as migrations: subir a API num banco vazio (migrations criam o schema) e depois `pg_restore --data-only --disable-triggers --exclude-table=__ef_migrations_history` (ou `-L` com lista filtrada).
   - O caminho do backup deve vir de parâmetro/variável (`BACKUP_PATH`, default `C:\Code\marcaAi-backup\marcaai-supabase.dump`) — nunca copiar o dump para dentro do repo.
-- [x] Se não importar: `normalize_plan_codes.sql` não é necessário (banco novo já nasce com os códigos de plano novos). (importado: n/a)
+- [x] Se não importar: `normalize_plan_codes.sql` não é necessário (banco novo já nasce com os códigos de plano novos).
 - [ ] Seed de desenvolvimento (opcional, recomendado): endpoint/comando só em `Development` ou script SQL criando 1 profissional onboarded, 2 tipos de consulta e 1 clínica — acelera os testes manuais e e2e. — **não feito** (o dump importado já dá dados de teste; reavaliar na F8).
 
 **Aceite:** front (`npm run dev`) + API locais funcionando: login por magic link (link aparece no log em dev ou no Mailpit), onboarding, criar tipo de consulta, ver dashboard.
