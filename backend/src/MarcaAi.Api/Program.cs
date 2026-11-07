@@ -1,4 +1,6 @@
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Hangfire;
 using MarcaAi.Application.Common.Interfaces;
 using Hangfire.PostgreSql;
@@ -189,8 +191,44 @@ builder.Services.AddHangfireServer(o =>
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownNetworks.Clear();
+    // IP real: o Cloudflare envia `CF-Connecting-IP` (e sobrescreve qualquer valor do cliente); o BFF (Next) repassa o
+    // mesmo header nas chamadas internas. Só confiamos nele se a conexão vier de rede interna/loopback (F7, achado #5):
+    // antes `KnownNetworks/KnownProxies` estavam vazios, aceitando X-Forwarded-* de qualquer origem.
+    options.ForwardedForHeaderName = "CF-Connecting-IP";
+    options.ForwardLimit = null;
+    options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
+    var trusted = builder.Configuration["Proxy:TrustedNetworks"]
+        ?? "127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7";
+    foreach (var cidr in trusted.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(cidr));
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6d. Rate limiting (achado #5) — por IP real. Rotas públicas e sensíveis a abuso.
+// ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.OnRejected = (ctx, _) =>
+    {
+        if (ctx.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retry))
+            ctx.HttpContext.Response.Headers.RetryAfter = ((int)retry.TotalSeconds).ToString();
+        return ValueTask.CompletedTask;
+    };
+
+    static string Ip(HttpContext c) => c.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    void Add(string name, int limit, TimeSpan window) =>
+        o.AddPolicy(name, c => RateLimitPartition.GetFixedWindowLimiter($"{name}:{Ip(c)}",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = window, QueueLimit = 0 }));
+
+    Add("magic-link", 20, TimeSpan.FromHours(1));      // + 5/h por e-mail no controller
+    Add("auth-verify", 30, TimeSpan.FromMinutes(10));
+    Add("auth-refresh", 60, TimeSpan.FromMinutes(5));
+    Add("booking-create", 15, TimeSpan.FromMinutes(10));
+    Add("booking-pay", 30, TimeSpan.FromMinutes(10));
+    Add("slots", 120, TimeSpan.FromMinutes(1));
+    Add("public-read", 120, TimeSpan.FromMinutes(1));
 });
 
 var app = builder.Build();
@@ -224,6 +262,7 @@ else
 }
 
 app.UseCors(CorsPolicy);
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -249,6 +288,11 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "marcaai-a
 app.Services.GetRequiredService<IRecurringJobManager>()
     .AddOrUpdate<IReminderJob>("consultas-reminders",
         j => j.DispatchDueAsync(CancellationToken.None), "*/15 * * * *");
+
+// Retenção/higiene diária (03:30 UTC): anonimiza consultas antigas, limpa tokens/eventos efêmeros e cifra tokens legados.
+app.Services.GetRequiredService<IRecurringJobManager>()
+    .AddOrUpdate<IRetentionJob>("retencao-lgpd",
+        j => j.RunAsync(CancellationToken.None), app.Configuration["Retention:Cron"] ?? "30 3 * * *");
 
 if (!app.Environment.IsDevelopment())
     foreach (var w in MarcaAi.Api.Config.ProductionConfigValidator.Warnings(app.Configuration))

@@ -61,9 +61,9 @@ na copy visível. Arquivos com termos de UI a revisar:
 
 ## 6. Segurança e confiança (LGPD / dado sensível)
 
-- Copy de rodapé/landing com política de privacidade e menção a **dado de saúde é sensível (LGPD art. 11)**.
-- Página pública de agendamento: aviso de consentimento no envio de dados do paciente.
-- (Backend, fora deste checklist visual) reforça o que já decidimos: cookie `HttpOnly`+`SameSite=Strict`, CSRF, e cuidado com logs — hoje o `auth.ts` e várias rotas logam e-mails/PII no console; **remover logs de PII** antes de produção.
+- [x] (F7) Rodapé com Termos/Privacidade/encarregado; páginas `/privacidade` e `/termos` (versão preliminar) mencionam dado de saúde como sensível (art. 11).
+- [x] (F4) Página pública de agendamento: checkbox de consentimento obrigatório, registrado no booking.
+- [x] (F3/F6/F7: logs sem PII, tokens cifrados, rate limit, CSP) (Backend, fora deste checklist visual) reforça o que já decidimos: cookie `HttpOnly`+`SameSite=Strict`, CSRF, e cuidado com logs — hoje o `auth.ts` e várias rotas logam e-mails/PII no console; **remover logs de PII** antes de produção.
 
 ---
 

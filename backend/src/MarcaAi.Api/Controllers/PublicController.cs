@@ -2,6 +2,7 @@ using MarcaAi.Application.Common.Interfaces;
 using MarcaAi.Application.Features.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace MarcaAi.Api.Controllers;
@@ -13,6 +14,7 @@ public sealed class PublicController(IApplicationDbContext db) : ControllerBase
 {
     /// <summary>Página pública da clínica: dados da equipe + profissionais já cadastrados (sem e-mail).</summary>
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     [HttpGet("team/{slug}")]
     public async Task<ActionResult<PublicTeamDto>> Team(string slug, CancellationToken ct)
     {
@@ -33,6 +35,7 @@ public sealed class PublicController(IApplicationDbContext db) : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     [HttpGet("{username}")]
     public async Task<ActionResult<PublicProfileDto>> Profile(string username, CancellationToken ct)
     {

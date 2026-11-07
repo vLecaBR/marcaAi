@@ -22,7 +22,7 @@ namespace MarcaAi.Api.Controllers;
 [ApiController]
 [Route("api/v1/integrations/google-calendar")]
 public sealed class GoogleCalendarIntegrationController(
-    IApplicationDbContext db, IConfiguration config, IHttpClientFactory httpFactory,
+    IApplicationDbContext db, IConfiguration config, IHttpClientFactory httpFactory, IOAuthTokenProtector protector,
     ILogger<GoogleCalendarIntegrationController> logger) : ControllerBase
 {
     private const string LinkPrefix = "gcal-link:";
@@ -113,8 +113,8 @@ public sealed class GoogleCalendarIntegrationController(
             db.Accounts.Add(account);
         }
         account.ProviderAccountId = googleSub;
-        account.AccessToken = result.Properties.GetTokenValue("access_token");
-        account.RefreshToken = refresh;
+        account.AccessToken = protector.Protect(result.Properties.GetTokenValue("access_token"));
+        account.RefreshToken = protector.Protect(refresh);
         account.ExpiresAt = DateTimeOffset.TryParse(result.Properties.GetTokenValue("expires_at"), out var exp) ? (int)exp.ToUnixTimeSeconds() : account.ExpiresAt;
         account.Scope = scope;
         account.TokenType = "Bearer";
@@ -134,7 +134,7 @@ public sealed class GoogleCalendarIntegrationController(
         var account = await db.Accounts.FirstOrDefaultAsync(a => a.UserId == userId && a.Provider == "google", ct);
         if (account is null) return NoContent();
 
-        var token = account.RefreshToken ?? account.AccessToken;
+        var token = protector.Unprotect(account.RefreshToken) ?? protector.Unprotect(account.AccessToken);
         if (!string.IsNullOrEmpty(token))
         {
             try

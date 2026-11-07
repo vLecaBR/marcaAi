@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { LegalFooter } from "@/components/marketing/legal-footer"
 import Link from "next/link"
 import { getMe } from "@/lib/api/session"
 import { Button } from "@/components/ui/button"
@@ -82,7 +83,7 @@ export default async function RootPage() {
           </div>
           <div className="mt-5 text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
             <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-care" /> Sem cartão de crédito</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-care" /> Conforme a LGPD</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-care" /> Dados de pacientes protegidos</span>
           </div>
 
           {/* Mock app preview */}
@@ -143,7 +144,7 @@ export default async function RootPage() {
               { icon: Users, title: "Equipe da clínica", desc: "Vários profissionais, papéis e permissões. Cada um com sua agenda, tudo sob o mesmo consultório." },
               { icon: Wallet, title: "Recebimento transparente", desc: "Pacientes pagam via PIX ou cartão no agendamento. Repasse e taxas sempre à vista, sem surpresa." },
               { icon: Stethoscope, title: "Tipos de consulta", desc: "Retorno, primeira consulta, avaliação cada um com sua duração, valor e modalidade." },
-              { icon: ShieldCheck, title: "Segurança em primeiro lugar", desc: "Em conformidade com a LGPD. Dados dos pacientes protegidos e nunca vendidos." },
+              { icon: ShieldCheck, title: "Segurança em primeiro lugar", desc: "Dados dos pacientes protegidos, usados só para a consulta e nunca vendidos." },
               { icon: Clock, title: "Lembretes automáticos", desc: "Confirmações e lembretes reduzem faltas e mantêm a agenda cheia sem trabalho manual." },
             ].map((f) => (
               <Card key={f.title} className="p-6 rounded-2xl border-border/60 hover:shadow-md hover:-translate-y-0.5 transition group">
@@ -164,7 +165,7 @@ export default async function RootPage() {
         <section id="trust" className="max-w-6xl mx-auto px-6 pb-24">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {[
-              { icon: ShieldCheck, title: "Conforme a LGPD", desc: "Tratamos os dados de pacientes com base legal, minimização e segurança de ponta a ponta." },
+              { icon: ShieldCheck, title: "Privacidade desde o projeto", desc: "Coletamos só o necessário, com consentimento do paciente, e você pode exportar ou anonimizar dados quando precisar." },
               { icon: Wallet, title: "Split transparente", desc: "Você vê o valor bruto, a taxa e o líquido de cada consulta. Sem letra miúda." },
               { icon: HeartPulse, title: "Feito para clínicas", desc: "Da agenda ao repasse, pensado para a rotina de consultórios e equipes de saúde." },
             ].map((t) => (
@@ -199,6 +200,7 @@ export default async function RootPage() {
           <Logo size={22} />
           <span>© {new Date().getFullYear()} MarcaAí. Todos os direitos reservados.</span>
         </div>
+        <div className="max-w-6xl mx-auto px-6 mt-4"><LegalFooter /></div>
       </footer>
     </div>
   )

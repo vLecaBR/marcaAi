@@ -3,6 +3,7 @@ using MarcaAi.Application.Common.Interfaces;
 using MarcaAi.Application.Features.Availability;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MarcaAi.Api.Controllers;
 
@@ -15,6 +16,7 @@ public sealed class SlotsController(IAvailabilityService availability) : Control
     /// Ex.: GET /api/v1/slots?ownerId=..&eventTypeId=..&date=2026-08-03&tz=America/Sao_Paulo
     /// </summary>
     [AllowAnonymous]
+    [EnableRateLimiting("slots")]
     [HttpGet]
     public async Task<ActionResult<SlotsResult>> Get(
         [FromQuery] string ownerId,

@@ -75,6 +75,11 @@ export async function rawApiFetch<T = unknown>(
   finalHeaders.set("Accept", "application/json")
   if (creds.cookieHeader) finalHeaders.set("Cookie", creds.cookieHeader)
 
+  // IP real do usuário para o rate limit da API (que só enxerga este servidor). A API só confia nesse
+  // header quando a chamada vem da rede interna (Proxy:TrustedNetworks).
+  const clientIp = await resolveClientIp()
+  if (clientIp) finalHeaders.set("CF-Connecting-IP", clientIp)
+
   // Antiforgery: só em mutations (spec §3.1).
   if (MUTATION_METHODS.has(method.toUpperCase()) && creds.csrfToken) {
     finalHeaders.set(CSRF_HEADER, creds.csrfToken)
@@ -111,6 +116,17 @@ export async function rawApiFetch<T = unknown>(
   // 204 / corpo vazio → data nula tipada.
   const data = (await parseBody(res)) as T
   return { data, status: res.status, setCookies }
+}
+
+/** IP do cliente da requisição em curso (Cloudflare → `cf-connecting-ip`; fallback `x-forwarded-for`). Fora de requisição: null. */
+async function resolveClientIp(): Promise<string | null> {
+  try {
+    const { headers } = await import("next/headers")
+    const h = await headers()
+    return h.get("cf-connecting-ip") ?? h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null
+  } catch {
+    return null
+  }
 }
 
 async function parseBody(res: Response): Promise<unknown> {

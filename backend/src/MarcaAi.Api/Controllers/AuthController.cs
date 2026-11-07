@@ -5,6 +5,7 @@ using MarcaAi.Application.Features.Auth;
 using MarcaAi.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -27,12 +28,19 @@ public sealed class AuthController(
 
     /// <summary>Solicita um magic link. Sempre responde 200 (não revela se o e-mail existe).</summary>
     [AllowAnonymous]
+    [EnableRateLimiting("magic-link")]
     [HttpPost("magic-link/request")]
     public async Task<IActionResult> RequestMagicLink([FromBody] MagicLinkRequest body, CancellationToken ct)
     {
         var email = body.Email?.Trim().ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
             return ValidationProblem("E-mail inválido.");
+
+        // Limite por e-mail (5/hora): evita spam de e-mails de login para a caixa de terceiros. Resposta idêntica (200).
+        var since = DateTime.UtcNow.AddHours(-1) ;
+        var recent = await db.VerificationTokens.CountAsync(v => v.Identifier == email && v.Expires > since.Add(LinkTtl), ct);
+        if (recent >= 5)
+            return Ok(new { message = "Se o e-mail for válido, enviamos um link de acesso." });
 
         var token = Base64UrlToken(32);
         db.VerificationTokens.Add(new VerificationToken
@@ -53,6 +61,7 @@ public sealed class AuthController(
 
     /// <summary>Valida o magic link (uso único), provisiona o usuário e emite os cookies de sessão.</summary>
     [AllowAnonymous]
+    [EnableRateLimiting("auth-verify")]
     [HttpGet("magic-link/verify")]
     public async Task<ActionResult<MeDto>> Verify([FromQuery] string token, CancellationToken ct)
     {
@@ -74,6 +83,7 @@ public sealed class AuthController(
 
     /// <summary>Renova o par de tokens a partir do refresh cookie (rotação).</summary>
     [AllowAnonymous]
+    [EnableRateLimiting("auth-refresh")]
     [HttpPost("refresh")]
     public async Task<ActionResult<MeDto>> Refresh(CancellationToken ct)
     {

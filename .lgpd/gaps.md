@@ -31,6 +31,13 @@ Severidade: 🔴 crítica · 🟠 alta · 🟡 média. Fase = fase do `PLANO_DE_
 
 **Atualização F3 (06/11/2026):** G05 (IDOR) ✅ corrigido e testado · G06 (magic link em log) ✅ fail-fast em produção · G07 (PII em logs) ✅ removida (corpo de provedores só em Debug; senders simulados sem PII em Information) · G13 parcial (Hangfire protegido; rate limiting segue na F7).
 
+**Atualização F7 (07/11/2026):**
+- G01 🟡: `/privacidade` e `/termos` publicadas como **versão preliminar** e alegações "Conforme a LGPD" removidas; falta revisão jurídica.
+- G08 ✅ (técnico): job diário anonimiza consultas > 24 meses (provisório) e limpa tokens/eventos efêmeros; prazo final depende do advogado.
+- G09 ✅: tokens do Google cifrados em repouso (Data Protection; legados cifrados pelo job).
+- G13 ✅: rate limiting nas rotas públicas e sensíveis.
+- G02/G10-G12/G14: seguem abertos (encarregado, RIPD/ROPA, descarte do dump).
+
 **Atualização F6 (07/11/2026):**
 - Minimização: o **login** com Google não pede nem guarda tokens/escopos de Calendar; a agenda é opt-in e revogável (revoga no Google ao desconectar).
 - Segurança (Art. 46): e-mails com dados de terceiros agora escapam HTML (corrigida injeção de HTML por nome/título/motivo).

@@ -3,6 +3,7 @@ using MarcaAi.Application.Common.Interfaces;
 using MarcaAi.Application.Features.Bookings;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace MarcaAi.Api.Controllers;
@@ -20,6 +21,7 @@ public sealed class BookingsController(
     /// Retorna o clientSecret para o frontend confirmar. A baixa (PAID) ocorre via webhook.
     /// </summary>
     [AllowAnonymous]
+    [EnableRateLimiting("booking-pay")]
     [HttpPost("{uid}/pay")]
     public async Task<IActionResult> Pay(string uid, [FromBody] PayRequest body, CancellationToken ct)
     {
@@ -47,6 +49,7 @@ public sealed class BookingsController(
 
     /// <summary>Agenda uma consulta (fluxo público do paciente). Protegido contra double-booking.</summary>
     [AllowAnonymous]
+    [EnableRateLimiting("booking-create")]
     [HttpPost]
     public async Task<ActionResult<BookingConfirmationDto>> Create(
         [FromBody] CreateBookingRequest request, CancellationToken ct)

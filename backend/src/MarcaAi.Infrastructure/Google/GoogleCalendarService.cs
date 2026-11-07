@@ -19,6 +19,7 @@ public sealed class GoogleCalendarService(
     HttpClient http,
     ApplicationDbContext db,
     IConfiguration config,
+    IOAuthTokenProtector tokens,
     ILogger<GoogleCalendarService> logger) : IGoogleCalendarService
 {
     private const string TokenUrl = "https://oauth2.googleapis.com/token";
@@ -34,7 +35,7 @@ public sealed class GoogleCalendarService(
         var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         // Token ainda válido por >= 5 min
         if (account.ExpiresAt is { } exp && (long)exp * 1000 > nowMs + 5 * 60 * 1000)
-            return account.AccessToken;
+            return tokens.Unprotect(account.AccessToken);
 
         if (string.IsNullOrWhiteSpace(account.RefreshToken))
         {
@@ -51,7 +52,7 @@ public sealed class GoogleCalendarService(
                     ["client_id"] = config["Google:ClientId"] ?? "",
                     ["client_secret"] = config["Google:ClientSecret"] ?? "",
                     ["grant_type"] = "refresh_token",
-                    ["refresh_token"] = account.RefreshToken!,
+                    ["refresh_token"] = tokens.Unprotect(account.RefreshToken) ?? "",
                 }),
             };
             using var res = await http.SendAsync(req, ct);
@@ -67,10 +68,10 @@ public sealed class GoogleCalendarService(
             var accessToken = root.GetProperty("access_token").GetString();
             var expiresIn = root.TryGetProperty("expires_in", out var ei) ? ei.GetInt32() : 3600;
 
-            account.AccessToken = accessToken;
+            account.AccessToken = tokens.Protect(accessToken);
             account.ExpiresAt = (int)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() + expiresIn);
             if (root.TryGetProperty("refresh_token", out var rt) && rt.GetString() is { } newRt)
-                account.RefreshToken = newRt; // Google às vezes reenvia
+                account.RefreshToken = tokens.Protect(newRt); // Google às vezes reenvia
             await db.SaveChangesAsync(ct);
 
             return accessToken;

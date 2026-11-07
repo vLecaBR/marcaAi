@@ -127,6 +127,8 @@ public static class DependencyInjection
 
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IReminderJob, ReminderJob>();
+        services.AddScoped<IRetentionJob, MarcaAi.Infrastructure.Jobs.RetentionJob>();
+        services.AddSingleton<IOAuthTokenProtector, MarcaAi.Infrastructure.Identity.OAuthTokenProtector>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
         return services;

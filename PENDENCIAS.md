@@ -33,9 +33,21 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Testar o fluxo real "Conectar Google Agenda" no navegador (consentimento → callback → evento criado na agenda). O backend foi testado até o redirecionamento ao Google.
 - [ ] Tokens do Google em `accounts` continuam em texto no banco (G09) — cifrar na F7.
 
+## F7 — Segurança, LGPD e hardening
+
+- [ ] **Texto jurídico:** advogado revisar `/privacidade` e `/termos` (hoje "versão preliminar", `rascunho-2026-11`); ao publicar a versão final, atualizar `Privacy__PolicyVersion` e remover o aviso.
+- [ ] **D10:** confirmar o prazo de retenção (24 meses, provisório) com o advogado.
+- [ ] **D13:** definir o encarregado e definir `DPO_EMAIL` no `.env` do front (rodapé e política).
+- [ ] **Segredos:** gerar a nova `Jwt__SigningKey` e rotacionar as chaves antigas (checklist em `docs/security-secrets.md`).
+- [ ] **Backup do Supabase:** confirmar que `marcaai-supabase.dump` está guardado fora do PC (cópia criptografada) e definir prazo de descarte (G14).
+- [ ] **ZAP baseline:** varredura OWASP não executada (exige baixar a imagem Docker do ZAP — pedir autorização) e o app completo no ar.
+- [ ] RIPD, ROPA, política de incidentes e DPAs finais (`.lgpd/`): rodar as skills `lgpd-ripd`, `lgpd-ropa`, `lgpd-incident-response` quando houver encarregado/advogado.
+- [ ] CSP com nonce (hoje `unsafe-inline` em script/style) — endurecimento futuro.
+- [ ] Antiforgery no BFF ainda não validado de ponta a ponta (achado #17).
+- [ ] Achados #16/#17 (cancelamento/consulta por uid adivinhável, antiforgery) seguem abertos.
+
 ## Gerais (de fases anteriores)
 - [ ] Parar o serviço nativo PostgreSQL 17 (porta 5432), como administrador.
-- [ ] D13: definir encarregado (DPO) e advogado para revisar `/privacidade` e `/termos` (G01 — hoje 404).
 - [ ] Prazo de descarte do dump do Supabase e do banco de dev com dados reais (G14).
 - [ ] Decidir se `PROMPT_CLAUDE_CODE.md` é commitado ou ignorado.
 - [ ] Testes visuais das telas novas no navegador e e2e Playwright (F8).
