@@ -20,7 +20,8 @@
 | PostgreSQL 17 nativo no Windows | ⚠️ instalado via `winget install PostgreSQL.PostgreSQL.17` durante o backup — **provavelmente roda como serviço do Windows na porta 5432** e vai conflitar com o Postgres do Docker. Tratado na F0. |
 | F0 — Higiene do repo e ambiente de dev | ✅ concluída na branch `fase-0-higiene` (aguardando revisão/merge); pendente do dono: parar o serviço do PostgreSQL 17 nativo (admin) |
 | LGPD contínua (`goul4rt/lgpd-skills`) | 📌 incorporada ao plano (§5.0, gates por fase, D12). Skills instaladas em `.claude/skills/` (cópia fixa, commit `d85d79a`, D12 ✅ 06/11/2026). Ainda não executei o `lgpd-audit` de linha de base. |
-| Próxima fase | ▶️ **F1 — Banco local (sair do Supabase)** |
+| F1 — Banco local | ✅ implementada na branch `fase-1-banco-local` (aguardando revisão); falta só o teste manual de login/onboarding pela UI |
+| Próxima fase | ▶️ **F2 — Atualização de dependências** |
 
 **Mudanças no plano desde a primeira versão:**
 - A "Ação imediata" foi concluída: o backup existe, então a importação de dados na F1 deixou de ser hipotética e ganhou um procedimento concreto (restaurar o dump em **dev**; produção começa com banco limpo).
@@ -298,11 +299,11 @@ docker run --rm -e PGPASSWORD=$senha -v C:\Code\marcaAi-backup:/backup postgres:
 
 **Objetivo:** API rodando contra Postgres local, sem nenhuma dependência do Supabase.
 
-- [ ] Tornar o pool configurável (achado #8): ler `Database:MaxPoolSize` (default 20) e `Hangfire:WorkerCount` (default 5) / `Hangfire:MaxPoolSize` (default 5) da config, em vez dos valores fixos para o pooler do Supabase. Atualizar os comentários.
-- [ ] `appsettings.Development.json`: connection string apontando para o Postgres do compose (`Host=localhost;Port=5433;Database=marcaai;Username=marcaai;Password=marcaai`), sem SSL. Conferir se existe um `user-secrets` antigo com a connection string do Supabase (`dotnet user-secrets list --project src/MarcaAi.Api`) — se existir, **remover** essa chave, senão ela sobrescreve o appsettings e a API continua tentando o Supabase. Documentar o uso de `dotnet user-secrets` para sobrescrever.
-- [ ] Subir a API (`dotnet run --project src/MarcaAi.Api`) e confirmar que `Migrate()` cria todas as tabelas, os enums nativos e o schema do Hangfire. Conferir `GET /health`.
-- [ ] Rodar `dotnet ef migrations add Check_Sync --project src/MarcaAi.Infrastructure --startup-project src/MarcaAi.Api` e confirmar que a migration gerada é **vazia** (modelo == snapshot); depois removê-la (`dotnet ef migrations remove`).
-- [ ] 🧑 **Importar o backup do Supabase no banco de dev** (recomendado: sim, em dev — dá dados reais de teste e valida as migrations; **produção começa com banco limpo**, sem dados de teste). Criar `scripts/import-supabase-backup.ps1` (+ `.sh`) que:
+- [x] Tornar o pool configurável (achado #8): ler `Database:MaxPoolSize` (default 20) e `Hangfire:WorkerCount` (default 5) / `Hangfire:MaxPoolSize` (default 5) da config, em vez dos valores fixos para o pooler do Supabase. Atualizar os comentários.
+- [x] `appsettings.Development.json`: connection string apontando para o Postgres do compose (`Host=localhost;Port=5433;Database=marcaai;Username=marcaai;Password=marcaai`), sem SSL. Conferir se existe um `user-secrets` antigo com a connection string do Supabase (`dotnet user-secrets list --project src/MarcaAi.Api`) — se existir, **remover** essa chave, senão ela sobrescreve o appsettings e a API continua tentando o Supabase. Documentar o uso de `dotnet user-secrets` para sobrescrever.
+- [x] Subir a API (`dotnet run --project src/MarcaAi.Api`) e confirmar que `Migrate()` cria todas as tabelas, os enums nativos e o schema do Hangfire. Conferir `GET /health`.
+- [x] Rodar `dotnet ef migrations add Check_Sync --project src/MarcaAi.Infrastructure --startup-project src/MarcaAi.Api` e confirmar que a migration gerada é **vazia** (modelo == snapshot); depois removê-la (`dotnet ef migrations remove`).
+- [x] 🧑 **Importar o backup do Supabase no banco de dev** (recomendado: sim, em dev — dá dados reais de teste e valida as migrations; **produção começa com banco limpo**, sem dados de teste). Criar `scripts/import-supabase-backup.ps1` (+ `.sh`) que:
   1. Para a API; recria o banco `marcaai` **vazio** no Postgres do compose (`DROP DATABASE ... WITH (FORCE)` + `CREATE DATABASE`).
   2. Restaura o dump completo (schema + dados) usando o próprio container do compose, montando `C:\Code\marcaAi-backup` como volume somente leitura: `pg_restore --no-owner --no-privileges -d marcaai /backup/marcaai-supabase.dump`. Erros como "schema public already exists" são esperados e inofensivos; qualquer outro erro → parar e reportar.
   3. Como o dump traz a tabela `__ef_migrations_history`, ao subir a API o `Migrate()` só aplica as migrations que ainda faltarem (ex.: `AddUserBilling`, se o Supabase estava atrasado). O schema do Hangfire é criado sozinho pela API.
@@ -310,8 +311,8 @@ docker run --rm -e PGPASSWORD=$senha -v C:\Code\marcaAi-backup:/backup postgres:
   5. Mostra a contagem de linhas por tabela para conferência.
   - **Plano B** se a restauração completa conflitar com as migrations: subir a API num banco vazio (migrations criam o schema) e depois `pg_restore --data-only --disable-triggers --exclude-table=__ef_migrations_history` (ou `-L` com lista filtrada).
   - O caminho do backup deve vir de parâmetro/variável (`BACKUP_PATH`, default `C:\Code\marcaAi-backup\marcaai-supabase.dump`) — nunca copiar o dump para dentro do repo.
-- [ ] Se não importar: `normalize_plan_codes.sql` não é necessário (banco novo já nasce com os códigos de plano novos).
-- [ ] Seed de desenvolvimento (opcional, recomendado): endpoint/comando só em `Development` ou script SQL criando 1 profissional onboarded, 2 tipos de consulta e 1 clínica — acelera os testes manuais e e2e.
+- [x] Se não importar: `normalize_plan_codes.sql` não é necessário (banco novo já nasce com os códigos de plano novos). (importado: n/a)
+- [ ] Seed de desenvolvimento (opcional, recomendado): endpoint/comando só em `Development` ou script SQL criando 1 profissional onboarded, 2 tipos de consulta e 1 clínica — acelera os testes manuais e e2e. — **não feito** (o dump importado já dá dados de teste; reavaliar na F8).
 
 **Aceite:** front (`npm run dev`) + API locais funcionando: login por magic link (link aparece no log em dev ou no Mailpit), onboarding, criar tipo de consulta, ver dashboard.
 
@@ -565,7 +566,7 @@ stripe listen --forward-to localhost:5080/api/v1/webhooks/stripe/connect
 |---|---|---|---|---|
 | Imediata | 06/11/2026 | — (feito pelo dono, sem código) | Supabase reativado; `pg_dump` do schema `public` via Session pooler → `C:\Code\marcaAi-backup\marcaai-supabase.dump`, validado com `pg_restore -l`. Docker Desktop instalado e funcionando. PostgreSQL 17 nativo instalado via winget (possível conflito na 5432). | Copiar o backup para fora do PC; importar em dev (F1); excluir projeto Supabase (F10). |
 | F0 | 06/11/2026 | `fase-0-higiene` (3 commits, sem push) | `docs/` versionado (removido `/docs/` do .gitignore; `*.dump`/`*.backup` ignorados; varredura sem segredos reais); overrides corrigidos; `frontend/.env` limpo (backup local fora do repo); `docker-compose.dev.yml` (Postgres 18 :5433 + Mailpit); `.env.example` raiz e backend; `global.json` (10.0.100, `latestFeature` — `latestPatch` rejeitaria o SDK 10.0.301 instalado); `engines` Node>=24 + `.nvmrc`; `vercel.json` removido; READMEs atualizados. `./build.sh` verde, compose healthy, Mailpit 200. | Parar serviço PG17 nativo (admin). Para F1: user-secrets antigos (`ConnectionStrings:Default`, Google, Resend) e `appsettings.Development.json` ainda em 5432/testdb. Docker Desktop estava parado no início; está em `%LOCALAPPDATA%\Programs\DockerDesktop`. `PROMPT_CLAUDE_CODE.md` segue não versionado. |
-| F1 | | | | |
+| F1 | 06/11/2026 | `fase-1-banco-local` (4 commits, sem push; parte de `main` já com a F0 mergeada em fast-forward local) | Pool/workers configuráveis (`Database:MaxPoolSize`, `Hangfire:*`); `appsettings.Development.json` -> Postgres do compose (5433); user-secret `ConnectionStrings:Default` (Supabase) removido; API cria 17 tabelas, 12 enums e schema Hangfire; `Check_Sync` vazio (removido); `scripts/import-supabase-backup.ps1/.sh` (testados; restore sem erros inesperados, `normalize_plan_codes.sql` roda; contagens conferidas); API sobre o banco importado: /health ok, perfil publico 200. Gate LGPD: `.lgpd/STATUS.md`, `data-map.md`, `gaps.md` (19 gaps, 6 criticos). | Teste manual login/onboarding pela UI (Resend esta nos user-secrets: magic link enviaria e-mail real; usar Mailpit na F6). Achado novo LGPD: landing diz 'Conforme a LGPD' e linka /termos e /privacidade que nao existem (G01). Descartar dump/banco de dev com dado real (G14). Seed nao feito. Armadilha: `dotnet run --no-build` apos `ef migrations add/remove` usa DLL velha - rebuild antes. |
 | F2 | | | | |
 | F3 | | | | |
 | F4 | | | | |
