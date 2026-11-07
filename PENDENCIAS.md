@@ -33,6 +33,18 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Testar o fluxo real "Conectar Google Agenda" no navegador (consentimento → callback → evento criado na agenda). O backend foi testado até o redirecionamento ao Google.
 - [ ] Tokens do Google em `accounts` continuam em texto no banco (G09) — cifrar na F7.
 
+## F9 — Deploy de produção (no PC)
+
+- [ ] 🧑 Domínio na Cloudflare, túnel criado e `CLOUDFLARE_TUNNEL_TOKEN` no `.env.prod` (guia: `docs/deploy-self-host.md` §2). Sem o token o container `cloudflared` reinicia em loop (esperado).
+- [ ] 🧑 Preencher o `.env.prod` real (cópia no cofre de senhas) e subir com `scripts\deploy.ps1 -NoPull`.
+- [ ] 🧑 Backup: gerar o par de chaves `age` (privada **fora do PC**), criar o bucket R2 e os `R2_*`; rodar `backup.sh` e o teste de restauração a partir do R2.
+- [ ] 🧑 Windows 24/7: Docker Desktop no login, login automático, energia sem suspensão, BitLocker, nobreak (guia §6; parte exige administrador).
+- [ ] 🧑 Monitor externo (UptimeRobot/Better Stack) para `/health` e `/login` + heartbeat do backup.
+- [ ] 🤖 Exercitar o rollback automático do `deploy.ps1` com uma falha forçada (só o caminho feliz foi testado).
+- [ ] `evolution-api` (WhatsApp) fora do compose — só se D8 mudar.
+- [ ] Monitorar o disco `C:` (~9 GB livres em 07/11/2026): `docker system df`, `docker image prune`.
+- [ ] Execução do plano de venda (`PLANO_DE_VENDA.md`): **começar hoje as esperas E1–E11** (domínio, Resend, Google, Stripe, advogado, contador).
+
 ## F8 — Testes e CI
 
 - [ ] **Rodar o `ci.yml` no GitHub** quando houver minutos (Actions → Run workflow; marcar `e2e` para o Playwright) e ajustar o que falhar. O workflow foi reescrito mas **nunca executou lá** (aceite "CI verde nos dois jobs" em aberto).
