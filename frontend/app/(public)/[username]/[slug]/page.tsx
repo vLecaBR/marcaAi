@@ -53,13 +53,13 @@ export default async function BookingPage({ params }: Props) {
           locationType: event.locationType,
           price: event.price,
           questions: [],
-          requiresConfirm: false,
-          beforeEventBuffer: 0,
-          afterEventBuffer: 0,
-          bookingLimitDays: 60,
+          requiresConfirm: event.requiresConfirm,
+          beforeEventBuffer: event.beforeEventBuffer,
+          afterEventBuffer: event.afterEventBuffer,
+          bookingLimitDays: event.bookingLimitDays ?? 60,
         }}
         owner={{
-          id: profile.id ?? "",
+          id: profile.id,
           name: profile.name,
           image: profile.image,
           username: profile.username,

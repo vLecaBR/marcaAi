@@ -21,12 +21,15 @@ export interface PublicEventTypeDto {
   locationType: string
   price: number | null
   currency?: string
+  requiresConfirm: boolean
+  beforeEventBuffer: number
+  afterEventBuffer: number
+  bookingLimitDays: number | null
 }
 
 export interface PublicProfileWithEventsDto {
-  /** Id do profissional (ownerId). Necessário para `/slots` e `/bookings` públicos.
-   *  Depende de o backend expô-lo em `GET /public/{username}` — ver docs/backend-backlog.md. */
-  id?: string
+  /** Id do profissional (ownerId). Necessário para `/slots` e `/bookings` públicos. */
+  id: string
   username: string
   name: string | null
   bio: string | null

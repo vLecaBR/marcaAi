@@ -7,8 +7,13 @@
 
 import { env } from "@/lib/env"
 
-/** Base URL da API .NET (ex.: `http://localhost:5080`). Sem barra final. */
-export const API_BASE_URL = env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "")
+/**
+ * Base URL da API .NET usada no SERVIDOR (BFF/RSC), sem barra final. Prefere `API_INTERNAL_URL`
+ * (rede interna do Docker, ex.: `http://api:8080`); sem ela, cai na URL pública. No browser a
+ * variável não existe, então vale a pública. Para links do navegador (ex.: "Entrar com Google")
+ * use `NEXT_PUBLIC_API_URL` diretamente.
+ */
+export const API_BASE_URL = (env.API_INTERNAL_URL ?? env.NEXT_PUBLIC_API_URL).replace(/\/+$/, "")
 
 /** Prefixo de versão da API. Todas as rotas do inventário (spec §3.2) vivem sob ele. */
 export const API_PREFIX = "/api/v1"

@@ -8,6 +8,9 @@ import { z } from "zod"
 const envSchema = z.object({
   // Base da API .NET consumida pelo front (via BFF server-side / proxies públicos).
   NEXT_PUBLIC_API_URL: z.string().url().default("http://localhost:5080"),
+  // URL INTERNA da API (server-only; ex.: http://api:8080 dentro da rede do Docker). Usada pelo BFF/RSC.
+  // Sem ela, o servidor cai em NEXT_PUBLIC_API_URL. Nunca vai para o browser.
+  API_INTERNAL_URL: z.string().url().optional(),
   // URL pública do próprio app (usada em links de marketing/QR).
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   // Chave publicável do Stripe (client-side, Elements). Opcional até ativar cartão.
