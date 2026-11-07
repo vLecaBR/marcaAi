@@ -35,6 +35,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
     public DbSet<PayoutAccount> PayoutAccounts => Set<PayoutAccount>();
+    public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents => Set<ProcessedWebhookEvent>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -252,6 +253,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasIndex(x => new { x.OwnerType, x.OwnerId, x.Provider }).IsUnique();
             e.HasIndex(x => new { x.OwnerType, x.OwnerId });
             e.HasIndex(x => new { x.Provider, x.ExternalAccountId });
+        });
+
+        // ---- processed_webhook_events (idempotência de webhooks; F5) ----
+        b.Entity<ProcessedWebhookEvent>(e =>
+        {
+            e.ToTable("processed_webhook_events");
+            e.HasKey(x => new { x.Provider, x.EventId });
+            e.Property(x => x.Provider).HasMaxLength(32);
+            e.Property(x => x.EventId).HasMaxLength(200);
+            e.HasIndex(x => x.ProcessedAt);
         });
     }
 

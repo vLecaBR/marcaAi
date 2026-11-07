@@ -51,6 +51,18 @@ public class PayoutAccount
     /// </summary>
     public bool AbsorbGatewayCost { get; set; }
 
+    /// <summary>
+    /// Mercado Pago: access token do vendedor (OAuth), **protegido** com ASP.NET Data Protection
+    /// (nunca em texto puro). Null para Stripe.
+    /// </summary>
+    public string? EncryptedAccessToken { get; set; }
+
+    /// <summary>Mercado Pago: refresh token do vendedor, protegido com Data Protection.</summary>
+    public string? EncryptedRefreshToken { get; set; }
+
+    /// <summary>Mercado Pago: expiração do access token (UTC).</summary>
+    public DateTime? TokenExpiresAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

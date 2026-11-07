@@ -29,7 +29,6 @@ public sealed class BookingService(
     IBookingConcurrencyGuard guard,
     IGoogleCalendarService google,
     INotificationService notify,
-    IPixPaymentService pix,
     IEnumerable<ISplitPaymentService> splitProviders,
     IConfiguration config,
     ILogger<BookingService> logger) : IBookingService
@@ -165,26 +164,9 @@ public sealed class BookingService(
             }
         }
 
-        // ── Cobrança PIX (se a consulta tem preço) — best-effort ─────────────
-        if (eventType.Price is > 0)
-        {
-            try
-            {
-                pixData = await pix.CreateAsync(
-                    eventType.Price.Value / 100m,
-                    $"Consulta: {eventType.Title}",
-                    request.GuestEmail,
-                    request.GuestName.Split(' ')[0],
-                    booking.Uid, cancellationToken);
-
-                if (pixData is not null)
-                {
-                    booking.PaymentReference = pixData.Id;
-                    await db.SaveChangesAsync(cancellationToken);
-                }
-            }
-            catch { /* best-effort — a consulta é criada mesmo se o PIX falhar */ }
-        }
+        // Cobrança: NÃO é criada aqui. Consultas pagas seguem para `POST /bookings/{uid}/pay`
+        // (IBookingPaymentService), que cobra na conta do profissional/clínica com split. (F5: o antigo PIX
+        // criado aqui caía na conta da plataforma, sem split, em paralelo ao fluxo correto.)
 
         // ── Notificações (e-mail + WhatsApp, best-effort) ────────────────────
         try

@@ -29,8 +29,22 @@ dotnet user-secrets set "Stripe:SecretKey" "sk_test_xxx"
 dotnet user-secrets set "Stripe:WebhookSecret" "whsec_do_billing"
 dotnet user-secrets set "Stripe:ConnectWebhookSecret" "whsec_do_connect"
 dotnet user-secrets set "MercadoPago:AccessToken" "APP_USR-xxx"
+dotnet user-secrets set "MercadoPago:ClientId" "APP_ID_DA_APLICACAO"
+dotnet user-secrets set "MercadoPago:ClientSecret" "xxx"
+dotnet user-secrets set "MercadoPago:RedirectUri" "https://SEU-SUBDOMINIO.ngrok-free.app/api/v1/payouts/mercadopago/callback"
+dotnet user-secrets set "MercadoPago:WebhookSecret" "segredo_do_painel_de_webhooks_do_MP"
 dotnet user-secrets set "MercadoPago:NotificationUrl" "https://SEU-SUBDOMINIO.ngrok-free.app/api/v1/webhooks/mercadopago"
+dotnet user-secrets set "DataProtection:KeysPath" "C:\Code\marcaAi-keys"   # fora do repositório
 ```
+
+> **Webhooks do Stripe (F5):** a cobrança de consulta é *destination charge* — o `PaymentIntent` vive na conta da plataforma. Por isso
+> `payment_intent.succeeded`, `payment_intent.payment_failed` e `charge.refunded` são entregues ao endpoint **`/webhooks/stripe`**
+> (secret `Stripe:WebhookSecret`, destino "Your account"). O endpoint **`/webhooks/stripe/connect`** (secret `Stripe:ConnectWebhookSecret`,
+> destino "Connected accounts") recebe `account.updated`. Crie os dois destinos no Stripe com a versão de API `2026-10-28.endive`.
+> Os dois são idempotentes (tabela `processed_webhook_events`).
+>
+> **Mercado Pago (F5):** o webhook exige `x-signature` válido (`MercadoPago:WebhookSecret`) — sem o secret a API responde 503. O vendedor conecta a
+> conta via OAuth (`POST /payouts/onboarding` com `MERCADO_PAGO` → URL de autorização → callback da API); os tokens ficam cifrados no banco (Data Protection).
 
 > Reinicie a API depois de alterar qualquer segredo.
 

@@ -17,7 +17,7 @@ namespace MarcaAi.Infrastructure.Payments;
 /// Chaves lidas de configuração (Stripe:SecretKey / Stripe:ConnectWebhookSecret) — nunca hard-coded.
 /// </summary>
 public sealed class StripeConnectService(
-    ApplicationDbContext db, IConfiguration config, ILogger<StripeConnectService> logger)
+    ApplicationDbContext db, IConfiguration config, ILogger<StripeConnectService> logger, IWebhookEventStore events)
     : ISplitPaymentService, IConnectOnboardingService, IStripeConnectWebhookHandler
 {
     public PaymentProvider Provider => PaymentProvider.STRIPE;
@@ -234,6 +234,9 @@ public sealed class StripeConnectService(
         try { e = EventUtility.ConstructEvent(payload, signature, secret); }
         catch (StripeException ex) { logger.LogWarning(ex, "[StripeConnect] Assinatura de webhook inválida"); throw; }
 
+        // Idempotência: evento já processado com sucesso → 2xx sem reprocessar.
+        if (await events.WasProcessedAsync("stripe-connect", e.Id, ct)) return;
+
         switch (e.Type)
         {
             case "account.updated":
@@ -242,6 +245,9 @@ public sealed class StripeConnectService(
             case "payment_intent.succeeded":
                 await OnPaymentSucceededAsync(e.Data.Object as PaymentIntent, ct);
                 break;
+            case "payment_intent.payment_failed":
+                await OnPaymentFailedAsync(e.Data.Object as PaymentIntent, ct);
+                break;
             case "charge.refunded":
                 await OnChargeRefundedAsync(e.Data.Object as Charge, ct);
                 break;
@@ -249,6 +255,46 @@ public sealed class StripeConnectService(
                 logger.LogDebug("[StripeConnect] Evento não tratado: {Type}", e.Type);
                 break;
         }
+
+        await events.MarkProcessedAsync("stripe-connect", e.Id, ct);
+    }
+
+    /// <summary>
+    /// Eventos de **cobrança** que chegam ao endpoint da plataforma (`/webhooks/stripe`, secret `Stripe:WebhookSecret`).
+    /// Como o split é destination charge (o PaymentIntent vive na conta da plataforma), `payment_intent.*` e
+    /// `charge.refunded` são entregues a esse endpoint — e não ao dos "connected accounts" (que só recebe `account.updated`).
+    /// </summary>
+    public async Task HandlePlatformPaymentEventsAsync(string payload, string signature, CancellationToken ct = default)
+    {
+        var secret = config["Stripe:WebhookSecret"];
+        if (string.IsNullOrWhiteSpace(secret)) throw new InvalidOperationException("Webhook não configurado.");
+
+        Event e;
+        try { e = EventUtility.ConstructEvent(payload, signature, secret); }
+        catch (StripeException ex) { logger.LogWarning(ex, "[StripeConnect] Assinatura de webhook inválida"); throw; }
+
+        if (e.Type is not ("payment_intent.succeeded" or "payment_intent.payment_failed" or "charge.refunded")) return;
+        if (await events.WasProcessedAsync("stripe-payments", e.Id, ct)) return;
+
+        switch (e.Type)
+        {
+            case "payment_intent.succeeded": await OnPaymentSucceededAsync(e.Data.Object as PaymentIntent, ct); break;
+            case "payment_intent.payment_failed": await OnPaymentFailedAsync(e.Data.Object as PaymentIntent, ct); break;
+            case "charge.refunded": await OnChargeRefundedAsync(e.Data.Object as Charge, ct); break;
+        }
+
+        await events.MarkProcessedAsync("stripe-payments", e.Id, ct);
+    }
+
+    /// <summary>Falha de pagamento → FAILED (nunca sobrescreve um pagamento já PAID).</summary>
+    private async Task OnPaymentFailedAsync(PaymentIntent? intent, CancellationToken ct)
+    {
+        if (intent?.Metadata is null || !intent.Metadata.TryGetValue("bookingUid", out var uid) || string.IsNullOrEmpty(uid)) return;
+        var booking = await db.Bookings.FirstOrDefaultAsync(b => b.Uid == uid && b.ProviderPaymentId == intent.Id, ct);
+        if (booking is null || booking.PaymentStatus is PaymentStatus.PAID or PaymentStatus.REFUNDED
+            or PaymentStatus.PARTIALLY_REFUNDED) return;
+        booking.PaymentStatus = PaymentStatus.FAILED;
+        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>KYC da conta conectada → atualiza status/flags da PayoutAccount (idempotente).</summary>
@@ -286,6 +332,17 @@ public sealed class StripeConnectService(
 
         // Idempotência: se já está PAID, não reprocessa (evita dupla baixa).
         if (booking.PaymentStatus == PaymentStatus.PAID) return;
+
+        // O PaymentIntent precisa ser o que NÓS criamos para este booking e o valor/taxa precisam bater com o snapshot.
+        if (booking.ProviderPaymentId != intent.Id ||
+            (booking.PriceCents is { } expected && expected != intent.Amount) ||
+            (booking.PlatformFeeCents is { } expectedFee && intent.ApplicationFeeAmount is { } actualFee && expectedFee != actualFee))
+        {
+            logger.LogError(
+                "[StripeConnect] payment_intent.succeeded divergente do snapshot do booking {Uid} — baixa NÃO aplicada (revisar manualmente).",
+                uid);
+            return;
+        }
 
         booking.PaymentStatus = PaymentStatus.PAID;
         booking.ProviderPaymentId = intent.Id;

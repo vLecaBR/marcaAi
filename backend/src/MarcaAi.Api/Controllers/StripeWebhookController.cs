@@ -30,6 +30,8 @@ public sealed class StripeWebhookController(
         try
         {
             await billing.HandleWebhookAsync(payload, signature, ct);
+            // Cobranças de consulta (destination charge) também chegam aqui: payment_intent.* e charge.refunded.
+            await connect.HandlePlatformPaymentEventsAsync(payload, signature, ct);
             return Ok();
         }
         catch (Stripe.StripeException)

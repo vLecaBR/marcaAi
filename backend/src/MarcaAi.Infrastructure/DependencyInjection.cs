@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using MarcaAi.Application.Common.Interfaces;
 using MarcaAi.Infrastructure.Billing;
 using MarcaAi.Infrastructure.Bookings;
@@ -72,6 +73,16 @@ public static class DependencyInjection
         services.AddScoped<IUserBillingService, UserBillingService>();
         services.AddScoped<IPlanAccessService, PlanAccessService>();
         services.AddHttpClient<IPixPaymentService, MercadoPagoPixService>();
+        // Tokens OAuth dos vendedores (Mercado Pago) são cifrados com Data Protection. As chaves precisam
+        // persistir entre restarts/containers (DataProtection:KeysPath, volume no compose) — senão os tokens
+        // ficam ilegíveis e os vendedores precisam reconectar.
+        var dp = services.AddDataProtection().SetApplicationName("MarcaAi");
+        if (!string.IsNullOrWhiteSpace(configuration["DataProtection:KeysPath"]))
+            dp.PersistKeysToFileSystem(new DirectoryInfo(configuration["DataProtection:KeysPath"]!));
+        services.AddScoped<IWebhookEventStore, WebhookEventStore>();
+        services.AddHttpClient<MercadoPagoConnectService>();
+        services.AddScoped<IMercadoPagoConnectService>(sp => sp.GetRequiredService<MercadoPagoConnectService>());
+        services.AddScoped<IConnectOnboardingService>(sp => sp.GetRequiredService<MercadoPagoConnectService>());
         services.AddScoped<IPayoutAccountService, PayoutAccountService>();
 
         // Split de cartão via Stripe Connect: um único StripeConnectService serve como

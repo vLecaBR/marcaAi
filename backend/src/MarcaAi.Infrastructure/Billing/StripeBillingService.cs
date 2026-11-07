@@ -15,7 +15,8 @@ namespace MarcaAi.Infrastructure.Billing;
 /// Foca no status da assinatura (o que gate features); o período é opcional e best-effort.
 /// </summary>
 public sealed class StripeBillingService(
-    ApplicationDbContext db, IConfiguration config, ILogger<StripeBillingService> logger) : IBillingService
+    ApplicationDbContext db, IConfiguration config, ILogger<StripeBillingService> logger,
+    IWebhookEventStore events) : IBillingService
 {
     private string AppUrl => (config["App:PublicUrl"] ?? "http://localhost:3000").TrimEnd('/');
     private void EnsureKey() => StripeConfiguration.ApiKey = config["Stripe:SecretKey"];
@@ -113,6 +114,9 @@ public sealed class StripeBillingService(
 
         EnsureKey();
 
+        // Idempotência: evento já processado com sucesso → 2xx sem reprocessar.
+        if (await events.WasProcessedAsync("stripe-billing", e.Id, ct)) return;
+
         switch (e.Type)
         {
             case "checkout.session.completed":
@@ -151,6 +155,8 @@ public sealed class StripeBillingService(
                 break;
             }
         }
+
+        await events.MarkProcessedAsync("stripe-billing", e.Id, ct);
     }
 
     private async Task UpsertAsync(string teamId, Subscription sub, CancellationToken ct)

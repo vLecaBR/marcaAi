@@ -16,6 +16,7 @@ namespace MarcaAi.Infrastructure.Payments;
 public sealed class PayoutAccountService(
     IApplicationDbContext db,
     IEnumerable<IConnectOnboardingService> onboardingProviders,
+    IMercadoPagoConnectService mercadoPago,
     ILogger<PayoutAccountService> logger) : IPayoutAccountService
 {
     public async Task<OnboardingResult> StartOnboardingAsync(
@@ -132,7 +133,10 @@ public sealed class PayoutAccountService(
         account.ChargesEnabled = false;
         account.PayoutsEnabled = false;
         await db.SaveChangesAsync(ct);
-        // TODO (Fases 2/3): revogar tokens OAuth do MP / desconectar a conta Stripe Connect.
+        // Mercado Pago: descarta os tokens OAuth do vendedor. Stripe: a conta Express fica no Stripe, mas deixa
+        // de receber cobranças daqui (Status DISABLED); o encerramento definitivo é feito no dashboard do Stripe.
+        if (account.Provider == PaymentProvider.MERCADO_PAGO)
+            await mercadoPago.RevokeAsync(account.Id, ct);
         return true;
     }
 

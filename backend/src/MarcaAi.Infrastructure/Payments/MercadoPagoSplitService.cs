@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -16,7 +17,8 @@ namespace MarcaAi.Infrastructure.Payments;
 /// nunca hard-coded. Ver financial-split-spec.md §3.2/§6.2.
 /// </summary>
 public sealed class MercadoPagoSplitService(
-    HttpClient http, IConfiguration config, ILogger<MercadoPagoSplitService> logger) : ISplitPaymentService
+    HttpClient http, IConfiguration config, ILogger<MercadoPagoSplitService> logger,
+    IMercadoPagoConnectService sellers, MarcaAi.Infrastructure.Persistence.ApplicationDbContext db) : ISplitPaymentService
 {
     private const string Api = "https://api.mercadopago.com/v1/payments";
 
@@ -26,10 +28,11 @@ public sealed class MercadoPagoSplitService(
     {
         // Token do VENDEDOR (obtido via OAuth no onboarding, §6.1) — resolvido do secret store por
         // conta conectada. Fallback: token do marketplace. Sem token → provedor não configurado.
-        var token = ResolveSellerAccessToken(request.DestinationAccountId);
+        // Sem fallback para o token do marketplace: cobrar com ele depositaria na conta da plataforma, não do vendedor.
+        var token = await sellers.GetSellerAccessTokenAsync(request.DestinationAccountId, ct);
         if (string.IsNullOrWhiteSpace(token))
         {
-            logger.LogWarning("[MPSplit] AccessToken ausente p/ conta {Account} — cobrança ignorada.",
+            logger.LogWarning("[MPSplit] Token do vendedor ausente p/ conta {Account} — cobrança ignorada.",
                 request.DestinationAccountId);
             return null;
         }
@@ -88,7 +91,12 @@ public sealed class MercadoPagoSplitService(
 
     public async Task<RefundResult?> RefundAsync(string providerPaymentId, int? amountCents = null, CancellationToken ct = default)
     {
-        var token = config["MercadoPago:AccessToken"];
+        // O pagamento vive na conta do vendedor: reembolsa com o token dele (achado via booking → PayoutAccount).
+        var externalId = await db.Bookings.AsNoTracking()
+            .Where(b => b.ProviderPaymentId == providerPaymentId && b.PayoutAccountId != null)
+            .Join(db.PayoutAccounts.AsNoTracking(), b => b.PayoutAccountId, a => a.Id, (b, a) => a.ExternalAccountId)
+            .FirstOrDefaultAsync(ct);
+        var token = externalId is null ? null : await sellers.GetSellerAccessTokenAsync(externalId, ct);
         if (string.IsNullOrWhiteSpace(token)) return null;
 
         // Reembolso total (sem corpo) ou parcial (com amount). MP devolve a fee proporcionalmente (§10.5).
@@ -123,15 +131,5 @@ public sealed class MercadoPagoSplitService(
             logger.LogError(ex, "[MPSplit] Erro ao reembolsar {PaymentId}", providerPaymentId);
             return null;
         }
-    }
-
-    /// <summary>
-    /// Resolve o access token do vendedor para a conta conectada. TODO (§8/§9): buscar no secret store
-    /// o token OAuth por <paramref name="externalAccountId"/> (MP user_id). Hoje usa o token do marketplace.
-    /// </summary>
-    private string? ResolveSellerAccessToken(string externalAccountId)
-    {
-        var perSeller = config[$"MercadoPago:SellerTokens:{externalAccountId}"];
-        return !string.IsNullOrWhiteSpace(perSeller) ? perSeller : config["MercadoPago:AccessToken"];
     }
 }

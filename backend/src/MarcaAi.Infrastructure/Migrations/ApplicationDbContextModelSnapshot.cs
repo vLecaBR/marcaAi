@@ -464,6 +464,14 @@ namespace MarcaAi.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("createdAt");
 
+                    b.Property<string>("EncryptedAccessToken")
+                        .HasColumnType("text")
+                        .HasColumnName("encryptedAccessToken");
+
+                    b.Property<string>("EncryptedRefreshToken")
+                        .HasColumnType("text")
+                        .HasColumnName("encryptedRefreshToken");
+
                     b.Property<string>("ExternalAccountId")
                         .IsRequired()
                         .HasColumnType("text")
@@ -502,6 +510,10 @@ namespace MarcaAi.Infrastructure.Migrations
                         .HasColumnType("\"PayoutAccountStatus\"")
                         .HasColumnName("status");
 
+                    b.Property<DateTime?>("TokenExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("tokenExpiresAt");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
@@ -516,6 +528,29 @@ namespace MarcaAi.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("payout_accounts", (string)null);
+                });
+
+            modelBuilder.Entity("MarcaAi.Domain.Entities.ProcessedWebhookEvent", b =>
+                {
+                    b.Property<string>("Provider")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("EventId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("eventId");
+
+                    b.Property<DateTime>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processedAt");
+
+                    b.HasKey("Provider", "EventId");
+
+                    b.HasIndex("ProcessedAt");
+
+                    b.ToTable("processed_webhook_events", (string)null);
                 });
 
             modelBuilder.Entity("MarcaAi.Domain.Entities.Schedule", b =>

@@ -9,6 +9,10 @@ public interface IPixPaymentService
         decimal amountReais, string description, string payerEmail, string payerFirstName,
         string externalReference, CancellationToken cancellationToken = default);
 
-    /// <summary>Consulta um pagamento pelo id (para o webhook). Null se não configurado/erro.</summary>
-    Task<PaymentStatusInfo?> GetPaymentAsync(string paymentId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Consulta um pagamento pelo id (para o webhook). Em split o pagamento vive na conta do vendedor:
+    /// passe o <paramref name="accessToken"/> dele. Sem token usa o do marketplace. Null se não configurado/erro.
+    /// </summary>
+    Task<PaymentStatusInfo?> GetPaymentAsync(
+        string paymentId, string? accessToken = null, CancellationToken cancellationToken = default);
 }

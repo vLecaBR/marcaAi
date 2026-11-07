@@ -68,6 +68,12 @@ public sealed class BookingPaymentService(
             if (userSub!.DefaultFeeBps is { } bps) return bps;
             if (!string.IsNullOrEmpty(userSub.PlanCode)) return PlanCatalog.FeeBpsFor(userSub.PlanCode);
         }
+
+        // Trial interno (D5, F4): enquanto vigente, o usuário usufrui do Solo Pro (5%), igual ao que o plano mostra.
+        var trialEndsAt = await db.Users.AsNoTracking()
+            .Where(u => u.Id == receiver.OwnerId).Select(u => u.TrialEndsAt).FirstOrDefaultAsync(ct);
+        if (trialEndsAt is { } end && end > DateTime.UtcNow) return PlanCatalog.SoloProFeeBps;
+
         return PlanCatalog.SoloFeeBps;
     }
 

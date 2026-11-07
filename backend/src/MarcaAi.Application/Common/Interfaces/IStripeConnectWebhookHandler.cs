@@ -9,4 +9,10 @@ public interface IStripeConnectWebhookHandler
 {
     /// <summary>Valida a assinatura e processa o evento. Idempotente. Lança StripeException se a assinatura for inválida.</summary>
     Task HandleConnectWebhookAsync(string payload, string signature, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Eventos de cobrança (`payment_intent.succeeded|payment_failed`, `charge.refunded`) entregues ao endpoint da
+    /// plataforma (secret `Stripe:WebhookSecret`). Valida a assinatura e processa de forma idempotente.
+    /// </summary>
+    Task HandlePlatformPaymentEventsAsync(string payload, string signature, CancellationToken cancellationToken = default);
 }

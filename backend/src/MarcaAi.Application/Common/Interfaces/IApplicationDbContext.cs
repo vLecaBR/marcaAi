@@ -22,6 +22,7 @@ public interface IApplicationDbContext
     DbSet<Subscription> Subscriptions { get; }
     DbSet<UserSubscription> UserSubscriptions { get; }
     DbSet<PayoutAccount> PayoutAccounts { get; }
+    DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -32,6 +32,20 @@ public static class ProductionConfigValidator
         if (string.IsNullOrWhiteSpace(c["Resend:ApiKey"]))
             errors.Add("Resend:ApiKey é obrigatória (sem ela o link de login iria para o log).");
 
+        // Pagamentos: configuração parcial é erro (falha ao subir), não aviso — evita webhook aberto ou token ilegível.
+        if (!string.IsNullOrWhiteSpace(c["Stripe:SecretKey"]))
+        {
+            if (string.IsNullOrWhiteSpace(c["Stripe:WebhookSecret"])) errors.Add("Stripe:WebhookSecret é obrigatória quando Stripe:SecretKey está definida.");
+            if (string.IsNullOrWhiteSpace(c["Stripe:ConnectWebhookSecret"])) errors.Add("Stripe:ConnectWebhookSecret é obrigatória quando Stripe:SecretKey está definida.");
+        }
+        if (!string.IsNullOrWhiteSpace(c["MercadoPago:ClientId"]))
+        {
+            foreach (var mpKey in new[] { "ClientSecret", "RedirectUri", "WebhookSecret", "NotificationUrl" })
+                if (string.IsNullOrWhiteSpace(c[$"MercadoPago:{mpKey}"])) errors.Add($"MercadoPago:{mpKey} é obrigatória quando MercadoPago:ClientId está definida.");
+            if (string.IsNullOrWhiteSpace(c["DataProtection:KeysPath"]))
+                errors.Add("DataProtection:KeysPath é obrigatória com Mercado Pago (chaves que cifram os tokens dos vendedores precisam persistir).");
+        }
+
         return errors;
     }
 
@@ -39,7 +53,7 @@ public static class ProductionConfigValidator
     public static IEnumerable<string> Warnings(IConfiguration c)
     {
         if (string.IsNullOrWhiteSpace(c["Stripe:SecretKey"])) yield return "Stripe não configurado (billing e cartão desativados).";
-        if (string.IsNullOrWhiteSpace(c["MercadoPago:AccessToken"])) yield return "Mercado Pago não configurado (PIX desativado).";
+        if (string.IsNullOrWhiteSpace(c["MercadoPago:ClientId"])) yield return "Mercado Pago não configurado (PIX desativado).";
         if (string.IsNullOrWhiteSpace(c["Google:ClientId"]) || string.IsNullOrWhiteSpace(c["Google:ClientSecret"]))
             yield return "Google OAuth não configurado (login Google e Agenda desativados).";
         if (string.IsNullOrWhiteSpace(c["WhatsApp:ApiUrl"]) || string.IsNullOrWhiteSpace(c["WhatsApp:ApiKey"]))

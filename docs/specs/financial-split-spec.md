@@ -88,12 +88,23 @@ netToProvider  = gross - platformFee - gatewayCost   // gatewayCost=0 se AbsorbG
 
 Todos os valores gravados no `Booking` para auditoria (nada recalculado a posteriori).
 
-### 4.3 Precificação SaaS sugerida (realista — healthtech BR 2026)
+### 4.3 Precificação SaaS vigente (reconciliada na F5 — fonte da verdade: `PlanCatalog` + `docs/` do plano de lançamento)
 
-Faixas de mercado para agenda/prontuário SaaS de saúde no Brasil hoje giram tipicamente entre **R$ 50 e R$ 250/mês por profissional**. Proposta de tabela (confirmar com pesquisa de preço dedicada antes de fixar):
+> A tabela original desta seção (Free 4,99% + R$ 1,00 · Solo 3,49% + R$ 1,00 · Clínica 2,49% + R$ 1,00) foi **substituída**. Decisão de produto de 2026-08-04:
+> taxa **só percentual** (sem componente fixo) e planos Solo / Solo Pro / Clínica / Clínica Pro. Valores vigentes no código (`PlanCatalog`, testados em `PaymentsTests`):
 
-| Plano | Alvo | Preço base | Taxa de split | Limites |
-|---|---|---|---|---|
+| Plano | Taxa de split (`feeBps`) | Observação |
+|---|---|---|
+| **Solo** (free) | **10%** (1000 bps) | plano gratuito, 1 profissional |
+| **Solo Pro** | **5%** (500 bps) | trial interno de 30 dias para contas novas (F4) |
+| **Clínica** | **2,49%** (249 bps) | clínica pequena |
+| **Clínica Pro** | **1,99%** (199 bps) | rede/franquia |
+
+`platformFeeCents = round(preço × feeBps / 10000)` (metade para cima), gravado no `Booking` na iniciação do pagamento; o webhook só dá baixa se
+valor e taxa do provedor baterem com esse snapshot. Precedência da taxa: override na `PayoutAccount` → plano da assinatura → Solo (10%).
+Lógica: **quanto maior a assinatura, menor a fee de split**. Preços mensais das assinaturas vivem nos *Prices* do Stripe (`Stripe:Prices:*`), não aqui.
+
+---|---|---|---|---|
 | **Free / Trial** | Validação | R$ 0 (14 dias) | 4,99% + R$ 1,00 | 1 profissional, split habilitado com fee maior |
 | **Solo** | Autônomo | **R$ 79/mês** | 3,49% + R$ 1,00 | 1 profissional |
 | **Clínica** | Clínica pequena | **R$ 149/mês** + R$ 39/prof. extra | 2,49% + R$ 1,00 | até 5 profissionais |

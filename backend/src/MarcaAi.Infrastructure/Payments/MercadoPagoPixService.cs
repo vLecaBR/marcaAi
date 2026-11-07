@@ -68,9 +68,10 @@ public sealed class MercadoPagoPixService(
         }
     }
 
-    public async Task<PaymentStatusInfo?> GetPaymentAsync(string paymentId, CancellationToken ct = default)
+    public async Task<PaymentStatusInfo?> GetPaymentAsync(
+        string paymentId, string? accessToken = null, CancellationToken ct = default)
     {
-        var token = config["MercadoPago:AccessToken"];
+        var token = string.IsNullOrWhiteSpace(accessToken) ? config["MercadoPago:AccessToken"] : accessToken;
         if (string.IsNullOrWhiteSpace(token)) return null;
 
         try
@@ -84,7 +85,9 @@ public sealed class MercadoPagoPixService(
             var root = doc.RootElement;
             var status = root.TryGetProperty("status", out var s) ? s.GetString() ?? "" : "";
             var extRef = root.TryGetProperty("external_reference", out var er) ? er.GetString() : null;
-            return new PaymentStatusInfo(status, extRef);
+            int? amountCents = root.TryGetProperty("transaction_amount", out var ta) && ta.TryGetDecimal(out var amt)
+                ? (int)Math.Round(amt * 100m, MidpointRounding.AwayFromZero) : null;
+            return new PaymentStatusInfo(status, extRef, amountCents);
         }
         catch (Exception ex)
         {
