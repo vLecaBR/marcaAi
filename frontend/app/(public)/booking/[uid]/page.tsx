@@ -11,9 +11,10 @@ import type { Metadata } from "next"
 
 interface Props {
   params: Promise<{ uid: string }>
+  searchParams?: Promise<{ remarcada?: string }>
 }
 
-export const metadata: Metadata = { title: "Confirmação de agendamento" }
+export const metadata: Metadata = { title: "Confirmação de agendamento", robots: { index: false, follow: false } }
 
 const STATUS_CONFIG: Record<
   string,
@@ -135,8 +136,9 @@ const LOCATION_LABELS: Record<string, string> = {
   CUSTOM:      "Online",
 }
 
-export default async function BookingConfirmationPage({ params }: Props) {
+export default async function BookingConfirmationPage({ params, searchParams }: Props) {
   const { uid } = await params
+  const justRescheduled = (await searchParams)?.remarcada === "1"
 
   // Detalhe da consulta — via API .NET (`GET /bookings/{uid}`, público). Sem Prisma.
   let dto: BookingDetailDto
@@ -160,6 +162,11 @@ export default async function BookingConfirmationPage({ params }: Props) {
     status: dto.status,
     cancelReason: null as string | null,
     meetingUrl: dto.meetingUrl,
+    locationDetail: dto.locationDetail ?? null,
+    priceCents: dto.priceCents ?? null,
+    payOnSite: dto.payOnSite ?? false,
+    paymentStatus: dto.paymentStatus ?? "UNPAID",
+    paymentDueAt: dto.paymentDueAt ?? null,
     eventType: {
       title: dto.eventTitle,
       duration: Math.max(0, Math.round((new Date(dto.endTime).getTime() - new Date(dto.startTime).getTime()) / 60000)),
@@ -168,8 +175,14 @@ export default async function BookingConfirmationPage({ params }: Props) {
     },
   }
 
+  // Consulta paga online aguardando o pagamento: a reserva segura o horário até `paymentDueAt`.
+  const awaitingPayment =
+    booking.status === "PENDING" && !!booking.priceCents && !booking.payOnSite &&
+    booking.paymentStatus !== "PAID" && !!booking.paymentDueAt
+
   // Fallback seguro para status não mapeado
-  const config = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG["CONFIRMED"]
+  const baseConfig = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG["CONFIRMED"]
+  const config = awaitingPayment ? { ...baseConfig, label: "Aguardando pagamento" } : baseConfig
 
   const dateLabel = format(
     new Date(
@@ -215,8 +228,26 @@ export default async function BookingConfirmationPage({ params }: Props) {
           <h1 className="text-xl font-semibold text-foreground">
             {config.label}
           </h1>
+          {justRescheduled && (
+            <p className="mt-2 rounded-lg bg-care/10 px-3 py-2 text-sm text-care">Consulta remarcada com sucesso. Enviamos o novo horário por e-mail.</p>
+          )}
 
-          {booking.status === "PENDING" && (
+          {awaitingPayment && (
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Seu horário está <b>reservado</b> até{" "}
+                <b>{formatInTimeZone(booking.paymentDueAt!, booking.guestTimeZone, "HH:mm")}</b>. Conclua o pagamento
+                para confirmar a consulta; sem ele a reserva é cancelada e o horário liberado.
+              </p>
+              <a
+                href={`/booking/${booking.uid}/pay`}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-medium text-primary-foreground"
+              >
+                Pagar e confirmar
+              </a>
+            </div>
+          )}
+          {booking.status === "PENDING" && !awaitingPayment && (
             <p className="mt-2 text-sm text-muted-foreground">
               {booking.eventType.user.name} receberá uma notificação e
               confirmará em breve.
@@ -300,15 +331,48 @@ export default async function BookingConfirmationPage({ params }: Props) {
               value={LOCATION_LABELS[booking.eventType.locationType] ?? "Online"}
             />
 
-            {/* Link da reunião — exibe se disponível */}
-            {booking.meetingUrl && (
+            {/* Endereço / telefone (presencial e telefone não têm link) */}
+            {(booking.eventType.locationType === "IN_PERSON" || booking.eventType.locationType === "PHONE") &&
+              (booking.locationDetail ?? booking.meetingUrl) && (
+              <DetailRow
+                icon={
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  </svg>
+                }
+                label={booking.eventType.locationType === "PHONE" ? "Telefone do atendimento" : "Endereço"}
+                value={booking.locationDetail ?? booking.meetingUrl}
+              />
+            )}
+
+            {/* Valor e situação do pagamento */}
+            {booking.priceCents ? (
+              <DetailRow
+                icon={
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                  </svg>
+                }
+                label="Valor"
+                value={`${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(booking.priceCents / 100)} · ${
+                  booking.paymentStatus === "PAID" ? "pago"
+                  : booking.paymentStatus === "REFUNDED" ? "reembolsado"
+                  : booking.payOnSite ? "pago no atendimento"
+                  : "aguardando pagamento"
+                }`}
+              />
+            ) : null}
+
+            {/* Link da reunião — só para consultas online */}
+            {booking.meetingUrl && booking.eventType.locationType !== "IN_PERSON" && booking.eventType.locationType !== "PHONE" && (
               <DetailRow
                 icon={
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                   </svg>
                 }
-                label="Link da reunião"
+                label="Link da consulta"
                 value={
                   <a
                     href={booking.meetingUrl}
@@ -316,7 +380,7 @@ export default async function BookingConfirmationPage({ params }: Props) {
                     rel="noopener noreferrer"
                     className="text-brand-primary underline-offset-4 hover:underline"
                   >
-                    Entrar na reunião
+                    Entrar na consulta
                   </a>
                 }
               />
@@ -389,9 +453,21 @@ export default async function BookingConfirmationPage({ params }: Props) {
           Seus dados são usados apenas para esta consulta. Veja a <a href="/privacidade" className="underline">Política de Privacidade</a>.
         </p>
 
-        {/* Ações — cancelar */}
+        {/* Ações — adicionar à agenda, remarcar e cancelar */}
         {isActive && (
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
+            <a
+              href={`/booking/${booking.uid}/ics`}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-foreground transition-all hover:border-primary/40"
+            >
+              Adicionar à minha agenda (.ics)
+            </a>
+            <a
+              href={`/booking/${booking.uid}/reschedule`}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-foreground transition-all hover:border-primary/40"
+            >
+              Remarcar
+            </a>
             <a
               href={`/booking/${booking.uid}/cancel`}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground transition-all hover:border-destructive/40 hover:text-destructive"

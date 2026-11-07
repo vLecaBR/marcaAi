@@ -44,6 +44,9 @@ export const endpoints = {
     exception: (id: string) => `/exceptions/${id}`,
   },
   slots: "/slots",
+  slotsMonth: "/slots/month",
+  patients: "/patients",
+  patientDetail: "/patients/detail",
   public: (username: string) => `/public/${username}`,
   publicTeam: (slug: string) => `/public/team/${slug}`,
   // LGPD — direitos do titular (Art. 18)
@@ -61,6 +64,7 @@ export const endpoints = {
     root: "/bookings",
     byUid: (uid: string) => `/bookings/${uid}`,
     cancel: (uid: string) => `/bookings/${uid}/cancel`,
+    reschedule: (uid: string) => `/bookings/${uid}/reschedule`,
     confirm: (uid: string) => `/bookings/${uid}/confirm`,
     pay: (uid: string) => `/bookings/${uid}/pay`,
   },

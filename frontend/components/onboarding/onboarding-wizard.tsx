@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Stethoscope, IdCard, Settings, ArrowRight, ArrowLeft, Check, Loader2 } from "lucide-react"
+import { PUBLIC_HOST } from "@/lib/site"
 
 const STEPS = [
   { title: "Identidade", icon: Stethoscope },
@@ -286,7 +287,7 @@ function StepPresence({ register, errors }: FieldProps) {
       >
         <div className="flex items-center overflow-hidden rounded-xl border border-input bg-background focus-within:ring-2 focus-within:ring-ring/30">
           <span className="border-r border-input bg-muted px-3 py-2.5 text-sm text-muted-foreground">
-            marcaai.app/
+            {PUBLIC_HOST}/
           </span>
           <input
             id="username"

@@ -24,6 +24,8 @@ const COLOR_MAP: Record<string, string> = {
 }
 
 export default async function DashboardPage() {
+  const hour = Number(new Intl.DateTimeFormat("pt-BR", { hour: "numeric", hour12: false, timeZone: "America/Sao_Paulo" }).format(new Date()))
+  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite"
   const user = await requireOnboarded()
 
   // Fonte única: API .NET (`GET /bookings`). Stats e próximas consultas derivam desta lista.
@@ -71,13 +73,13 @@ export default async function DashboardPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>Bom dia, {firstName} 👋</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>{greeting}, {firstName} 👋</h1>
           <p className="text-muted-foreground mt-1">
-            {todayCount > 0 ? `Você tem ${todayCount} reuni${todayCount === 1 ? 'ão' : 'ões'} marcadas para hoje.` : "Você não tem reuniões marcadas para hoje."}
+            {todayCount > 0 ? `Você tem ${todayCount} consulta${todayCount === 1 ? '' : 's'} marcada${todayCount === 1 ? '' : 's'} para hoje.` : "Você não tem consultas marcadas para hoje."}
           </p>
         </div>
         <Button asChild className="rounded-xl h-10 shrink-0">
-          <Link href="/dashboard/event-types">+ Novo tipo de evento</Link>
+          <Link href="/dashboard/event-types">+ Novo serviço</Link>
         </Button>
       </div>
 
@@ -105,7 +107,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="lg:col-span-2 p-6 rounded-2xl border-border/60 shadow-sm">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-semibold text-lg">Próximas reuniões</h2>
+            <h2 className="font-semibold text-lg">Próximas consultas</h2>
             <Link href="/dashboard/bookings" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
               Ver todas <ArrowUpRight size={14} />
             </Link>
@@ -113,7 +115,7 @@ export default async function DashboardPage() {
           <div className="space-y-2.5">
             {upcomingBookings.length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center bg-muted/30 rounded-xl">
-                Nenhuma reunião próxima.
+                Nenhuma consulta próxima.
               </div>
             ) : (
               upcomingBookings.map((m) => (

@@ -26,11 +26,16 @@ export function PaymentClient({
   eventTitle,
   ownerName,
   returnUrl,
+  dueAt = null,
+  priceCents = null,
 }: {
   uid: string
   eventTitle: string
   ownerName: string | null
   returnUrl: string
+  /** Prazo para pagar (a reserva segura o horário até aqui). */
+  dueAt?: string | null
+  priceCents?: number | null
 }) {
   const router = useRouter()
   const [method, setMethod] = useState<PaymentProviderName | null>(null)
@@ -39,6 +44,8 @@ export function PaymentClient({
   const [error, setError] = useState<string | null>(null)
 
   const poll = usePaymentStatus(uid, !!intent)
+  const left = useCountdown(dueAt)
+  const expired = left !== null && left <= 0 && poll.phase !== "paid"
 
   // Confirmado → leva à tela de status/confirmação do agendamento.
   useEffect(() => {
@@ -90,7 +97,28 @@ export function PaymentClient({
         {ownerName && <p className="mt-0.5 text-sm text-muted-foreground">com {ownerName}</p>}
       </div>
 
+      {left !== null && !expired && (
+        <div className="mb-4 flex items-center justify-center gap-2 rounded-xl bg-warning/10 px-4 py-2.5 text-sm text-warning">
+          <Clock size={14} /> Horário reservado por mais <b className="tabular-nums">{fmtLeft(left)}</b>
+        </div>
+      )}
+
+      {expired ? (
+        <Card className="rounded-2xl border-border/60 p-8 text-center shadow-sm">
+          <h2 className="text-lg font-semibold">O prazo para pagar terminou</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            A reserva foi cancelada e o horário liberado. Se você já pagou, o valor é devolvido automaticamente.
+            Faça um novo agendamento para escolher outro horário.
+          </p>
+        </Card>
+      ) : (
       <Card className="rounded-2xl border-border/60 p-6 shadow-sm">
+        {typeof priceCents === "number" && !intent && (
+          <div className="mb-4 flex items-center justify-between rounded-xl bg-muted/40 px-4 py-3">
+            <span className="text-sm text-muted-foreground">Valor da consulta</span>
+            <span className="text-lg font-semibold tabular-nums">{brl(priceCents)}</span>
+          </div>
+        )}
         {/* Seleção de método */}
         {!method && (
           <div className="space-y-3">
@@ -154,6 +182,8 @@ export function PaymentClient({
                 qrCode={intent.pixQrCode}
                 ticketUrl={intent.pixTicketUrl}
               />
+            ) : intent.clientSecret?.startsWith("fake_secret_") ? (
+              <FakePanel uid={uid} />
             ) : intent.clientSecret ? (
               <StripePanel clientSecret={intent.clientSecret} returnUrl={returnUrl} />
             ) : (
@@ -165,6 +195,58 @@ export function PaymentClient({
           </div>
         )}
       </Card>
+      )}
+    </div>
+  )
+}
+
+/** Segundos restantes até `dueAt` (null se não há prazo). Atualiza a cada segundo. */
+function useCountdown(dueAt: string | null): number | null {
+  // Começa nulo (servidor e 1º render do cliente iguais — evita erro de hidratação com Date.now()) e calcula no efeito.
+  const [left, setLeft] = useState<number | null>(null)
+  useEffect(() => {
+    if (!dueAt) return
+    const tick = () => setLeft(Math.floor((new Date(dueAt).getTime() - Date.now()) / 1000))
+    tick()
+    const t = setInterval(tick, 1000)
+    return () => clearInterval(t)
+  }, [dueAt])
+  return left
+}
+
+function fmtLeft(s: number): string {
+  const m = Math.floor(s / 60)
+  const r = s % 60
+  return `${m}:${String(r).padStart(2, "0")}`
+}
+
+/**
+ * Pagamento SIMULADO (só aparece quando a API roda com `Payments:Provider=Fake`, em desenvolvimento/testes):
+ * aprova o pagamento pelo mesmo caminho do webhook. Nunca existe em produção.
+ */
+function FakePanel({ uid }: { uid: string }) {
+  const [busy, setBusy] = useState(false)
+  async function approve() {
+    setBusy(true)
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080"
+      await fetch(`${api}/api/v1/dev/payments/${uid}/approve`, { method: "POST" })
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="space-y-3 rounded-xl border border-dashed border-amber-400 bg-amber-50 p-4 text-center dark:bg-amber-950/20">
+      <p className="text-xs text-amber-700 dark:text-amber-300">Modo de testes: pagamento simulado (nenhum valor é cobrado).</p>
+      <button
+        type="button"
+        onClick={approve}
+        disabled={busy}
+        data-testid="fake-pay"
+        className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+      >
+        {busy ? "Aprovando…" : "Simular pagamento aprovado"}
+      </button>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { Logo } from "@/components/ui/logo"
 import { Input } from "@/components/ui/input"
 import { NavLink } from "@/components/dashboard/nav-link"
 import { DevNav } from "@/components/dashboard/dev-nav"
+import { GlobalSearch } from "@/components/dashboard/global-search"
 import { NotificationButton } from "@/components/dashboard/notification-button"
 import { LogoutButton } from "@/components/dashboard/logout-button"
 import { FadeIn } from "@/components/motion/primitives"
@@ -124,6 +125,7 @@ export default async function DashboardLayout({
           <div className="space-y-0.5">
             <NavLink href="/dashboard" icon={<Home />} exact>Início</NavLink>
             <NavLink href="/dashboard/bookings" icon={<Calendar />}>Meus agendamentos</NavLink>
+            <NavLink href="/dashboard/patients" icon={<Users />}>Pacientes</NavLink>
             <NavLink href="/dashboard/event-types" icon={<Layers />}>Tipos de consulta</NavLink>
             <NavLink href="/dashboard/recebimentos" icon={<Wallet />}>Recebimentos</NavLink>
             <NavLink href="/dashboard/financeiro" icon={<BarChart3 />}>Financeiro</NavLink>
@@ -156,10 +158,7 @@ export default async function DashboardLayout({
       {/* Conteúdo */}
       <div className="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
         <header className="sticky top-0 z-10 hidden h-16 items-center justify-between border-b border-border/60 bg-card px-6 md:flex">
-          <div className="relative w-80 max-w-full">
-            <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar consultas, pacientes…" className="h-10 rounded-xl border-0 bg-muted/50 pl-9" />
-          </div>
+          <GlobalSearch />
           <div className="flex items-center gap-2">
             <NotificationButton />
           </div>

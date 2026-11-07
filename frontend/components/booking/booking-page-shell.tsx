@@ -12,7 +12,7 @@ import Image from "next/image"
 import type { Slot } from "@/lib/api/booking-types"
 import { Card } from "@/components/ui/card"
 import { Logo } from "@/components/ui/logo"
-import { Clock, Video, Globe, ArrowLeft, Calendar as CalendarIcon, Phone, MapPin, Link as LinkIcon } from "lucide-react"
+import { Clock, Video, Globe, ArrowLeft, Calendar as CalendarIcon, Phone, MapPin, Link as LinkIcon, Wallet } from "lucide-react"
 import Link from "next/link"
 
 const spinner = (
@@ -46,7 +46,7 @@ interface Props {
   eventType: {
     id: string; title: string; description: string | null
     duration: number; color: string; locationType: string
-    price: number | null; questions?: import("@/lib/api/booking-types").PublicQuestionDto[]
+    price: number | null; payOnSite?: boolean; questions?: import("@/lib/api/booking-types").PublicQuestionDto[]
     requiresConfirm: boolean; beforeEventBuffer: number
     afterEventBuffer: number; bookingLimitDays: number | null
   }
@@ -142,6 +142,17 @@ export function BookingPageShell({ eventType, owner, availableDates = [] }: Prop
                 <div className="flex items-center gap-2.5">
                   <Globe size={16} /> {viewerTimeZone}
                 </div>
+                {eventType.price ? (
+                  <div className="flex items-center gap-2.5 text-foreground">
+                    <Wallet size={16} />
+                    <span>
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(eventType.price / 100)}
+                      <span className="text-muted-foreground">
+                        {eventType.payOnSite ? " · pago no atendimento" : " · pago online para confirmar"}
+                      </span>
+                    </span>
+                  </div>
+                ) : null}
                 {selectedSlot && (
                   <div className="flex items-center gap-2.5 text-foreground pt-2 mt-2 border-t border-border">
                     <CalendarIcon size={16} style={{ color: "var(--brand)" }} />
@@ -167,6 +178,9 @@ export function BookingPageShell({ eventType, owner, availableDates = [] }: Prop
                 <div>
                   <CalendarPicker
                     availableDates={availableDates}
+                    ownerId={owner.id}
+                    eventTypeId={eventType.id}
+                    viewerTimeZone={viewerTimeZone}
                     selectedDate={selectedDate}
                     onSelectDate={(d) => {
                       setSelectedDate(d)

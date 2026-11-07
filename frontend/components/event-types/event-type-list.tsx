@@ -29,6 +29,7 @@ type EventType = {
   locationType: EventTypeInput["locationType"]
   locationValue: string | null
   price?: number | null
+  payOnSite?: boolean
   questions?: EventTypeInput["questions"]
   teamId?: string | null
   _count: { bookings: number }

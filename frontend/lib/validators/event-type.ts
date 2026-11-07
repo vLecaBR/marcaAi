@@ -43,6 +43,8 @@ export const eventTypeSchema = z.object({
   ]),
   locationValue: z.string().max(255).optional().nullable(),
   price: z.number().min(0, "Preço inválido").optional().nullable(),
+  /** true = valor informativo, cobrado no atendimento (sem pagamento online). */
+  payOnSite: z.boolean().default(false),
   teamId: z.string().cuid().optional().nullable(),
 
   questions: z.array(eventTypeQuestionSchema).optional().default([]),

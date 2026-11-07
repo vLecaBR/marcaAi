@@ -43,6 +43,8 @@ export interface PublicEventTypeDto {
   afterEventBuffer: number
   bookingLimitDays: number | null
   questions: PublicQuestionDto[]
+  /** true = valor cobrado no atendimento (sem pagamento online). */
+  payOnSite?: boolean
 }
 
 export interface PublicProfileWithEventsDto {
@@ -102,6 +104,17 @@ export interface BookingDetailDto {
   guestTimeZone: string
   locationType: string
   meetingUrl: string | null
+  // Pagar / remarcar / adicionar à agenda
+  ownerId?: string | null
+  ownerUsername?: string | null
+  eventTypeId?: string | null
+  eventSlug?: string | null
+  locationDetail?: string | null
+  priceCents?: number | null
+  payOnSite?: boolean
+  paymentDueAt?: string | null
+  rescheduleCount?: number
+  bookingLimitDays?: number | null
 }
 
 /** `GET /public/team/{slug}` — página pública da clínica (sem e-mails). */

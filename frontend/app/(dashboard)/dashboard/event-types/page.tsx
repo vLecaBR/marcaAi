@@ -42,6 +42,7 @@ export default async function EventTypesPage() {
       locationType: e.locationType,
       locationValue: d?.locationValue ?? null,
       price: e.price,
+      payOnSite: d?.payOnSite ?? e.payOnSite ?? false,
       questions: d?.questions ?? [],
       teamId: null as string | null,
       _count: { bookings: e.bookingCount },

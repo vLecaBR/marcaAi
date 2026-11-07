@@ -34,6 +34,7 @@ type EventTypeRowData = {
   isActive: boolean
   locationType: string
   price?: number | null
+  payOnSite?: boolean
   _count: { bookings: number }
 }
 
@@ -102,6 +103,9 @@ export function EventTypeRow({
         {eventType.price ? (
           <div className="hidden sm:block shrink-0 text-sm font-medium text-foreground tabular-nums">
             {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(eventType.price / 100)}
+            <span className="block text-[10px] font-normal text-muted-foreground">
+              {eventType.payOnSite ? "cobrado no local" : "pago online"}
+            </span>
           </div>
         ) : (
           <div className="hidden sm:block shrink-0 text-xs text-muted-foreground">Gratuito</div>

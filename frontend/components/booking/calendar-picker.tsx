@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, addMonths, subMonths, isSameMonth,
@@ -16,6 +16,10 @@ interface CalendarPickerProps {
   selectedDate: string | null
   onSelectDate: (date: string) => void
   bookingLimitDays: number
+  /** Com estes três, o calendário só habilita os dias do mês que têm horário livre (GET /api/slots/month). */
+  ownerId?: string
+  eventTypeId?: string
+  viewerTimeZone?: string
 }
 
 export function CalendarPicker({
@@ -23,8 +27,30 @@ export function CalendarPicker({
   selectedDate,
   onSelectDate,
   bookingLimitDays,
+  ownerId,
+  eventTypeId,
+  viewerTimeZone,
 }: CalendarPickerProps) {
   const [viewMonth, setViewMonth] = useState(new Date())
+  // Dias com horário do mês exibido (null = ainda carregando ou indisponível → comportamento antigo).
+  const [monthDays, setMonthDays] = useState<Set<string> | null>(null)
+  const [monthLoading, setMonthLoading] = useState(false)
+
+  useEffect(() => {
+    if (!ownerId || !eventTypeId) return
+    let cancelled = false
+    setMonthLoading(true)
+    setMonthDays(null)
+    const month = format(viewMonth, "yyyy-MM")
+    fetch(`/api/slots/month?ownerId=${ownerId}&eventTypeId=${eventTypeId}&month=${month}&tz=${encodeURIComponent(viewerTimeZone ?? "UTC")}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { days?: string[] } | null) => {
+        if (!cancelled && d?.days) setMonthDays(new Set(d.days))
+      })
+      .catch(() => { /* sem a lista, habilita todos os dias (o dia vazio avisa ao abrir) */ })
+      .finally(() => { if (!cancelled) setMonthLoading(false) })
+    return () => { cancelled = true }
+  }, [ownerId, eventTypeId, viewerTimeZone, viewMonth])
 
   const today = startOfDay(new Date())
   const maxDate = addDays(today, bookingLimitDays)
@@ -52,8 +78,11 @@ export function CalendarPicker({
     if (isBefore(maxDate, date)) return false
     // Sem lista pré-computada (API-driven): habilita todos os dias no horizonte; o dia sem
     // horários mostra "sem horários" ao ser aberto. Com lista, respeita-a.
+    const key = format(date, "yyyy-MM-dd")
+    if (monthLoading && ownerId) return false
+    if (monthDays) return monthDays.has(key)
     if (availableSet.size === 0) return true
-    return availableSet.has(format(date, "yyyy-MM-dd"))
+    return availableSet.has(key)
   }
 
   function isDateSelected(date: Date): boolean {
@@ -88,6 +117,12 @@ export function CalendarPicker({
           </Button>
         </div>
       </div>
+
+      {monthDays && monthDays.size === 0 && !monthLoading && (
+        <p className="mb-3 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+          Sem horários livres neste mês. Veja o mês seguinte.
+        </p>
+      )}
 
       {/* Células */}
       <div className="grid grid-cols-7 gap-1.5">

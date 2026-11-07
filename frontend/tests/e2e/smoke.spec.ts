@@ -37,14 +37,50 @@ async function escolheDiaEHorario(page: Page) {
   // O calendário habilita todos os dias futuros (inclusive fins de semana sem agenda): percorre até achar um com horários.
   const total = Math.min(await dias.count(), 12)
   for (let i = 0; i < total; i++) {
-    await dias.nth(i).click()
-    // 1ª visita compila /api/slots no `next dev` e o clique pode vir antes da hidratação: dá mais tempo no 1º dia.
-    if (await horario.isVisible({ timeout: i === 0 ? 8_000 : 3_000 }).catch(() => false)) break
-    await expect(horario.or(page.getByText("Nenhum horário disponível"))).toBeVisible({ timeout: 8_000 })
+    // O clique antes da hidratação (next dev) não faz nada: repete até o painel de horários abrir.
+    await expect(async () => {
+      await dias.nth(i).click()
+      await expect(page.getByText(/Selecione uma data/)).toBeHidden({ timeout: 2_500 })
+    }).toPass({ timeout: 40_000, intervals: [500, 1_000, 2_000] })
+    await expect(horario.or(page.getByText("Nenhum horário disponível"))).toBeVisible({ timeout: 20_000 })
     if (await horario.isVisible()) break
   }
   await expect(horario).toBeVisible()
   await horario.click()
+}
+
+/** Login por magic link (e-mail lido no Mailpit) + onboarding mínimo; devolve o username criado. */
+async function entraEConfigura(page: Page, request: APIRequest, sufixo: string, nome: string): Promise<string> {
+  const email = `e2e-${sufixo}@example.test`
+  const username = `dra-${sufixo}`
+  await page.goto("/login")
+  await expect(async () => {
+    if (await page.getByText("Verifique seu e-mail").isVisible()) return // o envio anterior demorou, mas deu certo
+    await page.getByLabel("E-mail").fill(email)
+    await page.getByRole("button", { name: /Enviar link de acesso/ }).click()
+    await expect(page.getByText("Verifique seu e-mail")).toBeVisible({ timeout: 10_000 })
+  }).toPass({ timeout: 60_000, intervals: [500, 1_000, 2_000] })
+  await page.goto(await linkDoMagicLink(request, email))
+  await expect(page).toHaveURL(/\/(onboarding|dashboard)/)
+  const perfil = await page.request.put("/api/bff/me/profile", {
+    data: {
+      name: nome, username, timeZone: "America/Sao_Paulo", bio: null, theme: "LIGHT", brandColor: null,
+      specialty: null, council: null, registrationNumber: null, clinicName: null,
+    },
+  })
+  expect(perfil.ok(), await perfil.text()).toBeTruthy()
+  const fim = await page.request.post("/api/bff/me/onboarding/complete")
+  expect(fim.ok(), await fim.text()).toBeTruthy()
+  // O flag `onboarded` vem no token da sessão: o wizard rotaciona o token em seguida; o teste faz o mesmo.
+  expect((await page.request.post("/api/auth/refresh")).ok()).toBeTruthy()
+  return username
+}
+
+/** `goto` tolerante a Fast Refresh/compilação do `next dev`, que às vezes aborta a navegação (ERR_ABORTED). */
+async function vai(pg: Page, url: string) {
+  await expect(async () => {
+    await pg.goto(url)
+  }).toPass({ timeout: 40_000, intervals: [500, 1_000, 2_000] })
 }
 
 test.describe("Páginas públicas", () => {
@@ -81,10 +117,11 @@ test.describe("Jornada completa", () => {
     await page.goto("/login")
     // No `next dev` a página pode recarregar (Fast Refresh) ou submeter antes da hidratação: repete até o estado "enviado".
     await expect(async () => {
+      if (await page.getByText("Verifique seu e-mail").isVisible()) return // o envio anterior demorou, mas deu certo
       await page.getByLabel("E-mail").fill(email)
       await page.getByRole("button", { name: /Enviar link de acesso/ }).click()
-      await expect(page.getByText("Verifique seu e-mail")).toBeVisible({ timeout: 4_000 })
-    }).toPass({ timeout: 40_000, intervals: [500, 1_000, 2_000] })
+      await expect(page.getByText("Verifique seu e-mail")).toBeVisible({ timeout: 10_000 })
+    }).toPass({ timeout: 60_000, intervals: [500, 1_000, 2_000] })
 
     const link = await linkDoMagicLink(request, email)
     await page.goto(link)
@@ -138,10 +175,103 @@ test.describe("Jornada completa", () => {
     expect(minha).toBeTruthy()
 
     // 5) Detalhe público por uid e cancelamento (libera o horário).
-    await pg.goto(`/booking/${minha!.uid}`)
-    await expect(pg.getByText("Paciente E2E").first()).toBeVisible()
+    // No `next dev` a 1ª visita compila a rota e um Fast Refresh pode abortar a navegação: repete.
+    await expect(async () => {
+      await pg.goto(`/booking/${minha!.uid}`)
+      await expect(pg.getByText("Paciente E2E").first()).toBeVisible({ timeout: 8_000 })
+    }).toPass({ timeout: 60_000, intervals: [500, 1_000, 2_000] })
     const cancel = await pg.request.post(`/api/bff/bookings/${minha!.uid}/cancel`, { data: { reason: "e2e", canceledBy: "GUEST" } })
     expect(cancel.ok(), await cancel.text()).toBeTruthy()
+
+    await paciente.close()
+  })
+})
+
+test.describe("Jornada paga, remarcação e pacientes (pagamento simulado)", () => {
+  test("paciente reserva, paga, confirma, remarca; profissional vê o paciente", async ({ page, browser, request }, testInfo) => {
+    test.setTimeout(240_000)
+    const sufixo = "p" + Date.now().toString(36)
+    const username = await entraEConfigura(page, request, sufixo, "Dra. Paga E2E")
+
+    // Sem recebimentos ativos, não dá para criar serviço pago online (regra D14)…
+    const corpo = {
+      title: "Sessão paga", slug: "sessao-paga", duration: 30, locationType: "IN_PERSON", requiresConfirm: false,
+      beforeEventBuffer: 0, afterEventBuffer: 0, bookingLimitDays: 60, locationValue: "Rua Teste, 100", price: 15000, payOnSite: false, questions: [],
+    }
+    const bloqueado = await page.request.post("/api/bff/event-types", { data: corpo })
+    expect(bloqueado.status()).toBe(422)
+
+    // …ativa os recebimentos simulados e cria.
+    const ativa = await page.request.post("/api/bff/dev/payouts/activate")
+    expect(ativa.ok(), await ativa.text()).toBeTruthy()
+    const criado = await page.request.post("/api/bff/event-types", { data: corpo })
+    expect(criado.ok(), await criado.text()).toBeTruthy()
+
+    // Paciente agenda e é levado ao checkout, com o horário reservado.
+    const paciente = await browser.newContext()
+    const pg = await paciente.newPage()
+    await vai(pg, `/${username}/sessao-paga`)
+    await pg.waitForLoadState("networkidle")
+    try {
+      await escolheDiaEHorario(pg)
+    } catch (e) {
+      await pg.screenshot({ path: testInfo.outputPath("paciente-paga.png"), fullPage: true })
+      throw e
+    }
+    await pg.getByPlaceholder("Seu nome").fill("Paciente Pago E2E")
+    await pg.getByPlaceholder("seu@email.com").fill(`pago-${sufixo}@example.test`)
+    await pg.locator('input[type="checkbox"]').check()
+    await pg.getByRole("button", { name: /Confirmar agendamento/ }).click()
+
+    await expect(pg).toHaveURL(/\/booking\/[^/]+\/pay/, { timeout: 20_000 })
+    const uid = pg.url().split("/booking/")[1].split("/")[0]
+    await expect(pg.getByText(/Horário reservado por mais/)).toBeVisible()
+    await expect(pg.getByText("R$ 150,00").first()).toBeVisible()
+
+    // Antes de pagar, a consulta aparece como aguardando pagamento.
+    await vai(pg, `/booking/${uid}`)
+    await expect(pg.getByRole("heading", { name: "Aguardando pagamento" })).toBeVisible()
+
+    // Paga (simulado) → confirmada.
+    await vai(pg, `/booking/${uid}/pay`)
+    await pg.getByRole("button", { name: /Cartão de crédito/ }).click()
+    await pg.getByTestId("fake-pay").click()
+    await expect(pg).toHaveURL(new RegExp(`/booking/${uid}$`), { timeout: 30_000 })
+    await expect(pg.getByRole("heading", { name: "Confirmado" })).toBeVisible()
+    await expect(pg.getByText(/pago$/).first()).toBeVisible()
+
+    // Remarca (outro dia, com 24h+ de antecedência).
+    await pg.getByRole("link", { name: "Remarcar" }).click()
+    await expect(pg.getByRole("heading", { name: "Remarcar consulta" })).toBeVisible()
+    const horarioAntes = await pg.locator("b").first().textContent()
+    const grade = pg.locator(".grid-cols-7").last()
+    const dias = grade.locator("button:not([disabled])", { hasText: /^\d{1,2}$/ })
+    const horario = pg.getByRole("button").filter({ hasText: /^\d{2}:\d{2}$/ }).first()
+    await expect(dias.first()).toBeVisible()
+    const total = Math.min(await dias.count(), 14)
+    for (let i = total - 1; i >= 0; i--) { // dias mais distantes primeiro: garante > 24h
+      // O clique antes da hidratação (next dev) não faz nada: repete até o painel de horários abrir.
+      await expect(async () => {
+        await dias.nth(i).click()
+        await expect(pg.getByText("Selecione uma data.")).toBeHidden({ timeout: 2_500 })
+      }).toPass({ timeout: 40_000, intervals: [500, 1_000, 2_000] })
+      await expect(horario.or(pg.getByText("Nenhum horário disponível"))).toBeVisible({ timeout: 20_000 })
+      if (await horario.isVisible()) break
+    }
+    await expect(horario).toBeVisible()
+    await horario.click()
+    await pg.getByTestId("confirm-reschedule").click()
+    await expect(pg).toHaveURL(new RegExp(`/booking/${uid}\\?remarcada=1`), { timeout: 20_000 })
+    await expect(pg.getByText(/remarcada com sucesso/)).toBeVisible()
+    expect(horarioAntes).toBeTruthy()
+
+    // O profissional enxerga o paciente (lista e busca).
+    const lista = await page.request.get("/api/bff/patients?q=Pago")
+    expect(lista.ok()).toBeTruthy()
+    const pacientes = (await lista.json()) as { name: string; totalBookings: number; totalPaidCents: number }[]
+    expect(pacientes.some((p) => p.name === "Paciente Pago E2E" && p.totalPaidCents === 15000)).toBeTruthy()
+    await vai(page, "/dashboard/patients")
+    await expect(page.getByText("Paciente Pago E2E")).toBeVisible({ timeout: 30_000 })
 
     await paciente.close()
   })

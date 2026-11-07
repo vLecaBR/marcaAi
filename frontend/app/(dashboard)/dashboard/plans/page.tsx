@@ -118,11 +118,18 @@ export default async function PlansPage() {
 
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">{plan.name}</h2>
-                {isCurrent && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-care/10 px-2.5 py-0.5 text-xs font-medium text-care">
-                    <Check className="h-3 w-3" /> Seu plano atual
-                  </span>
-                )}
+                {/* Trial individual: o teste libera os recursos do Solo Pro e, ao acabar, o plano base é o Solo. */}
+                {(() => {
+                  const trialOnIndividual = isTrialing && audience === "individual"
+                  const label = trialOnIndividual
+                    ? plan.planCode === "SOLO_PRO" ? "Em teste grátis" : isCurrent ? "Plano após o teste" : null
+                    : isCurrent ? "Seu plano atual" : null
+                  return label ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-care/10 px-2.5 py-0.5 text-xs font-medium text-care">
+                      <Check className="h-3 w-3" /> {label}
+                    </span>
+                  ) : null
+                })()}
               </div>
 
               <div className="mt-3 flex items-baseline gap-1">

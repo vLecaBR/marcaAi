@@ -19,7 +19,31 @@ import {
   HeartPulse,
 } from "lucide-react"
 
+/** Calendário ilustrativo da landing: sempre o mês corrente, com dias úteis "livres" a partir de hoje. */
+function buildMock() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const mo = now.getMonth()
+  const days = new Date(y, mo + 1, 0).getDate()
+  const offset = new Date(y, mo, 1).getDay()
+  const open: number[] = []
+  for (let d = now.getDate() + 1; d <= days; d++) {
+    const wd = new Date(y, mo, d).getDay()
+    if (wd >= 1 && wd <= 5) open.push(d)
+  }
+  const selected = open[0] ?? now.getDate()
+  const fmt = (o: Intl.DateTimeFormatOptions, d: Date) => new Intl.DateTimeFormat("pt-BR", o).format(d)
+  return {
+    days, offset, open, selected,
+    monthLabel: fmt({ month: "long", year: "numeric" }, now),
+    selectedLabel: fmt({ weekday: "short", day: "numeric", month: "short" }, new Date(y, mo, selected)).replace(".", ""),
+  }
+}
+
+export const revalidate = 3600
+
 export default async function RootPage() {
+  const mock = buildMock()
   const me = await getMe()
 
   if (me) {
@@ -105,18 +129,19 @@ export default async function RootPage() {
                   </div>
                 </div>
                 <div className="p-6 border-r border-border/60 text-left">
-                  <div className="text-sm mb-3" style={{ fontWeight: 600 }}>Maio 2026</div>
+                  <div className="text-sm mb-3 capitalize" style={{ fontWeight: 600 }}>{mock.monthLabel}</div>
                   <div className="grid grid-cols-7 gap-1.5 text-xs">
                     {["D","S","T","Q","Q","S","S"].map((d,i) => <div key={i} className="text-center text-muted-foreground py-1 font-medium">{d}</div>)}
-                    {Array.from({length: 31}).map((_,i) => (
-                      <div key={i} className={`aspect-square rounded-md flex items-center justify-center transition-colors ${i===14?"bg-primary text-primary-foreground shadow-sm":[2,8,14,15,21,22,28].includes(i)?"hover:bg-secondary cursor-pointer text-foreground":"text-muted-foreground/30"}`}>
+                    {Array.from({length: mock.offset}).map((_,i) => <div key={`o${i}`} />)}
+                    {Array.from({length: mock.days}).map((_,i) => (
+                      <div key={i} className={`aspect-square rounded-md flex items-center justify-center transition-colors ${i+1===mock.selected?"bg-primary text-primary-foreground shadow-sm":mock.open.includes(i+1)?"hover:bg-secondary cursor-pointer text-foreground":"text-muted-foreground/30"}`}>
                         {i+1}
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="p-6 text-left">
-                  <div className="text-sm mb-3" style={{ fontWeight: 600 }}>Qui, 15 de mai</div>
+                  <div className="text-sm mb-3 capitalize" style={{ fontWeight: 600 }}>{mock.selectedLabel}</div>
                   <div className="flex flex-col gap-2">
                     {["09:00","09:30","10:00","14:00"].map((t,i) => (
                       <div key={t} className={`px-3 py-2.5 rounded-lg border text-sm text-center transition-colors ${i===2?"border-primary bg-secondary text-primary":"border-border hover:border-primary/50 text-foreground"}`}>

@@ -40,7 +40,8 @@ export async function upsertEventTypeAction(
     bookingLimitDays: rest.bookingLimitDays ?? null,
     locationType: rest.locationType,
     locationValue: rest.locationValue ?? null,
-    price: rest.price ?? null,
+    price: rest.price != null ? Math.round(rest.price) : null,
+    payOnSite: rest.payOnSite ?? false,
     currency: "BRL",
     questions: (rest.questions ?? []).map((q, i) => ({
       label: q.label,

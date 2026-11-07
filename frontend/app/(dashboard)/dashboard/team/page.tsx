@@ -22,6 +22,7 @@ import { ClinicTabs } from "@/components/team/clinic-tabs"
 import { TeamUsageStats } from "@/components/billing/team-usage-stats"
 import { getTeamBilling } from "@/lib/api/billing"
 import type { TeamDetailDto, TeamSummaryDto } from "@/lib/api/types"
+import { PUBLIC_HOST } from "@/lib/site"
 
 export const metadata: Metadata = { title: "Clínica · MarcaAí" }
 
@@ -94,7 +95,7 @@ export default async function TeamPage() {
             rel="noreferrer"
             className="inline-flex items-center gap-1 text-brand-primary hover:underline"
           >
-            marcaai.app/team/{clinic.slug}
+            {PUBLIC_HOST}/team/{clinic.slug}
             <ExternalLink className="h-3 w-3" />
           </a>
           {otherClinics > 0 && (

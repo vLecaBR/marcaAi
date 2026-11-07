@@ -20,9 +20,19 @@ export function BookingActions({ uid, status }: { uid: string, status: string })
     setLoading(false)
   }
 
+  const remarcar = (
+    <a
+      href={`/booking/${uid}/reschedule`}
+      className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+    >
+      Remarcar
+    </a>
+  )
+
   if (status === "CONFIRMED") {
     return (
       <div className="flex items-center gap-2">
+        {remarcar}
         <button
           onClick={handleReject}
           disabled={loading}
@@ -39,6 +49,7 @@ export function BookingActions({ uid, status }: { uid: string, status: string })
 
   return (
     <div className="flex items-center gap-2">
+      {remarcar}
       <button
         onClick={handleReject}
         disabled={loading}

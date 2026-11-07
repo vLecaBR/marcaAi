@@ -59,5 +59,7 @@ export const BFF_ALLOWLIST: readonly string[] = [
   "slots",
   "bookings",
   "payouts",
+  "patients",
+  "dev", // atalhos do pagamento simulado (a API responde 404 fora de Payments:Provider=Fake)
   "finance", // Fase 5 — depende do backend (ver docs/backend-backlog.md)
 ] as const

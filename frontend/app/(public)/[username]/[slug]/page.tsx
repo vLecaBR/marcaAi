@@ -52,6 +52,7 @@ export default async function BookingPage({ params }: Props) {
           color: event.color,
           locationType: event.locationType,
           price: event.price,
+          payOnSite: event.payOnSite ?? false,
           questions: event.questions,
           requiresConfirm: event.requiresConfirm,
           beforeEventBuffer: event.beforeEventBuffer,

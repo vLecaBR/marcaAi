@@ -67,6 +67,7 @@ export interface EventTypeSummaryDto {
   price: number | null
   currency: string
   bookingCount: number
+  payOnSite?: boolean
 }
 
 /** `GET /schedules` → agenda com janelas e exceções. */
@@ -182,6 +183,7 @@ export interface EventTypeDetailDto {
   locationValue: string | null
   price: number | null
   currency: string
+  payOnSite?: boolean
   questions: {
     id: string
     label: string

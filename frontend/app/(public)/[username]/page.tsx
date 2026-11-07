@@ -10,6 +10,7 @@ import { endpoints } from "@/lib/api/endpoints"
 import { isApiError } from "@/lib/api/problem-details"
 import { safeBrandColor } from "@/lib/brand-theme"
 import type { PublicProfileWithEventsDto } from "@/lib/api/booking-types"
+import { PUBLIC_HOST } from "@/lib/site"
 
 interface Props {
   params: Promise<{ username: string }>
@@ -80,7 +81,7 @@ export default async function UserPublicPage({ params }: Props) {
           <h1 className="mt-5" style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.5 }}>
             {profile.name}
           </h1>
-          <p className="text-muted-foreground mt-1">marcaai.app/{username}</p>
+          <p className="text-muted-foreground mt-1">{PUBLIC_HOST}/{username}</p>
           {profile.bio && (
             <p className="max-w-md mt-3 text-sm text-muted-foreground" style={{ lineHeight: 1.6 }}>
               {profile.bio}

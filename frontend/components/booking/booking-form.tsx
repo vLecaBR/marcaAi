@@ -34,6 +34,7 @@ interface BookingFormProps {
     id: string; title: string; duration: number
     locationType: string; requiresConfirm: boolean
     price?: number | null
+    payOnSite?: boolean
     questions?: PublicQuestionDto[]
   }
   owner: { id: string; name: string | null }
@@ -97,8 +98,8 @@ export function BookingForm({
       setResult({ status: "conflict" })
     } else if (!res.ok) {
       setResult({ status: "error", message: json.message ?? json.error ?? "Erro ao agendar." })
-    } else if (eventType.price && json.uid) {
-      // Consulta paga → checkout dedicado (PIX × Cartão + polling de confirmação).
+    } else if (json.paymentRequired && json.uid) {
+      // Consulta paga online → a reserva segura o horário e o checkout confirma (PIX × Cartão + polling).
       window.location.assign(`/booking/${json.uid}/pay`)
     } else {
       setResult({
@@ -173,6 +174,11 @@ export function BookingForm({
             ? `${owner.name} receberá sua solicitação e confirmará em breve.`
             : "Você receberá um e-mail de confirmação com os detalhes."}
         </p>
+        {eventType.price && eventType.payOnSite && !result.requiresConfirm && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            O pagamento ({new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(eventType.price / 100)}) é feito no atendimento.
+          </p>
+        )}
         <div className="mt-6 w-full rounded-xl border border-border bg-muted/30 px-6 py-4 text-left space-y-1">
           <p className="text-sm font-medium">{eventType.title}</p>
           <p className="text-xs capitalize text-muted-foreground">{dateLabel}</p>
@@ -255,7 +261,7 @@ export function BookingForm({
 
         <div>
           <label className="text-sm font-medium">
-            Compartilhe qualquer coisa que ajude a preparar a reunião <span className="text-muted-foreground font-normal">(opcional)</span>
+            Compartilhe qualquer coisa que ajude a preparar a consulta <span className="text-muted-foreground font-normal">(opcional)</span>
           </label>
           <Textarea
             {...register("notes")}

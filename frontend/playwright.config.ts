@@ -38,6 +38,8 @@ export default defineConfig({
         Resend__ApiKey: "",
         Smtp__Host: "localhost",
         Smtp__Port: "1025",
+        // Pagamento SIMULADO (só dev/teste): permite a jornada paga offline, sem conta Stripe.
+        Payments__Provider: "Fake",
       },
     },
     {

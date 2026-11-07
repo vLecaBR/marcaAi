@@ -8,6 +8,7 @@ import { serverApiFetch } from "@/lib/api/http-client"
 import { endpoints } from "@/lib/api/endpoints"
 import { isApiError } from "@/lib/api/problem-details"
 import type { TeamDetailDto, TeamBillingDto } from "@/lib/api/types"
+import { PUBLIC_HOST } from "@/lib/site"
 
 export const metadata: Metadata = { title: "Detalhes da clínica" }
 
@@ -95,7 +96,7 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
                   rel="noreferrer"
                   className="text-brand-primary hover:underline"
                 >
-                  marcaai.app/team/{team.slug}
+                  {PUBLIC_HOST}/team/{team.slug}
                 </a>
               </div>
               {currentUserRole === "OWNER" && (

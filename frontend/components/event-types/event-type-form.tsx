@@ -88,9 +88,10 @@ export function EventTypeForm({ open, onClose, defaultValues, userTeams = [] }: 
       beforeEventBuffer: 0,
       afterEventBuffer: 0,
       bookingLimitDays: 60,
-      locationType: "GOOGLE_MEET",
+      locationType: "IN_PERSON",
       locationValue: "",
       price: null,
+      payOnSite: false,
       questions: [],
       ...defaultValues,
     },
@@ -124,9 +125,10 @@ export function EventTypeForm({ open, onClose, defaultValues, userTeams = [] }: 
         beforeEventBuffer: 0,
         afterEventBuffer: 0,
         bookingLimitDays: 60,
-        locationType: "GOOGLE_MEET",
+        locationType: "IN_PERSON",
         locationValue: "",
         price: null,
+        payOnSite: false,
         questions: [],
         ...defaultValues,
       })
@@ -245,24 +247,38 @@ export function EventTypeForm({ open, onClose, defaultValues, userTeams = [] }: 
             </select>
           </Field>
 
-          {(locationTypeValue === "CUSTOM" ||
-            locationTypeValue === "IN_PERSON" ||
-            locationTypeValue === "PHONE") && (
-            <Field label="Detalhes da localização" htmlFor="et-location-value" error={errors.locationValue?.message}>
-              <Input
-                id="et-location-value"
-                {...register("locationValue")}
-                placeholder={
-                  locationTypeValue === "PHONE"
-                    ? "+55 (11) 99999-9999"
-                    : locationTypeValue === "IN_PERSON"
-                    ? "Endereço completo"
-                    : "https://..."
-                }
-                className="rounded-xl h-10"
-              />
-            </Field>
-          )}
+          <Field
+            label={
+              locationTypeValue === "IN_PERSON" ? "Endereço do atendimento"
+              : locationTypeValue === "PHONE" ? "Telefone de contato"
+              : locationTypeValue === "GOOGLE_MEET" ? "Link da videochamada (opcional)"
+              : "Link da videochamada"
+            }
+            htmlFor="et-location-value"
+            error={errors.locationValue?.message}
+          >
+            <Input
+              id="et-location-value"
+              {...register("locationValue")}
+              placeholder={
+                locationTypeValue === "PHONE"
+                  ? "+55 (11) 99999-9999"
+                  : locationTypeValue === "IN_PERSON"
+                  ? "Rua, número, bairro, cidade"
+                  : "https://..."
+              }
+              className="rounded-xl h-10"
+            />
+            {locationTypeValue === "GOOGLE_MEET" && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Com o Google Agenda conectado (Integrações), o link do Meet é gerado sozinho a cada consulta.
+                Sem ele, informe o link da sua sala.
+              </p>
+            )}
+            {locationTypeValue !== "GOOGLE_MEET" && locationTypeValue !== "IN_PERSON" && locationTypeValue !== "PHONE" && (
+              <p className="mt-1 text-xs text-muted-foreground">O paciente recebe este link na confirmação e no lembrete.</p>
+            )}
+          </Field>
 
           {/* Buffers */}
           <div className="grid grid-cols-2 gap-3">
@@ -297,7 +313,7 @@ export function EventTypeForm({ open, onClose, defaultValues, userTeams = [] }: 
                 {...register("price", {
                   setValueAs: (v) => {
                     if (v === "" || v === null || isNaN(v)) return null;
-                    return parseFloat(v) * 100; // Salva em centavos
+                    return Math.round(parseFloat(v) * 100); // Salva em centavos (inteiro)
                   }
                 })}
                 defaultValue={defaultValues?.price ? (defaultValues.price / 100).toFixed(2) : ""}
@@ -312,6 +328,23 @@ export function EventTypeForm({ open, onClose, defaultValues, userTeams = [] }: 
               Deixe em branco para consultas gratuitas.
             </p>
           </Field>
+
+          {(watch("price") ?? 0) > 0 && (
+            <div className="space-y-2 rounded-xl border border-border/60 bg-surface p-4">
+              <Toggle
+                label="Cobrar no atendimento"
+                description="O valor aparece para o paciente, mas você recebe no consultório. A consulta é confirmada na hora."
+                checked={watch("payOnSite") ?? false}
+                onChange={(v) => setValue("payOnSite", v)}
+              />
+              {!(watch("payOnSite") ?? false) && (
+                <p className="text-xs text-muted-foreground">
+                  Pagamento online: o paciente paga para confirmar e o horário fica reservado por 15 minutos. É preciso ter os{" "}
+                  <a href="/dashboard/recebimentos" className="underline">recebimentos</a> ativos.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Limite de dias */}
           <Field label="Agendamentos até (dias)" htmlFor="et-limit" error={errors.bookingLimitDays?.message}>

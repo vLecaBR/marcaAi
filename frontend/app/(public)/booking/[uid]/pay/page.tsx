@@ -28,6 +28,9 @@ export default async function PayPage({ params }: { params: Promise<{ uid: strin
   }
 
   if (booking.paymentStatus === "PAID") redirect(`/booking/${uid}`)
+  // Pagar no local / sem preço: não há checkout online.
+  if (booking.payOnSite || !booking.priceCents) redirect(`/booking/${uid}`)
+  const expired = booking.status === "CANCELLED"
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
@@ -41,12 +44,31 @@ export default async function PayPage({ params }: { params: Promise<{ uid: strin
       </header>
 
       <main className="flex-1 flex items-start justify-center px-6 py-12">
-        <PaymentClient
-          uid={uid}
-          eventTitle={booking.eventTitle}
-          ownerName={booking.ownerName}
-          returnUrl={`${APP_URL}/booking/${uid}`}
-        />
+        {expired ? (
+          <div className="mx-auto w-full max-w-md rounded-2xl border border-border/60 bg-card p-8 text-center shadow-sm">
+            <h1 className="text-lg font-semibold">Esta reserva expirou</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              O prazo para pagar terminou e o horário foi liberado. Você pode escolher um novo horário.
+            </p>
+            {booking.ownerUsername && booking.eventSlug && (
+              <Link
+                href={`/${booking.ownerUsername}/${booking.eventSlug}`}
+                className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-medium text-primary-foreground"
+              >
+                Escolher outro horário
+              </Link>
+            )}
+          </div>
+        ) : (
+          <PaymentClient
+            uid={uid}
+            eventTitle={booking.eventTitle}
+            ownerName={booking.ownerName}
+            returnUrl={`${APP_URL}/booking/${uid}`}
+            dueAt={booking.paymentDueAt ?? null}
+            priceCents={booking.priceCents ?? null}
+          />
+        )}
       </main>
     </div>
   )
