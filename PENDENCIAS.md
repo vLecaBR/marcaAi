@@ -47,6 +47,7 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Achados #16/#17 (cancelamento/consulta por uid adivinhável, antiforgery) seguem abertos.
 
 ## Gerais (de fases anteriores)
+- [ ] **Reativar o CI** (`.github/workflows/ci.yml`): desativado em 07/11/2026 por falta de minutos do GitHub Actions (hoje só `workflow_dispatch`). Restaurar o gatilho `push`/`pull_request` na `main` quando houver minutos; enquanto isso, validar localmente com `./build.sh`.
 - [ ] Parar o serviço nativo PostgreSQL 17 (porta 5432), como administrador.
 - [ ] Prazo de descarte do dump do Supabase e do banco de dev com dados reais (G14).
 - [ ] Decidir se `PROMPT_CLAUDE_CODE.md` é commitado ou ignorado.
