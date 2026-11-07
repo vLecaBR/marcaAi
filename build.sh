@@ -17,7 +17,7 @@ build_backend() {
   dotnet restore
   dotnet build --no-restore -c Release
   # Testes (se existirem projetos de teste)
-  if ls **/*Tests*.csproj >/dev/null 2>&1; then
+  if find tests -name '*Tests*.csproj' 2>/dev/null | grep -q .; then
     echo "▶ Backend — testes"
     dotnet test --no-build -c Release
   fi

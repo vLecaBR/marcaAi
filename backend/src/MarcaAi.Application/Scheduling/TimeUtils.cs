@@ -55,7 +55,7 @@ public static class TimeUtils
         aStart < bEnd && aEnd > bStart;
 
     /// <summary>Subtrai intervalos ocupados de uma janela, retornando os fragmentos livres.</summary>
-    public static List<TimeRange> SubtractBusyFromWindow(TimeRange window, IEnumerable<TimeRange> busy)
+    public static List<TimeRange> SubtractBusyFromWindow(TimeRange window, IEnumerable<TimeRange> busy, int gridMinutes = 30)
     {
         var sorted = busy
             .Where(b => RangesOverlap(window.Start, window.End, b.Start, b.End))
@@ -70,8 +70,8 @@ public static class TimeUtils
             if (cursor < block.Start) free.Add(new TimeRange(cursor, block.Start));
             if (block.End > cursor)
             {
-                // Alinhamento à grade de 30 min (portado fielmente do Next; TODO: parametrizar por duração).
-                var aligned = AlignUp(block.End, TimeSpan.FromMinutes(30));
+                // Alinhamento à grade (padrão 30 min; ver GridMinutesFor para durações que não são múltiplas de 30).
+                var aligned = AlignUp(block.End, TimeSpan.FromMinutes(gridMinutes));
                 cursor = block.End > aligned ? block.End : aligned;
             }
         }
@@ -79,6 +79,13 @@ public static class TimeUtils
         if (cursor < window.End) free.Add(new TimeRange(cursor, window.End));
         return free;
     }
+
+    /// <summary>
+    /// Passo da grade de horários conforme a duração da consulta: 30 min quando a duração é múltipla
+    /// de 30; 15 min quando é múltipla de 15 (ex.: 45); senão 5 min (ex.: 50). Evita horários "quebrados".
+    /// </summary>
+    public static int GridMinutesFor(int durationMin) =>
+        durationMin % 30 == 0 ? 30 : durationMin % 15 == 0 ? 15 : 5;
 
     private static DateTime AlignUp(DateTime dt, TimeSpan interval)
     {

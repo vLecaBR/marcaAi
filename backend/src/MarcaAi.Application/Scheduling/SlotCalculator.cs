@@ -36,7 +36,7 @@ public static class SlotCalculator
                         b.EndTime.AddMinutes(input.AfterBuffer)))
                     .ToList();
 
-                var freeFragments = TimeUtils.SubtractBusyFromWindow(window, windowBusy);
+                var freeFragments = TimeUtils.SubtractBusyFromWindow(window, windowBusy, TimeUtils.GridMinutesFor(input.EventDuration));
 
                 foreach (var fragment in freeFragments)
                 {

@@ -149,6 +149,36 @@ public sealed class TeamsController(IApplicationDbContext db, IPlanAccessService
         return Ok(new TeamMemberDto(target.Id, target.Name, target.Email, newRole));
     }
 
+    // ── Trocar papel (MEMBER <-> ADMIN) ──────────────────────────────────────
+    public sealed record UpdateMemberRoleInput(TeamRole Role);
+
+    [HttpPut("{id}/members/{targetUserId}")]
+    public async Task<IActionResult> UpdateMemberRole(
+        string id, string targetUserId, [FromBody] UpdateMemberRoleInput input, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var actorRole = await RoleAsync(id, userId, ct);
+        if (actorRole is null) return NotFound();
+        if (actorRole is not (TeamRole.OWNER or TeamRole.ADMIN))
+            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Sem permissão para alterar papéis.");
+
+        var target = await db.TeamMembers.FirstOrDefaultAsync(m => m.TeamId == id && m.UserId == targetUserId, ct);
+        if (target is null) return NotFound();
+
+        if (target.Role == TeamRole.OWNER)
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "O papel do dono não pode ser alterado. Transfira a posse.");
+        if (userId == targetUserId)
+            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Você não pode alterar o seu próprio papel.");
+        if (input.Role is not (TeamRole.ADMIN or TeamRole.MEMBER))
+            return Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: "Papel inválido (use ADMIN ou MEMBER).");
+
+        target.Role = input.Role;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
     // ── Remover membro ───────────────────────────────────────────────────────
     [HttpDelete("{id}/members/{targetUserId}")]
     public async Task<IActionResult> RemoveMember(string id, string targetUserId, CancellationToken ct)
