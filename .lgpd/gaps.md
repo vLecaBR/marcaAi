@@ -31,6 +31,8 @@ Severidade: 🔴 crítica · 🟠 alta · 🟡 média. Fase = fase do `PLANO_DE_
 
 **Atualização F3 (06/11/2026):** G05 (IDOR) ✅ corrigido e testado · G06 (magic link em log) ✅ fail-fast em produção · G07 (PII em logs) ✅ removida (corpo de provedores só em Debug; senders simulados sem PII em Information) · G13 parcial (Hangfire protegido; rate limiting segue na F7).
 
+**Atualização F8 (07/11/2026):** testes automatizados passaram a cobrir o consentimento gravado (data + versão), exportar/anonimizar paciente, excluir conta, o job de retenção (anonimização, limpeza de tokens/eventos, cifra de tokens do Google) e o isolamento entre profissionais (nenhum acessa dado de paciente de outro). Ver `docs/testing.md`.
+
 **Atualização F7 (07/11/2026):**
 - G01 🟡: `/privacidade` e `/termos` publicadas como **versão preliminar** e alegações "Conforme a LGPD" removidas; falta revisão jurídica.
 - G08 ✅ (técnico): job diário anonimiza consultas > 24 meses (provisório) e limpa tokens/eventos efêmeros; prazo final depende do advogado.

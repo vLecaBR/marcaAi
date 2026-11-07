@@ -33,6 +33,14 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Testar o fluxo real "Conectar Google Agenda" no navegador (consentimento → callback → evento criado na agenda). O backend foi testado até o redirecionamento ao Google.
 - [ ] Tokens do Google em `accounts` continuam em texto no banco (G09) — cifrar na F7.
 
+## F8 — Testes e CI
+
+- [ ] **Rodar o `ci.yml` no GitHub** quando houver minutos (Actions → Run workflow; marcar `e2e` para o Playwright) e ajustar o que falhar. O workflow foi reescrito mas **nunca executou lá** (aceite "CI verde nos dois jobs" em aberto).
+- [ ] Decidir se o E2E deve rodar contra `next build && next start` em vez de `next dev` (mais estável e fiel; mais lento para subir).
+- [ ] Cobertura do front (`npm run test:coverage`, limiar 70% no `vitest.config.ts`) não foi medida nem exigida; só o `lib/` crítico tem teste.
+- [ ] Teste automatizado do rate limit (hoje só verificado por script na F7; na suíte o limite é multiplicado por `RateLimit:Multiplier`).
+- [ ] UX (fora do escopo): o calendário público habilita fins de semana e o dia de hoje mesmo sem agenda; só mostra "Nenhum horário disponível" depois do clique.
+
 ## F7 — Segurança, LGPD e hardening
 
 - [ ] **Texto jurídico:** advogado revisar `/privacidade` e `/termos` (hoje "versão preliminar", `rascunho-2026-11`); ao publicar a versão final, atualizar `Privacy__PolicyVersion` e remover o aviso.

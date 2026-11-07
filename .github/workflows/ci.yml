@@ -1,49 +1,129 @@
 name: CI Pipeline
 
-# CI DESATIVADO TEMPORARIAMENTE (sem minutos do GitHub Actions). Só roda manualmente.
+# CI DESATIVADO TEMPORARIAMENTE (sem minutos do GitHub Actions) — só roda manualmente (aba Actions → Run workflow).
 # Para reativar, troque o bloco `on:` abaixo por:
 #   on:
 #     push:
 #       branches: ["main"]
 #     pull_request:
 #       branches: ["main"]
+#     workflow_dispatch:
+#       inputs:
+#         e2e: { description: "Rodar também o E2E (Playwright)", type: boolean, default: false }
+# Enquanto isso, valide localmente com ./build.sh (backend + frontend) e `npm run test:e2e` (E2E).
 on:
   workflow_dispatch:
+    inputs:
+      e2e:
+        description: "Rodar também o E2E (Playwright)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Build, Lint & Test
+  backend:
+    name: Backend (.NET) — build & testes
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
 
-    # O projeto Next.js agora vive em /frontend (monorepo). Todos os `run` rodam lá.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (Release)
+        run: dotnet build --no-restore -c Release
+
+      # Unitários + integração. A integração sobe Postgres 18 via Testcontainers (Docker já vem nos runners ubuntu).
+      - name: Testes
+        run: dotnet test --no-build -c Release --logger "console;verbosity=minimal"
+
+  frontend:
+    name: Frontend (Next.js) — lint, testes & build
+    runs-on: ubuntu-latest
+    # O projeto Next.js vive em /frontend (monorepo).
     defaults:
       run:
         working-directory: frontend
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 24
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: Run ESLint
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: ESLint
         run: npm run lint
 
-      - name: Run Unit Tests
+      - name: Testes unitários
         run: npm run test
 
-      - name: Build Check
+      - name: Build
         run: npm run build
         env:
-          # O front é 100% cliente da API .NET — sem Prisma/NextAuth (ver future-phases-spec §1).
-          NEXT_PUBLIC_API_URL: http://localhost:5080/api/v1
+          # O front é cliente da API .NET; a URL NÃO leva /api/v1 (o prefixo é acrescentado em lib/api/config.ts).
+          NEXT_PUBLIC_API_URL: http://localhost:5080
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_mock
+
+  # Sob demanda (workflow_dispatch com e2e=true): sobe Postgres + Mailpit (compose de dev), a API e o Next, e roda o Playwright.
+  e2e:
+    name: E2E (Playwright)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.e2e }}
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Postgres + Mailpit
+        run: docker compose -f docker-compose.dev.yml up -d --wait
+
+      - name: Dependências do front + Chromium
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # O playwright.config.ts sobe a API (dotnet run, Development: appsettings.Development.json já aponta para o
+      # Postgres do compose) e o Next sozinho.
+      - name: Playwright
+        working-directory: frontend
+        run: npx playwright test --reporter=list
+        env:
+          CI: "true"
+          NEXT_PUBLIC_API_URL: http://localhost:5080
+
+      - name: Relatório (em caso de falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: frontend/test-results/
+          retention-days: 7

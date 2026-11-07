@@ -4,7 +4,7 @@
 # Uso:  ./build.sh            (build completo dos dois apps)
 #       ./build.sh backend    (só o .NET)
 #       ./build.sh frontend   (só o Next.js)
-# Requer: dotnet SDK 10, Node 20+ / npm. Falha no primeiro erro.
+# Requer: dotnet SDK 10, Node 24 / npm e Docker (testes de integração; SKIP_INTEGRATION=1 pula). Falha no primeiro erro.
 # =============================================================================
 set -euo pipefail
 
@@ -19,7 +19,12 @@ build_backend() {
   # Testes (se existirem projetos de teste)
   if find tests -name '*Tests*.csproj' 2>/dev/null | grep -q .; then
     echo "▶ Backend — testes"
-    dotnet test --no-build -c Release
+    # Os testes de integração sobem Postgres via Testcontainers (precisa de Docker). SKIP_INTEGRATION=1 roda só os unitários.
+    if [ "${SKIP_INTEGRATION:-0}" = "1" ]; then
+      dotnet test --no-build -c Release --filter "FullyQualifiedName!~IntegrationTests"
+    else
+      dotnet test --no-build -c Release
+    fi
   fi
   echo "✔ Backend OK"
 }
@@ -30,6 +35,7 @@ build_frontend() {
   npm ci || npm install
   npx tsc --noEmit
   npm run lint --if-present
+  npm test
   npm run build
   echo "✔ Frontend OK"
 }
