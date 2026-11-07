@@ -19,7 +19,7 @@ namespace MarcaAi.Api.Controllers;
 [AllowAnonymous]
 public sealed class MercadoPagoWebhookController(
     IPixPaymentService pix, IMercadoPagoConnectService sellers, IWebhookEventStore events,
-    IApplicationDbContext db, IConfiguration config, ILogger<MercadoPagoWebhookController> logger) : ControllerBase
+    IApplicationDbContext db, IBookingService bookings, IConfiguration config, ILogger<MercadoPagoWebhookController> logger) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> Handle(CancellationToken ct)
@@ -93,6 +93,7 @@ public sealed class MercadoPagoWebhookController(
                 booking.PaidAt = DateTime.UtcNow;
                 booking.PaymentProvider ??= PaymentProvider.MERCADO_PAGO;
                 await db.SaveChangesAsync(ct);
+                await bookings.OnPaymentConfirmedAsync(booking.Uid, ct);
             }
             else if (info.Status is "rejected" or "cancelled")
             {

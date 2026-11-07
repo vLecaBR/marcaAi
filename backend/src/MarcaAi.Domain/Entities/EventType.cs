@@ -25,6 +25,12 @@ public class EventType
     public int? Price { get; set; }          // centavos
     public string Currency { get; set; } = "BRL";
 
+    /// <summary>
+    /// true = o valor é só informativo e a cobrança acontece no atendimento ("pagar no local"): a consulta confirma na hora,
+    /// sem fluxo de pagamento online e sem exigir conta de recebimento. false (padrão) com <see cref="Price"/> &gt; 0 = pagar para confirmar.
+    /// </summary>
+    public bool PayOnSite { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

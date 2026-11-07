@@ -4,6 +4,7 @@ using MarcaAi.Domain.Enums;
 using MarcaAi.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Stripe;
 
@@ -17,7 +18,8 @@ namespace MarcaAi.Infrastructure.Payments;
 /// Chaves lidas de configuração (Stripe:SecretKey / Stripe:ConnectWebhookSecret) — nunca hard-coded.
 /// </summary>
 public sealed class StripeConnectService(
-    ApplicationDbContext db, IConfiguration config, ILogger<StripeConnectService> logger, IWebhookEventStore events)
+    ApplicationDbContext db, IConfiguration config, ILogger<StripeConnectService> logger, IWebhookEventStore events,
+    IServiceProvider services)
     : ISplitPaymentService, IConnectOnboardingService, IStripeConnectWebhookHandler
 {
     public PaymentProvider Provider => PaymentProvider.STRIPE;
@@ -352,6 +354,10 @@ public sealed class StripeConnectService(
             booking.NetToProviderCents ??= gross - fee;
 
         await db.SaveChangesAsync(ct);
+
+        // Confirma a consulta (Google Agenda + e-mails) ou reembolsa se a reserva já expirou. Resolvido sob demanda: o
+        // BookingService depende dos provedores de split (esta classe), então injetar direto criaria um ciclo.
+        await services.GetRequiredService<IBookingService>().OnPaymentConfirmedAsync(booking.Uid, ct);
     }
 
     /// <summary>Reembolso → atualiza status e registra a data (total ou parcial).</summary>

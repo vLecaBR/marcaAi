@@ -56,6 +56,15 @@ public class Booking
     public DateTime? PaidAt { get; set; }
     public DateTime? RefundedAt { get; set; }
 
+    /// <summary>
+    /// Prazo para pagar (consulta paga online): a reserva fica PENDING segurando o horário até aqui; sem pagamento, o job
+    /// <c>ExpireUnpaidBookingsJob</c> cancela (SYSTEM) e libera o horário. Null = não exige pagamento online.
+    /// </summary>
+    public DateTime? PaymentDueAt { get; set; }
+
+    /// <summary>Quantas vezes a consulta já foi remarcada (limite D15 = 2 para o paciente).</summary>
+    public int RescheduleCount { get; set; }
+
     public string? RecurringEventId { get; set; }
     public int? RecurringIndex { get; set; }
 

@@ -16,5 +16,6 @@ public interface IBookingConcurrencyGuard
         string ownerId,
         DateTime startUtc,
         DateTime endUtc,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? ignoreBookingId = null);
 }

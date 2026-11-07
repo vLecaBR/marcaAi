@@ -17,4 +17,6 @@ public sealed record BookingNotification(
     string OwnerTimeZone,
     LocationType LocationType,
     string? LocationDetail,   // Meet link (online) OU endereço (presencial)
-    bool RequiresConfirm);
+    bool RequiresConfirm,
+    DateTime? PaymentDueAtUtc = null,   // reserva paga: prazo para pagar
+    int? PriceCents = null);

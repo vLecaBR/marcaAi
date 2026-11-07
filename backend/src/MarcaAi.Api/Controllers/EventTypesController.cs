@@ -2,6 +2,7 @@ using MarcaAi.Api.Auth;
 using MarcaAi.Application.Common.Interfaces;
 using MarcaAi.Application.Features.EventTypes;
 using MarcaAi.Domain.Entities;
+using MarcaAi.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,7 @@ namespace MarcaAi.Api.Controllers;
 [ApiController]
 [Route("api/v1/event-types")]
 [Authorize]
-public sealed class EventTypesController(IApplicationDbContext db) : ControllerBase
+public sealed class EventTypesController(IApplicationDbContext db, IPayoutAccountService payouts) : ControllerBase
 {
     public sealed record ToggleStatusInput(bool IsActive);
 
@@ -39,6 +40,7 @@ public sealed class EventTypesController(IApplicationDbContext db) : ControllerB
                 Price = e.Price,
                 Currency = e.Currency,
                 BookingCount = e.Bookings.Count(),
+                PayOnSite = e.PayOnSite,
             })
             .ToListAsync(ct);
 
@@ -61,7 +63,8 @@ public sealed class EventTypesController(IApplicationDbContext db) : ControllerB
             e.BeforeEventBuffer, e.AfterEventBuffer, e.BookingLimitDays, e.LocationType, e.LocationValue,
             e.Price, e.Currency,
             e.Questions.OrderBy(q => q.Order)
-                .Select(q => new QuestionDto(q.Id, q.Label, q.Type, q.Placeholder, q.Required, q.Order)).ToList()));
+                .Select(q => new QuestionDto(q.Id, q.Label, q.Type, q.Placeholder, q.Required, q.Order)).ToList(),
+            e.PayOnSite));
     }
 
     [HttpPost]
@@ -75,6 +78,9 @@ public sealed class EventTypesController(IApplicationDbContext db) : ControllerB
 
         if (await db.EventTypes.AnyAsync(e => e.UserId == userId && e.Slug == input.Slug, ct))
             return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Você já tem um evento com este slug.");
+
+        error = await ValidateBusinessAsync(userId, input, current: null, ct);
+        if (error is not null) return Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: error);
 
         var entity = new EventType { UserId = userId };
         Apply(entity, input);
@@ -100,6 +106,9 @@ public sealed class EventTypesController(IApplicationDbContext db) : ControllerB
         if (await db.EventTypes.AnyAsync(e => e.UserId == userId && e.Slug == input.Slug && e.Id != id, ct))
             return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Você já tem um evento com este slug.");
 
+        error = await ValidateBusinessAsync(userId, input, current: entity, ct);
+        if (error is not null) return Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: error);
+
         Apply(entity, input);
         ReplaceQuestions(entity, input);
         await db.SaveChangesAsync(ct);
@@ -114,6 +123,11 @@ public sealed class EventTypesController(IApplicationDbContext db) : ControllerB
 
         var entity = await db.EventTypes.FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId, ct);
         if (entity is null) return NotFound();
+
+        // Reativar um serviço pago online exige conta de recebimento ativa (senão o paciente agenda e não consegue pagar).
+        if (body.IsActive && entity.Price is > 0 && !entity.PayOnSite &&
+            !await payouts.HasActiveReceiverAsync(PayoutOwnerType.USER, userId, ct))
+            return Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: NoReceiverMessage);
 
         entity.IsActive = body.IsActive;
         await db.SaveChangesAsync(ct);
@@ -135,6 +149,34 @@ public sealed class EventTypesController(IApplicationDbContext db) : ControllerB
     }
 
     // ── helpers ────────────────────────────────────────────────────────────
+    private const string NoReceiverMessage =
+        "Para cobrar online, ative seus recebimentos (menu Recebimentos). Ou marque “Pagar no local”: o paciente agenda e você cobra no atendimento.";
+
+    /// <summary>Regras que dependem do banco: cobrança online só com recebimento ativo; local/link obrigatório conforme o tipo.</summary>
+    private async Task<string?> ValidateBusinessAsync(string userId, EventTypeInput i, EventType? current, CancellationToken ct)
+    {
+        // Preço online: só bloqueia quando está CRIANDO ou ALTERANDO a cobrança (editar o título de um serviço antigo não deve travar).
+        var wantsOnline = i.Price is > 0 && !i.PayOnSite;
+        var changesBilling = current is null || current.Price != i.Price || current.PayOnSite != i.PayOnSite;
+        if (wantsOnline && changesBilling && !await payouts.HasActiveReceiverAsync(PayoutOwnerType.USER, userId, ct))
+            return NoReceiverMessage;
+
+        var value = i.LocationValue?.Trim();
+        switch (i.LocationType)
+        {
+            case LocationType.IN_PERSON when string.IsNullOrEmpty(value):
+                return "Informe o endereço do atendimento presencial.";
+            case LocationType.ZOOM or LocationType.TEAMS or LocationType.CUSTOM when string.IsNullOrEmpty(value):
+                return "Informe o link (ou instruções) da consulta online.";
+            case LocationType.GOOGLE_MEET when string.IsNullOrEmpty(value):
+                // Sem link manual, o Meet só é gerado se o Google Agenda estiver conectado.
+                if (!await db.Accounts.AnyAsync(a => a.UserId == userId && a.Provider == "google", ct))
+                    return "Para consulta online, conecte o Google Agenda (Integrações) para gerar o link do Meet automaticamente, ou informe o link da videochamada.";
+                break;
+        }
+        return null;
+    }
+
     private static string? Validate(EventTypeInput i)
     {
         if (string.IsNullOrWhiteSpace(i.Title)) return "Título é obrigatório.";
@@ -180,6 +222,7 @@ public sealed class EventTypesController(IApplicationDbContext db) : ControllerB
         e.LocationValue = i.LocationValue;
         e.Price = i.Price;
         e.Currency = i.Currency;
+        e.PayOnSite = i.PayOnSite;
     }
 
     private static EventTypeSummaryDto Project(EventType e) => new()
@@ -196,5 +239,6 @@ public sealed class EventTypesController(IApplicationDbContext db) : ControllerB
         Price = e.Price,
         Currency = e.Currency,
         BookingCount = e.Bookings.Count,
+        PayOnSite = e.PayOnSite,
     };
 }

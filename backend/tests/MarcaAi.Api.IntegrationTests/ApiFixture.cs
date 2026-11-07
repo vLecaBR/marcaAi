@@ -38,6 +38,7 @@ public sealed class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
             ["Stripe__ConnectWebhookSecret"] = StripeConnectSecret,
             ["DataProtection__KeysPath"] = Path.Combine(Path.GetTempPath(), "marcaai-it-keys-" + Guid.NewGuid()),
             ["RateLimit__Multiplier"] = "1000",
+            ["Payments__Provider"] = "Fake", // jornada paga offline (nunca fala com o Stripe)
             ["Resend__ApiKey"] = "", ["Smtp__Host"] = "", ["Google__ClientId"] = "", ["Google__ClientSecret"] = "",
             ["MercadoPago__AccessToken"] = "", ["MercadoPago__WebhookSecret"] = "",
         };
@@ -57,6 +58,13 @@ public sealed class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
     {
         using var scope = Services.CreateScope();
         return await action(scope.ServiceProvider.GetRequiredService<ApplicationDbContext>());
+    }
+
+    /// <summary>Resolve serviços num escopo próprio (ex.: rodar um job).</summary>
+    public async Task<T> WithServicesAsync<T>(Func<IServiceProvider, Task<T>> action)
+    {
+        using var scope = Services.CreateScope();
+        return await action(scope.ServiceProvider);
     }
 
     public Task WithDbAsync(Func<ApplicationDbContext, Task> action) =>

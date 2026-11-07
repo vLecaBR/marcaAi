@@ -188,6 +188,10 @@ namespace MarcaAi.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("paidAt");
 
+                    b.Property<DateTime?>("PaymentDueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paymentDueAt");
+
                     b.Property<PaymentProvider?>("PaymentProvider")
                         .HasColumnType("\"PaymentProvider\"")
                         .HasColumnName("paymentProvider");
@@ -231,6 +235,10 @@ namespace MarcaAi.Infrastructure.Migrations
                     b.Property<bool>("ReminderSent")
                         .HasColumnType("boolean")
                         .HasColumnName("reminderSent");
+
+                    b.Property<int>("RescheduleCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("rescheduleCount");
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("timestamp with time zone")
@@ -359,6 +367,10 @@ namespace MarcaAi.Infrastructure.Migrations
                     b.Property<string>("LocationValue")
                         .HasColumnType("text")
                         .HasColumnName("locationValue");
+
+                    b.Property<bool>("PayOnSite")
+                        .HasColumnType("boolean")
+                        .HasColumnName("payOnSite");
 
                     b.Property<int?>("Price")
                         .HasColumnType("integer")

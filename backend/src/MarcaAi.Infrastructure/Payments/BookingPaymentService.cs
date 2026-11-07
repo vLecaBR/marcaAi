@@ -85,11 +85,16 @@ public sealed class BookingPaymentService(
             return new PaymentInitResult(PaymentInitOutcome.BookingNotFound, Message: "Agendamento não encontrado.");
         if (booking.PaymentStatus == PaymentStatus.PAID)
             return new PaymentInitResult(PaymentInitOutcome.AlreadyPaid, Message: "Consulta já paga.");
+        if (booking.Status == BookingStatus.CANCELLED)
+            return new PaymentInitResult(PaymentInitOutcome.NotPayable,
+                Message: "Esta reserva foi cancelada ou expirou. Faça um novo agendamento.");
 
         var eventType = await db.EventTypes.AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == booking.EventTypeId, ct);
         if (eventType?.Price is not > 0)
             return new PaymentInitResult(PaymentInitOutcome.NotPayable, Message: "Consulta sem preço definido.");
+        if (eventType.PayOnSite)
+            return new PaymentInitResult(PaymentInitOutcome.NotPayable, Message: "Esta consulta é paga no local.");
 
         var gross = eventType.Price.Value;
 

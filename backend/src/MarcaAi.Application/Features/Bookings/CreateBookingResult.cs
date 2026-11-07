@@ -2,7 +2,7 @@ using MarcaAi.Application.Features.Payments;
 
 namespace MarcaAi.Application.Features.Bookings;
 
-public enum BookingOutcome { Success, EventNotFound, InvalidDuration, Unavailable, Conflict, ConsentRequired, InvalidResponses }
+public enum BookingOutcome { Success, EventNotFound, InvalidDuration, Unavailable, Conflict, ConsentRequired, InvalidResponses, PaymentUnavailable }
 
 /// <summary>Confirmação de agendamento.</summary>
 public sealed record BookingConfirmationDto(
@@ -13,7 +13,11 @@ public sealed record BookingConfirmationDto(
     bool RequiresConfirm,
     string EventTitle,
     string? MeetingUrl,
-    PixCharge? Pix = null);
+    PixCharge? Pix = null,
+    /// <summary>true = consulta paga online: a reserva fica PENDING segurando o horário até <see cref="PaymentDueAt"/>.</summary>
+    bool PaymentRequired = false,
+    DateTimeOffset? PaymentDueAt = null,
+    int? PriceCents = null);
 
 public sealed record CreateBookingResult(
     BookingOutcome Outcome,
@@ -31,6 +35,8 @@ public sealed record CreateBookingResult(
         new(BookingOutcome.ConsentRequired, Message: "É necessário aceitar o aviso de privacidade para agendar.");
     public static CreateBookingResult InvalidResponses(string detail) =>
         new(BookingOutcome.InvalidResponses, Message: detail);
+    public static CreateBookingResult PaymentUnavailable() =>
+        new(BookingOutcome.PaymentUnavailable, Message: "Este profissional ainda não ativou os recebimentos online. Entre em contato com ele para agendar.");
     public static CreateBookingResult Conflict() =>
         new(BookingOutcome.Conflict, Message: "Este horário acabou de ser reservado. Escolha outro horário.");
 }

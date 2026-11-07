@@ -124,6 +124,19 @@ public sealed class PayoutAccountService(
         return await GetAccountAsync(ownerType, ownerId, provider, ct);
     }
 
+    public async Task<bool> HasActiveReceiverAsync(PayoutOwnerType ownerType, string ownerId, CancellationToken ct = default) =>
+        await db.PayoutAccounts.AnyAsync(a => a.OwnerType == ownerType && a.OwnerId == ownerId
+            && a.Status == PayoutAccountStatus.ACTIVE && a.ChargesEnabled && a.ExternalAccountId != "", ct);
+
+    public async Task<bool> HasActiveReceiverForEventTypeAsync(string eventTypeId, CancellationToken ct = default)
+    {
+        var et = await db.EventTypes.Where(x => x.Id == eventTypeId).Select(x => new { x.UserId, x.TeamId }).FirstOrDefaultAsync(ct);
+        if (et is null) return false;
+        return et.TeamId is { Length: > 0 } teamId
+            ? await HasActiveReceiverAsync(PayoutOwnerType.TEAM, teamId, ct)
+            : await HasActiveReceiverAsync(PayoutOwnerType.USER, et.UserId, ct);
+    }
+
     public async Task<bool> DisconnectAsync(string payoutAccountId, CancellationToken ct = default)
     {
         var account = await db.PayoutAccounts.FirstOrDefaultAsync(a => a.Id == payoutAccountId, ct);

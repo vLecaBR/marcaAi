@@ -39,6 +39,15 @@ public interface IPayoutAccountService
         string eventTypeId, PaymentProvider provider,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// true se o recebedor do tipo de consulta (profissional ou clínica) tem alguma sub-conta ACTIVE com cobranças habilitadas.
+    /// Usado para impedir publicar/agendar serviço pago online sem conta de recebimento.
+    /// </summary>
+    Task<bool> HasActiveReceiverAsync(PayoutOwnerType ownerType, string ownerId, CancellationToken cancellationToken = default);
+
+    /// <summary>Idem, resolvendo o recebedor a partir de um tipo de consulta existente.</summary>
+    Task<bool> HasActiveReceiverForEventTypeAsync(string eventTypeId, CancellationToken cancellationToken = default);
+
     /// <summary>Desconecta (desabilita) uma sub-conta. True se encontrada e desabilitada.</summary>
     Task<bool> DisconnectAsync(
         string payoutAccountId,

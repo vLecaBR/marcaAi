@@ -26,6 +26,9 @@ public static class ProductionConfigValidator
                  key.Contains("secret", StringComparison.OrdinalIgnoreCase))
             errors.Add("Jwt:SigningKey parece um valor de desenvolvimento; gere uma chave aleatória (ex.: openssl rand -base64 64).");
 
+        if (string.Equals(c["Payments:Provider"], "Fake", StringComparison.OrdinalIgnoreCase))
+            errors.Add("Payments:Provider=Fake (pagamento simulado) é só para desenvolvimento/testes e não pode rodar em produção.");
+
         RequireHttps(c, "App:PublicUrl", errors);
         RequireHttps(c, "Cors:FrontendOrigin", errors);
 

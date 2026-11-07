@@ -26,6 +26,7 @@ public sealed class BookingConcurrencyGuard(ApplicationDbContext db) : IBookingC
           AND status IN ('CONFIRMED', 'PENDING')
           AND "startTime" < @endUtc
           AND "endTime"   > @startUtc
+          AND (@ignoreId IS NULL OR id <> @ignoreId)
         FOR UPDATE SKIP LOCKED
         """;
 
@@ -33,7 +34,8 @@ public sealed class BookingConcurrencyGuard(ApplicationDbContext db) : IBookingC
         string ownerId,
         DateTime startUtc,
         DateTime endUtc,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? ignoreBookingId = null)
     {
         var connection = (NpgsqlConnection)db.Database.GetDbConnection();
         if (connection.State != ConnectionState.Open)
@@ -60,6 +62,7 @@ public sealed class BookingConcurrencyGuard(ApplicationDbContext db) : IBookingC
         cmd.Transaction = npgTx;
 
         cmd.Parameters.Add(new NpgsqlParameter("ownerId", NpgsqlDbType.Text) { Value = ownerId });
+        cmd.Parameters.Add(new NpgsqlParameter("ignoreId", NpgsqlDbType.Text) { Value = (object?)ignoreBookingId ?? DBNull.Value });
         cmd.Parameters.Add(new NpgsqlParameter("startUtc", NpgsqlDbType.TimestampTz) { Value = startUtc });
         cmd.Parameters.Add(new NpgsqlParameter("endUtc", NpgsqlDbType.TimestampTz) { Value = endUtc });
 

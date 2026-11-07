@@ -89,11 +89,21 @@ public static class DependencyInjection
         // provedor de cobrança (ISplitPaymentService, resolvido por IEnumerable no roteador)
         // e como handler do webhook do Connect (IStripeConnectWebhookHandler).
         services.AddScoped<StripeConnectService>();
-        services.AddScoped<ISplitPaymentService>(sp => sp.GetRequiredService<StripeConnectService>());
+        var fakePayments = string.Equals(configuration["Payments:Provider"], "Fake", StringComparison.OrdinalIgnoreCase);
+        if (fakePayments)
+        {
+            // Só dev/teste: provedor STRIPE simulado no lugar do real (ver FakePaymentProvider).
+            services.AddSingleton<FakePaymentProvider>();
+            services.AddSingleton<ISplitPaymentService>(sp => sp.GetRequiredService<FakePaymentProvider>());
+            services.AddSingleton<IConnectOnboardingService>(sp => sp.GetRequiredService<FakePaymentProvider>());
+        }
+        else
+            services.AddScoped<ISplitPaymentService>(sp => sp.GetRequiredService<StripeConnectService>());
         services.AddScoped<IStripeConnectWebhookHandler>(sp => sp.GetRequiredService<StripeConnectService>());
         // Onboarding da conta conectada (Express + Account Link) resolvido por provedor no
         // PayoutAccountService via IEnumerable<IConnectOnboardingService>.
-        services.AddScoped<IConnectOnboardingService>(sp => sp.GetRequiredService<StripeConnectService>());
+        if (!fakePayments)
+            services.AddScoped<IConnectOnboardingService>(sp => sp.GetRequiredService<StripeConnectService>());
         // Split de PIX via Mercado Pago (typed HttpClient). Somado à coleção de ISplitPaymentService,
         // permitindo que o BookingPaymentService resolva MERCADO_PAGO por IEnumerable.
         services.AddHttpClient<ISplitPaymentService, MercadoPagoSplitService>();
@@ -127,6 +137,7 @@ public static class DependencyInjection
 
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IReminderJob, ReminderJob>();
+        services.AddScoped<IExpireUnpaidBookingsJob, MarcaAi.Infrastructure.Jobs.ExpireUnpaidBookingsJob>();
         services.AddScoped<IRetentionJob, MarcaAi.Infrastructure.Jobs.RetentionJob>();
         services.AddSingleton<IOAuthTokenProtector, MarcaAi.Infrastructure.Identity.OAuthTokenProtector>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();

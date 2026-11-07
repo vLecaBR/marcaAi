@@ -291,6 +291,11 @@ app.Services.GetRequiredService<IRecurringJobManager>()
     .AddOrUpdate<IReminderJob>("consultas-reminders",
         j => j.DispatchDueAsync(CancellationToken.None), "*/15 * * * *");
 
+// Reservas de consulta paga sem pagamento no prazo (D14): cancela e libera o horário. A cada minuto.
+app.Services.GetRequiredService<IRecurringJobManager>()
+    .AddOrUpdate<IExpireUnpaidBookingsJob>("reservas-sem-pagamento",
+        j => j.RunAsync(CancellationToken.None), "* * * * *");
+
 // Retenção/higiene diária (03:30 UTC): anonimiza consultas antigas, limpa tokens/eventos efêmeros e cifra tokens legados.
 app.Services.GetRequiredService<IRecurringJobManager>()
     .AddOrUpdate<IRetentionJob>("retencao-lgpd",

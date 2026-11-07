@@ -18,6 +18,8 @@ public sealed record EventTypeInput
     public string? LocationValue { get; init; }
     public int? Price { get; init; }          // centavos
     public string Currency { get; init; } = "BRL";
+    /// <summary>true = valor informativo, cobrado no atendimento (sem pagamento online).</summary>
+    public bool PayOnSite { get; init; }
     /// <summary>Perguntas do formulário público (pré-consulta). Null = não alterar (update); lista = substituir.</summary>
     public IReadOnlyList<QuestionInput>? Questions { get; init; }
 }
@@ -31,4 +33,4 @@ public sealed record EventTypeDetailDto(
     string Id, string Title, string Slug, string? Description, int Duration, EventTypeColor Color,
     bool IsActive, bool RequiresConfirm, int BeforeEventBuffer, int AfterEventBuffer, int? BookingLimitDays,
     LocationType LocationType, string? LocationValue, int? Price, string Currency,
-    IReadOnlyList<QuestionDto> Questions);
+    IReadOnlyList<QuestionDto> Questions, bool PayOnSite = false);

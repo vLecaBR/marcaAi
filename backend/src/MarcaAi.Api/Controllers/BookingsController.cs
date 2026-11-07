@@ -67,6 +67,8 @@ public sealed class BookingsController(
                 Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: result.Message),
             BookingOutcome.Conflict =>
                 Problem(statusCode: StatusCodes.Status409Conflict, detail: result.Message),
+            BookingOutcome.PaymentUnavailable =>
+                Problem(statusCode: StatusCodes.Status409Conflict, detail: result.Message),
             BookingOutcome.ConsentRequired or BookingOutcome.InvalidResponses =>
                 Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: result.Message),
             _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
@@ -141,6 +143,27 @@ public sealed class BookingsController(
 
     /// <summary>Cancela a consulta pelo uid (paciente ou profissional). Remove o evento do Google.</summary>
     [AllowAnonymous]
+    public sealed record RescheduleRequest(DateTimeOffset StartTimeUtc, DateTimeOffset EndTimeUtc);
+
+    /// <summary>
+    /// Remarca a consulta (paciente pelo link, ou profissional logado). O paciente só remarca com 24h+ de antecedência e até
+    /// 2 vezes; o profissional/gestor, sem esses limites. O papel vem da sessão, nunca do corpo.
+    /// </summary>
+    [AllowAnonymous]
+    [EnableRateLimiting("booking-create")]
+    [HttpPost("{uid}/reschedule")]
+    public async Task<IActionResult> Reschedule(string uid, [FromBody] RescheduleRequest body, CancellationToken ct)
+    {
+        var r = await bookings.RescheduleAsync(uid, body.StartTimeUtc, body.EndTimeUtc, User.GetUserId(), ct);
+        return r.Outcome switch
+        {
+            RescheduleOutcome.Success => Ok(r.Data),
+            RescheduleOutcome.NotFound => Problem(statusCode: StatusCodes.Status404NotFound, detail: r.Message),
+            RescheduleOutcome.Conflict => Problem(statusCode: StatusCodes.Status409Conflict, detail: r.Message),
+            _ => Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: r.Message, title: r.Outcome.ToString()),
+        };
+    }
+
     [HttpPost("{uid}/cancel")]
     public async Task<IActionResult> Cancel(string uid, [FromBody] CancelBookingRequest? body, CancellationToken ct)
     {

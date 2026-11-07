@@ -57,6 +57,57 @@ public sealed class NotificationService(
                 $"📅 {H(whenOwner)}", n.GuestPhone is null ? null : $"📱 {H(n.GuestPhone)}", null, null), ct);
     }
 
+    public async Task NotifyBookingPendingPaymentAsync(BookingNotification n, CancellationToken ct = default)
+    {
+        var whenGuest = FormatWhen(n.StartTimeUtc, n.GuestTimeZone);
+        var payUrl = $"{AppUrl}/booking/{n.Uid}/pay";
+        var price = n.PriceCents is { } c ? (c / 100m).ToString("C", Br) : null;
+        var due = n.PaymentDueAtUtc is { } d ? FormatWhen(d, n.GuestTimeZone) : null;
+        var dueShort = n.PaymentDueAtUtc is { } d2 ? ShortTime(d2, n.GuestTimeZone) : null;
+
+        await Email(n.GuestEmail, $"Reserva aguardando pagamento — {n.EventTitle}",
+            Template($"Olá, {H(n.GuestName)}!",
+                $"Reservamos o horário da consulta <b>{H(n.EventTitle)}</b> com {H(n.OwnerName)}. Para <b>confirmar</b>, conclua o pagamento" +
+                (price is null ? "" : $" de <b>{H(price)}</b>") + (dueShort is null ? "" : $" até <b>{H(dueShort)}</b>") +
+                ". Sem o pagamento a reserva é cancelada e o horário é liberado.",
+                $"📅 Quando: {H(whenGuest)}", due is null ? null : $"⏳ Pague até: {H(due)}", payUrl, "Pagar e confirmar"), ct);
+        await Whats(n.GuestPhone,
+            $"Olá, *{n.GuestName}*! ⏳\n\nSeu horário de *{n.EventTitle}* com {n.OwnerName} está *reservado*" +
+            (dueShort is null ? "" : $" até {dueShort}") + $". Pague para confirmar: {payUrl}\n\n📅 {whenGuest}", ct);
+    }
+
+    public async Task NotifyBookingRescheduledAsync(BookingNotification n, DateTime oldStartUtc, CancellationToken ct = default)
+    {
+        var oldGuest = FormatWhen(oldStartUtc, n.GuestTimeZone);
+        var newGuest = FormatWhen(n.StartTimeUtc, n.GuestTimeZone);
+        var manageUrl = $"{AppUrl}/booking/{n.Uid}";
+        var locLine = LocationLine(n);
+        await Email(n.GuestEmail, $"Consulta remarcada — {n.EventTitle}",
+            Template($"Olá, {H(n.GuestName)}!",
+                $"Sua consulta <b>{H(n.EventTitle)}</b> com {H(n.OwnerName)} foi <b>remarcada</b>.",
+                $"📅 Novo horário: {H(newGuest)} (antes: {H(oldGuest)})", H(locLine), manageUrl, "Gerenciar consulta"), ct);
+        await Whats(n.GuestPhone,
+            $"Olá, *{n.GuestName}*! 🔁\n\nSua consulta de *{n.EventTitle}* foi *REMARCADA*.\n\n📅 Novo horário: {newGuest}\n(antes: {oldGuest})" +
+            (locLine is null ? "" : $"\n{locLine}") + $"\n\nGerenciar: {manageUrl}", ct);
+
+        var newOwner = FormatWhen(n.StartTimeUtc, n.OwnerTimeZone);
+        var oldOwner = FormatWhen(oldStartUtc, n.OwnerTimeZone);
+        await Email(n.OwnerEmail, $"Consulta remarcada — {n.EventTitle}",
+            Template("Uma consulta foi remarcada",
+                $"<b>{H(n.GuestName)}</b> ({H(n.GuestEmail)}) — <b>{H(n.EventTitle)}</b>.",
+                $"📅 Novo horário: {H(newOwner)} (antes: {H(oldOwner)})", null, null, null), ct);
+    }
+
+    private static string ShortTime(DateTime utc, string tzId)
+    {
+        try
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), tz).ToString("HH:mm", Br);
+        }
+        catch { return utc.ToString("HH:mm 'UTC'", Br); }
+    }
+
     public async Task NotifyBookingCancelledAsync(BookingNotification n, string? reason, CancellationToken ct = default)
     {
         var whenGuest = FormatWhen(n.StartTimeUtc, n.GuestTimeZone);

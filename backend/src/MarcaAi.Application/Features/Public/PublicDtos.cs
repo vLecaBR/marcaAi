@@ -8,7 +8,7 @@ public sealed record PublicEventTypeDto(
     string Id, string Title, string Slug, string? Description,
     int Duration, EventTypeColor Color, LocationType LocationType, int? Price, string Currency,
     bool RequiresConfirm, int BeforeEventBuffer, int AfterEventBuffer, int? BookingLimitDays,
-    IReadOnlyList<PublicQuestionDto> Questions);
+    IReadOnlyList<PublicQuestionDto> Questions, bool PayOnSite = false);
 
 /// <summary>Id = id do profissional (ownerId usado em /slots e /bookings). Nunca expor e-mail aqui.</summary>
 public sealed record PublicProfileDto(

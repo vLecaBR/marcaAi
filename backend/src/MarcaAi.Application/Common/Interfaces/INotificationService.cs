@@ -8,6 +8,12 @@ public interface INotificationService
     /// <summary>Consulta criada: confirma (ou avisa pendente, se requer confirmação) o paciente e notifica o profissional.</summary>
     Task NotifyBookingCreatedAsync(BookingNotification n, CancellationToken cancellationToken = default);
 
+    /// <summary>Reserva de consulta paga criada: avisa o paciente do valor e do prazo para pagar (o profissional só é avisado após o pagamento).</summary>
+    Task NotifyBookingPendingPaymentAsync(BookingNotification n, CancellationToken cancellationToken = default);
+
+    /// <summary>Consulta remarcada: avisa paciente e profissional com o horário antigo e o novo.</summary>
+    Task NotifyBookingRescheduledAsync(BookingNotification n, DateTime oldStartUtc, CancellationToken cancellationToken = default);
+
     Task NotifyBookingCancelledAsync(BookingNotification n, string? reason, CancellationToken cancellationToken = default);
 
     /// <param name="allowWhatsApp">

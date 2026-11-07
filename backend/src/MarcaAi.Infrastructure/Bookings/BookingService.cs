@@ -30,11 +30,19 @@ public sealed class BookingService(
     IGoogleCalendarService google,
     INotificationService notify,
     IEnumerable<ISplitPaymentService> splitProviders,
+    IPayoutAccountService payouts,
     IConfiguration config,
     ILogger<BookingService> logger) : IBookingService
 {
     /// <summary>Janela mínima (horas) para reembolso integral no cancelamento pelo paciente (decisão D6).</summary>
     private const int RefundWindowHours = 24;
+
+    /// <summary>Antecedência mínima (horas) para o paciente remarcar sozinho e máximo de remarcações do paciente (D15).</summary>
+    private const int RescheduleMinHours = 24;
+    private const int GuestRescheduleLimit = 2;
+
+    /// <summary>Quanto tempo uma reserva de consulta paga segura o horário esperando o pagamento (D14).</summary>
+    private int PaymentHoldMinutes => int.TryParse(config["Payments:HoldMinutes"], out var m) && m > 0 ? m : 15;
 
     /// <summary>Versão do aviso de privacidade aceito. Atualize ao publicar a política revisada (LGPD).</summary>
     private string PolicyVersion => config["Privacy:PolicyVersion"] ?? "rascunho-2026-11";
@@ -71,31 +79,21 @@ public sealed class BookingService(
         if (missing is not null)
             return CreateBookingResult.InvalidResponses($"Responda a pergunta obrigatória: {missing.Label}");
 
-        var requestedMinutes = (int)Math.Round((endUtc - startUtc).TotalMinutes);
-        if (requestedMinutes != eventType.Duration)
-            return CreateBookingResult.InvalidDuration(eventType.Duration);
+        switch (await ValidateSlotAsync(request.OwnerId, eventType, startUtc, endUtc, cancellationToken))
+        {
+            case SlotCheck.InvalidDuration: return CreateBookingResult.InvalidDuration(eventType.Duration);
+            case SlotCheck.Unavailable: return CreateBookingResult.Unavailable();
+            case SlotCheck.NoSchedule: return CreateBookingResult.EventNotFound();
+        }
 
-        // Validação de disponibilidade: o horário precisa cair numa janela da agenda.
-        var schedule = await db.Schedules.AsNoTracking()
-            .Include(s => s.Availabilities)
-            .Include(s => s.Exceptions)
-            .FirstOrDefaultAsync(s => s.UserId == request.OwnerId && s.IsDefault, cancellationToken);
-        if (schedule is null)
-            return CreateBookingResult.EventNotFound();
+        // Consulta paga online (D14): pagar para confirmar. Exige conta de recebimento ativa; a reserva segura o horário
+        // por alguns minutos (PENDING) e é confirmada pelo webhook de pagamento — ou expira e libera o horário.
+        var requiresPayment = eventType.Price is > 0 && !eventType.PayOnSite;
+        if (requiresPayment && !await payouts.HasActiveReceiverForEventTypeAsync(eventType.Id, cancellationToken))
+            return CreateBookingResult.PaymentUnavailable();
 
-        var scheduleData = new ScheduleData(
-            schedule.TimeZone,
-            schedule.Availabilities.Select(a => new AvailabilityRule(a.DayOfWeek, a.StartTime, a.EndTime)).ToList(),
-            schedule.Exceptions.Select(x => new ScheduleExceptionData(x.Date, x.Type.ToString(), x.StartTime, x.EndTime)).ToList());
-
-        var windows = AvailabilityCalculator.BuildAvailableWindows(
-            scheduleData, startUtc.Date.AddDays(-1), startUtc.Date.AddDays(1).AddSeconds(-1));
-
-        var fitsWindow = windows.Any(d => d.Windows.Any(w => startUtc >= w.Start && endUtc <= w.End));
-        if (!fitsWindow)
-            return CreateBookingResult.Unavailable();
-
-        var status = eventType.RequiresConfirm ? BookingStatus.PENDING : BookingStatus.CONFIRMED;
+        var status = requiresPayment || eventType.RequiresConfirm ? BookingStatus.PENDING : BookingStatus.CONFIRMED;
+        var dueAt = requiresPayment ? DateTime.UtcNow.AddMinutes(PaymentHoldMinutes) : (DateTime?)null;
 
         var booking = new Domain.Entities.Booking
         {
@@ -110,6 +108,8 @@ public sealed class BookingService(
             GuestTimeZone = request.GuestTimeZone,
             Status = status,
             PaymentStatus = PaymentStatus.UNPAID,
+            PaymentDueAt = dueAt,
+            PriceCents = requiresPayment ? eventType.Price : null,
             ConsentAt = DateTime.UtcNow,
             ConsentVersion = PolicyVersion,
         };
@@ -178,13 +178,16 @@ public sealed class BookingService(
 
             if (owner is not null)
             {
-                await notify.NotifyBookingCreatedAsync(new BookingNotification(
+                var n = new BookingNotification(
                     booking.Uid, booking.GuestName, booking.GuestEmail, booking.GuestPhone,
                     owner.Name ?? "Profissional", owner.Email,
                     eventType.Title, startUtc, endUtc,
                     request.GuestTimeZone, owner.TimeZone,
-                    eventType.LocationType, meetingUrl, eventType.RequiresConfirm),
-                    cancellationToken);
+                    eventType.LocationType, meetingUrl, eventType.RequiresConfirm,
+                    dueAt, requiresPayment ? eventType.Price : null);
+                // Reserva paga: só o paciente é avisado agora (valor e prazo); o profissional é avisado após o pagamento.
+                if (requiresPayment) await notify.NotifyBookingPendingPaymentAsync(n, cancellationToken);
+                else await notify.NotifyBookingCreatedAsync(n, cancellationToken);
             }
         }
         catch { /* notificação é best-effort */ }
@@ -197,7 +200,10 @@ public sealed class BookingService(
             eventType.RequiresConfirm,
             eventType.Title,
             meetingUrl,
-            pixData));
+            pixData,
+            requiresPayment,
+            dueAt is { } d ? new DateTimeOffset(DateTime.SpecifyKind(d, DateTimeKind.Utc)) : null,
+            requiresPayment ? eventType.Price : null));
     }
 
     public async Task<CancelBookingResult> CancelAsync(
@@ -298,8 +304,15 @@ public sealed class BookingService(
 
         booking.Status = BookingStatus.CONFIRMED;
         await db.SaveChangesAsync(cancellationToken);
+        await AfterConfirmedAsync(booking, cancellationToken);
 
-        // Google Calendar (best-effort) — mesma regra da criação direta.
+        return new ConfirmBookingResult(ConfirmOutcome.Success);
+    }
+
+    // ── Pós-confirmação (aprovação do profissional OU baixa do pagamento) ─────────────────────────────
+    private async Task AfterConfirmedAsync(Domain.Entities.Booking booking, CancellationToken cancellationToken)
+    {
+        // Google Calendar (best-effort).
         try
         {
             var ev = await google.CreateEventAsync(new CreateGoogleEventInput(
@@ -317,21 +330,167 @@ public sealed class BookingService(
                 booking.MeetingUrl = ev.MeetLink ?? booking.EventType.LocationValue;
                 await db.SaveChangesAsync(cancellationToken);
             }
+            else if (booking.MeetingUrl is null)
+            {
+                booking.MeetingUrl = booking.EventType.LocationValue;
+                await db.SaveChangesAsync(cancellationToken);
+            }
         }
         catch (Exception ex) { logger.LogWarning(ex, "[Confirm] Google Calendar falhou para o booking {Uid}", booking.Uid); }
 
-        // Notifica o paciente (a mensagem de "criada" com RequiresConfirm=false informa a confirmação).
-        try
-        {
-            await notify.NotifyBookingCreatedAsync(new BookingNotification(
-                booking.Uid, booking.GuestName, booking.GuestEmail, booking.GuestPhone,
-                booking.Owner.Name ?? "Profissional", booking.Owner.Email,
-                booking.EventType.Title, booking.StartTime, booking.EndTime,
-                booking.GuestTimeZone, booking.Owner.TimeZone,
-                booking.EventType.LocationType, booking.MeetingUrl, false), cancellationToken);
-        }
+        try { await notify.NotifyBookingCreatedAsync(ToNotification(booking, requiresConfirm: false), cancellationToken); }
         catch (Exception ex) { logger.LogWarning(ex, "[Confirm] Notificação falhou para o booking {Uid}", booking.Uid); }
+    }
 
-        return new ConfirmBookingResult(ConfirmOutcome.Success);
+    private static BookingNotification ToNotification(Domain.Entities.Booking b, bool? requiresConfirm = null) => new(
+        b.Uid, b.GuestName, b.GuestEmail, b.GuestPhone,
+        b.Owner.Name ?? "Profissional", b.Owner.Email,
+        b.EventType.Title, b.StartTime, b.EndTime,
+        b.GuestTimeZone, b.Owner.TimeZone,
+        b.EventType.LocationType, b.MeetingUrl ?? b.EventType.LocationValue, requiresConfirm ?? b.EventType.RequiresConfirm,
+        b.PaymentDueAt, b.PriceCents);
+
+    public async Task OnPaymentConfirmedAsync(string uid, CancellationToken cancellationToken = default)
+    {
+        var booking = await db.Bookings.Include(b => b.EventType).Include(b => b.Owner)
+            .FirstOrDefaultAsync(b => b.Uid == uid, cancellationToken);
+        if (booking is null || booking.PaymentStatus != PaymentStatus.PAID) return;
+
+        // Pagamento chegou depois da reserva expirar (ou cancelada): devolve o dinheiro — o horário pode já ter sido tomado.
+        if (booking.Status == BookingStatus.CANCELLED)
+        {
+            logger.LogWarning("[Payment] Pagamento recebido para reserva cancelada/expirada {Uid}; reembolsando.", uid);
+            await TryRefundAsync(booking, CanceledBy.OWNER, cancellationToken);
+            return;
+        }
+
+        if (booking.Status != BookingStatus.PENDING) return; // já confirmada (idempotente)
+
+        booking.PaymentDueAt = null;
+        if (booking.EventType.RequiresConfirm)
+        {
+            // Pago, mas o profissional ainda precisa aprovar.
+            await db.SaveChangesAsync(cancellationToken);
+            try { await notify.NotifyBookingCreatedAsync(ToNotification(booking, requiresConfirm: true), cancellationToken); }
+            catch (Exception ex) { logger.LogWarning(ex, "[Payment] Notificação falhou {Uid}", uid); }
+            return;
+        }
+
+        booking.Status = BookingStatus.CONFIRMED;
+        await db.SaveChangesAsync(cancellationToken);
+        await AfterConfirmedAsync(booking, cancellationToken);
+    }
+
+    // ── Validação de horário compartilhada (criar e remarcar) ─────────────────────────────────────────
+    private enum SlotCheck { Ok, InvalidDuration, Unavailable, NoSchedule }
+
+    private async Task<SlotCheck> ValidateSlotAsync(
+        string ownerId, EventType eventType, DateTime startUtc, DateTime endUtc, CancellationToken ct)
+    {
+        var requestedMinutes = (int)Math.Round((endUtc - startUtc).TotalMinutes);
+        if (requestedMinutes != eventType.Duration) return SlotCheck.InvalidDuration;
+
+        // Nunca no passado e dentro do limite de antecedência do serviço.
+        var now = DateTime.UtcNow;
+        if (startUtc <= now) return SlotCheck.Unavailable;
+        if (eventType.BookingLimitDays is > 0 and var limit && startUtc > now.AddDays(limit)) return SlotCheck.Unavailable;
+
+        var schedule = await db.Schedules.AsNoTracking()
+            .Include(s => s.Availabilities).Include(s => s.Exceptions)
+            .FirstOrDefaultAsync(s => s.UserId == ownerId && s.IsDefault, ct);
+        if (schedule is null) return SlotCheck.NoSchedule;
+
+        var scheduleData = new ScheduleData(
+            schedule.TimeZone,
+            schedule.Availabilities.Select(a => new AvailabilityRule(a.DayOfWeek, a.StartTime, a.EndTime)).ToList(),
+            schedule.Exceptions.Select(x => new ScheduleExceptionData(x.Date, x.Type.ToString(), x.StartTime, x.EndTime)).ToList());
+
+        var windows = AvailabilityCalculator.BuildAvailableWindows(
+            scheduleData, startUtc.Date.AddDays(-1), startUtc.Date.AddDays(1).AddSeconds(-1));
+        return windows.Any(d => d.Windows.Any(w => startUtc >= w.Start && endUtc <= w.End)) ? SlotCheck.Ok : SlotCheck.Unavailable;
+    }
+
+    // ── Remarcar ──────────────────────────────────────────────────────────────────────────────────────
+    public async Task<RescheduleBookingResult> RescheduleAsync(
+        string uid, DateTimeOffset newStartUtc, DateTimeOffset newEndUtc, string? actorUserId, CancellationToken cancellationToken = default)
+    {
+        var booking = await db.Bookings.Include(b => b.EventType).Include(b => b.Owner)
+            .FirstOrDefaultAsync(b => b.Uid == uid, cancellationToken);
+        if (booking is null) return new RescheduleBookingResult(RescheduleOutcome.NotFound, "Agendamento não encontrado.");
+        if (booking.Status is not (BookingStatus.CONFIRMED or BookingStatus.PENDING))
+            return new RescheduleBookingResult(RescheduleOutcome.NotAllowed, "Só consultas ativas podem ser remarcadas.");
+
+        var now = DateTime.UtcNow;
+        if (booking.StartTime <= now)
+            return new RescheduleBookingResult(RescheduleOutcome.NotAllowed, "Esta consulta já começou ou já passou.");
+
+        var isManager = actorUserId is not null && await IsOwnerOrManagerAsync(booking, actorUserId, cancellationToken);
+        if (!isManager)
+        {
+            if ((booking.StartTime - now).TotalHours < RescheduleMinHours)
+                return new RescheduleBookingResult(RescheduleOutcome.TooLate,
+                    $"Só é possível remarcar com {RescheduleMinHours}h de antecedência. Entre em contato com o profissional.");
+            if (booking.RescheduleCount >= GuestRescheduleLimit)
+                return new RescheduleBookingResult(RescheduleOutcome.LimitReached,
+                    $"Limite de {GuestRescheduleLimit} remarcações atingido. Entre em contato com o profissional.");
+        }
+
+        var startUtc = newStartUtc.UtcDateTime;
+        var endUtc = newEndUtc.UtcDateTime;
+        switch (await ValidateSlotAsync(booking.UserId, booking.EventType, startUtc, endUtc, cancellationToken))
+        {
+            case SlotCheck.InvalidDuration:
+                return new RescheduleBookingResult(RescheduleOutcome.InvalidDuration, $"Duração inválida. Esperado: {booking.EventType.Duration} min.");
+            case SlotCheck.Unavailable or SlotCheck.NoSchedule:
+                return new RescheduleBookingResult(RescheduleOutcome.Unavailable, "Este horário está fora da disponibilidade do profissional.");
+        }
+
+        var oldStart = booking.StartTime;
+        await using (var tx = await db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken))
+        {
+            if (await guard.HasConflictAsync(booking.UserId, startUtc, endUtc, cancellationToken, booking.Id))
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return new RescheduleBookingResult(RescheduleOutcome.Conflict, "Este horário acabou de ser reservado. Escolha outro horário.");
+            }
+            booking.StartTime = startUtc;
+            booking.EndTime = endUtc;
+            booking.RescheduleCount++;
+            booking.ReminderSent = false;
+            await db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
+
+        // Google Calendar (best-effort): recria o evento no novo horário.
+        if (!string.IsNullOrWhiteSpace(booking.MeetingId))
+        {
+            try
+            {
+                await google.DeleteEventAsync(booking.UserId, booking.MeetingId!, cancellationToken);
+                booking.MeetingId = null;
+                var ev = await google.CreateEventAsync(new CreateGoogleEventInput(
+                    UserId: booking.UserId,
+                    Title: $"{booking.EventType.Title} com {booking.GuestName}",
+                    Description: $"Agendamento via MarcaAí (remarcado)\nPaciente: {booking.GuestName} ({booking.GuestEmail})",
+                    StartUtc: startUtc, EndUtc: endUtc,
+                    GuestName: booking.GuestName, GuestEmail: booking.GuestEmail,
+                    CreateMeetLink: booking.EventType.LocationType == LocationType.GOOGLE_MEET), cancellationToken);
+                if (ev is not null)
+                {
+                    booking.MeetingId = ev.EventId;
+                    booking.MeetingUrl = ev.MeetLink ?? booking.EventType.LocationValue;
+                }
+                await db.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex) { logger.LogWarning(ex, "[Reschedule] Google Calendar falhou para {Uid}", uid); }
+        }
+
+        try { await notify.NotifyBookingRescheduledAsync(ToNotification(booking), oldStart, cancellationToken); }
+        catch (Exception ex) { logger.LogWarning(ex, "[Reschedule] Notificação falhou para {Uid}", uid); }
+
+        var due = booking.PaymentDueAt is { } d ? new DateTimeOffset(DateTime.SpecifyKind(d, DateTimeKind.Utc)) : (DateTimeOffset?)null;
+        return new RescheduleBookingResult(RescheduleOutcome.Success, Data: new BookingConfirmationDto(
+            booking.Uid, booking.StartTime, booking.EndTime, booking.Status.ToString(), booking.EventType.RequiresConfirm,
+            booking.EventType.Title, booking.MeetingUrl, null, due is not null, due, booking.PriceCents));
     }
 }

@@ -59,7 +59,7 @@ public sealed class PublicController(IApplicationDbContext db) : ControllerBase
                         e.RequiresConfirm, e.BeforeEventBuffer, e.AfterEventBuffer, e.BookingLimitDays,
                         e.Questions.OrderBy(q => q.Order)
                             .Select(q => new PublicQuestionDto(q.Id, q.Label, q.Type, q.Placeholder, q.Required, q.Order))
-                            .ToList()))
+                            .ToList(), e.PayOnSite))
                     .ToList()))
             .FirstOrDefaultAsync(ct);
 

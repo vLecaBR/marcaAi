@@ -17,4 +17,5 @@ public sealed record EventTypeSummaryDto
     public int? Price { get; init; }          // centavos
     public required string Currency { get; init; }
     public int BookingCount { get; init; }
+    public bool PayOnSite { get; init; }
 }
