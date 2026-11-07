@@ -1,12 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typescript: {
-    // !! AVISO !!
-    // Ignoramos o typechecking na Vercel para acelerar o build e evitar erros de falta de memória (OOM) no plano Hobby (1GB RAM).
-    // O GitHub Actions já é responsável por rodar o TypeScript e testes.
-    ignoreBuildErrors: true,
-  },
+  // Imagem Docker enxuta (F9): gera .next/standalone com o server.js mínimo.
+  output: "standalone",
   async headers() {
     return [
       {
