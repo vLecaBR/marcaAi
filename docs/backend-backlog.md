@@ -9,6 +9,16 @@ frontend que ele bloqueia**.
 
 ---
 
+## ✅ Atualização 06/11/2026 (F3/F4 do plano de lançamento)
+
+Resolvidos no backend: `GET /public/{username}` com `id`, `requiresConfirm`, buffers, `bookingLimitDays` e perguntas;
+`POST /bookings` com `responses` e `consentAccepted` (LGPD); `POST /bookings/{uid}/confirm`; `GET /event-types/{id}` +
+`questions` no `EventTypeInput`; `GET /me/profile` (+ especialidade/conselho/registro/clínica); `GET /public/team/{slug}`;
+`PUT /teams/{id}/members/{userId}`; `GET /finance/statement`; trial interno de 30 dias; grade de slots por duração;
+`/privacy/*` (exportar/anonimizar paciente, exportar/excluir conta). **Ainda abertos:** `recurringCount` em `POST /bookings`.
+
+---
+
 ## 🔴 BLOQUEIA FASE 5 — Endpoints de leitura financeira (`FinanceController`)
 
 **Origem:** ADR-0003 · `frontend-healthtech-spec.md` §6.3, §10.3

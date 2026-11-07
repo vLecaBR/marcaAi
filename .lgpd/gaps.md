@@ -31,6 +31,13 @@ Severidade: 🔴 crítica · 🟠 alta · 🟡 média. Fase = fase do `PLANO_DE_
 
 **Atualização F3 (06/11/2026):** G05 (IDOR) ✅ corrigido e testado · G06 (magic link em log) ✅ fail-fast em produção · G07 (PII em logs) ✅ removida (corpo de provedores só em Debug; senders simulados sem PII em Information) · G13 parcial (Hangfire protegido; rate limiting segue na F7).
 
+**Atualização F4 (06/11/2026):**
+- G03 (canal do titular) 🟡 **parcial**: endpoints e tela `/settings/privacy` para exportar/anonimizar paciente e exportar/excluir conta (prazo imediato, Art. 19). Falta: canal para o **paciente** pedir direto (hoje o pedido passa pelo profissional, que é o controlador), registro dos pedidos e fluxo de correção.
+- G04 (consentimento) 🟡 **parcial**: checkbox obrigatório no formulário + `ConsentAt`/`ConsentVersion` gravados no booking (versão `rascunho-2026-11` até a política revisada). Falta: **texto jurídico revisado** e a página `/privacidade` (G01 segue aberto).
+- G08 (retenção) segue **aberto** — sem job nem prazos (F7, depende do advogado).
+- Novo dado pessoal do profissional: especialidade, conselho, nº de registro, clínica (A003).
+- Efeito colateral positivo: o cancelamento deixou de aceitar o papel `OWNER` vindo do corpo anônimo (decidido pela identidade autenticada).
+
 Totais: 6 críticos · 8 altos · 5 médios.
 
 ## Ações imediatas (alto retorno, baixo esforço)
