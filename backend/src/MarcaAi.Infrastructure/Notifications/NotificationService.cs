@@ -97,14 +97,14 @@ public sealed class NotificationService(
     private async Task Email(string to, string subject, string html, CancellationToken ct)
     {
         try { await email.SendAsync(to, subject, html, ct); }
-        catch (Exception ex) { logger.LogError(ex, "[Notify] Falha no e-mail para {To}", to); }
+        catch (Exception ex) { logger.LogError(ex, "[Notify] Falha ao enviar e-mail"); }
     }
 
     private async Task Whats(string? phone, string text, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(phone)) return;
         try { await whatsapp.SendAsync(phone, text, ct); }
-        catch (Exception ex) { logger.LogError(ex, "[Notify] Falha no WhatsApp para {Phone}", phone); }
+        catch (Exception ex) { logger.LogError(ex, "[Notify] Falha ao enviar WhatsApp"); }
     }
 
     private static string FormatWhen(DateTime utc, string tzId)

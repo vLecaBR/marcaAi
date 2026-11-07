@@ -3,12 +3,16 @@ using Microsoft.Extensions.Logging;
 
 namespace MarcaAi.Infrastructure.Email;
 
-/// <summary>Fallback de dev: registra o e-mail no console em vez de enviar.</summary>
+/// <summary>
+/// Fallback quando o Resend não está configurado: não envia. Destinatário e assunto só em Debug;
+/// em Information registra apenas o fato.
+/// </summary>
 public sealed class LoggingEmailClient(ILogger<LoggingEmailClient> logger) : IEmailClient
 {
     public Task SendAsync(string to, string subject, string html, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("\n===== EMAIL (DEV) =====\nPara: {To}\nAssunto: {Subject}\n(HTML de {Len} chars)\n=======================", to, subject, html.Length);
+        logger.LogInformation("[E-mail simulado] e-mail de {Len} caracteres não enviado (Resend não configurado).", html.Length);
+        logger.LogDebug("[E-mail simulado] para {To}: {Subject}", to, subject);
         return Task.CompletedTask;
     }
 }

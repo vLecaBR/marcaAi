@@ -14,6 +14,15 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Fail-fast: fora de Development, configuração essencial ausente impede o boot (ver ProductionConfigValidator).
+if (!builder.Environment.IsDevelopment())
+{
+    var configErrors = MarcaAi.Api.Config.ProductionConfigValidator.Validate(builder.Configuration);
+    if (configErrors.Count > 0)
+        throw new InvalidOperationException(
+            "Configuração inválida para " + builder.Environment.EnvironmentName + ":\n - " + string.Join("\n - ", configErrors));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Camadas (Clean Architecture) — Application + Infrastructure (EF/Npgsql/CUID).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -206,8 +215,20 @@ app.UseCors(CorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Dashboard do Hangfire (proteger por auth/policy em produção).
-app.UseHangfireDashboard("/hangfire");
+// Dashboard do Hangfire: em Development só requisições locais (padrão); fora disso, apenas os
+// usuários listados em Admin:HangfireUserIds (ver HangfireAdminFilter). Nunca público.
+{
+    var hangfireAdmins = (app.Configuration["Admin:HangfireUserIds"] ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToHashSet();
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = app.Environment.IsDevelopment()
+            ? [new Hangfire.Dashboard.LocalRequestsOnlyAuthorizationFilter()]
+            : [new MarcaAi.Api.Auth.HangfireAdminFilter(hangfireAdmins)],
+        IsReadOnlyFunc = _ => false,
+    });
+}
 
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "marcaai-api" }));
@@ -216,5 +237,9 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "marcaai-a
 app.Services.GetRequiredService<IRecurringJobManager>()
     .AddOrUpdate<IReminderJob>("consultas-reminders",
         j => j.DispatchDueAsync(CancellationToken.None), "*/15 * * * *");
+
+if (!app.Environment.IsDevelopment())
+    foreach (var w in MarcaAi.Api.Config.ProductionConfigValidator.Warnings(app.Configuration))
+        app.Logger.LogWarning("[Config] {Warning}", w);
 
 app.Run();

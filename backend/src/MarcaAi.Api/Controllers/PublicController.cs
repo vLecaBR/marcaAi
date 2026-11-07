@@ -18,6 +18,7 @@ public sealed class PublicController(IApplicationDbContext db) : ControllerBase
         var user = await db.Users.AsNoTracking()
             .Where(u => u.Username == username)
             .Select(u => new PublicProfileDto(
+                u.Id,
                 u.Username!,
                 u.Name,
                 u.Bio,
@@ -30,7 +31,8 @@ public sealed class PublicController(IApplicationDbContext db) : ControllerBase
                     .OrderBy(e => e.CreatedAt)
                     .Select(e => new PublicEventTypeDto(
                         e.Id, e.Title, e.Slug, e.Description, e.Duration,
-                        e.Color, e.LocationType, e.Price, e.Currency))
+                        e.Color, e.LocationType, e.Price, e.Currency,
+                        e.RequiresConfirm, e.BeforeEventBuffer, e.AfterEventBuffer, e.BookingLimitDays))
                     .ToList()))
             .FirstOrDefaultAsync(ct);
 

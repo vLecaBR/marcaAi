@@ -58,7 +58,7 @@ public sealed class GoogleCalendarService(
             var body = await res.Content.ReadAsStringAsync(ct);
             if (!res.IsSuccessStatusCode)
             {
-                logger.LogError("[Google] Falha no refresh de token: {Body}", body);
+                logger.LogError("[Google] Falha no refresh de token"); if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[Google] Falha no refresh de token — corpo da resposta: {Body}", body);
                 return null;
             }
 
@@ -110,7 +110,7 @@ public sealed class GoogleCalendarService(
             using var res = await http.SendAsync(req, ct);
             if (!res.IsSuccessStatusCode)
             {
-                logger.LogError("[Google] FreeBusy falhou: {Body}", await res.Content.ReadAsStringAsync(ct));
+                logger.LogError("[Google] FreeBusy falhou"); if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[Google] FreeBusy falhou — corpo da resposta: {Body}", await res.Content.ReadAsStringAsync(ct));
                 return Array.Empty<GoogleBusySlot>();
             }
 
@@ -180,7 +180,7 @@ public sealed class GoogleCalendarService(
             using var res = await http.SendAsync(req, ct);
             if (!res.IsSuccessStatusCode)
             {
-                logger.LogError("[Google] Criar evento falhou: {Body}", await res.Content.ReadAsStringAsync(ct));
+                logger.LogError("[Google] Criar evento falhou"); if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[Google] Criar evento falhou — corpo da resposta: {Body}", await res.Content.ReadAsStringAsync(ct));
                 return null;
             }
 

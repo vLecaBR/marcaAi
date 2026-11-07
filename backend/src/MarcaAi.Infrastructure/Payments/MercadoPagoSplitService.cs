@@ -58,7 +58,7 @@ public sealed class MercadoPagoSplitService(
             var body = await res.Content.ReadAsStringAsync(ct);
             if (!res.IsSuccessStatusCode)
             {
-                logger.LogError("[MPSplit] Criar PIX split falhou ({Status}): {Body}", (int)res.StatusCode, body);
+                logger.LogError("[MPSplit] Criar PIX split falhou ({Status})", (int)res.StatusCode); if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[MPSplit] Criar PIX split falhou — corpo da resposta: {Body}", body);
                 return null;
             }
 
@@ -107,7 +107,7 @@ public sealed class MercadoPagoSplitService(
             var body = await res.Content.ReadAsStringAsync(ct);
             if (!res.IsSuccessStatusCode)
             {
-                logger.LogError("[MPSplit] Reembolso falhou ({Status}): {Body}", (int)res.StatusCode, body);
+                logger.LogError("[MPSplit] Reembolso falhou ({Status})", (int)res.StatusCode); if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[MPSplit] Reembolso falhou — corpo da resposta: {Body}", body);
                 return null;
             }
 

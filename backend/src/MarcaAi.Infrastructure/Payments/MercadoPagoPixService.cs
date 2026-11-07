@@ -43,7 +43,7 @@ public sealed class MercadoPagoPixService(
             var body = await res.Content.ReadAsStringAsync(ct);
             if (!res.IsSuccessStatusCode)
             {
-                logger.LogError("[MercadoPago] Criar PIX falhou ({Status}): {Body}", (int)res.StatusCode, body);
+                logger.LogError("[MercadoPago] Criar PIX falhou ({Status})", (int)res.StatusCode); if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[MercadoPago] Criar PIX falhou — corpo da resposta: {Body}", body);
                 return null;
             }
 

@@ -111,7 +111,16 @@ public sealed class PayoutsController(IPayoutAccountService payouts, IApplicatio
     {
         var userId = User.GetUserId();
         if (userId is null) return Unauthorized();
-        // TODO (RBAC): garantir que a sub-conta pertence ao usuário ou a uma clínica que ele gere.
+        // RBAC (anti-IDOR): só desconecta a própria conta (USER) ou a de clínica que o chamador gere
+        // (OWNER/ADMIN). Conta inexistente OU alheia → 404 (não revela que o id existe).
+        var account = await db.PayoutAccounts.AsNoTracking()
+            .Where(a => a.Id == payoutAccountId)
+            .Select(a => new { a.OwnerType, a.OwnerId })
+            .FirstOrDefaultAsync(ct);
+        var allowed = account is not null && (account.OwnerType == PayoutOwnerType.USER
+            ? account.OwnerId == userId
+            : await IsTeamManagerAsync(account.OwnerId, userId, ct));
+        if (!allowed) return NotFound();
 
         var ok = await payouts.DisconnectAsync(payoutAccountId, ct);
         return ok ? NoContent() : NotFound();

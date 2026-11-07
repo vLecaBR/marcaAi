@@ -16,7 +16,7 @@ public sealed class EvolutionWhatsAppSender(
     public async Task SendAsync(string phone, string text, CancellationToken cancellationToken = default)
     {
         var number = NormalizePhone(phone);
-        if (number is null) { logger.LogWarning("[WhatsApp] Telefone inválido: {Phone}", phone); return; }
+        if (number is null) { logger.LogWarning("[WhatsApp] Telefone inválido (número omitido do log)"); return; }
 
         var apiUrl = config["WhatsApp:ApiUrl"];
         var apiKey = config["WhatsApp:ApiKey"];
@@ -37,7 +37,7 @@ public sealed class EvolutionWhatsAppSender(
             req.Headers.Add("apikey", apiKey);
             using var res = await http.SendAsync(req, cancellationToken);
             if (!res.IsSuccessStatusCode)
-                logger.LogError("[WhatsApp] Falha ({Status}): {Body}", (int)res.StatusCode, await res.Content.ReadAsStringAsync(cancellationToken));
+                logger.LogError("[WhatsApp] Falha ({Status})", (int)res.StatusCode); if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[WhatsApp] Falha — corpo da resposta: {Body}", await res.Content.ReadAsStringAsync(cancellationToken));
         }
         catch (Exception ex) { logger.LogError(ex, "[WhatsApp] Erro ao enviar mensagem"); }
     }
