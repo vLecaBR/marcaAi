@@ -21,6 +21,10 @@ ENV ASPNETCORE_HTTP_PORTS=8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
 
+# Pasta das chaves do Data Protection (DataProtection__KeysPath=/keys), montada como volume nomeado no compose.
+# Criada aqui, de propriedade do usuário `app`, para o volume herdar a permissão de escrita.
+RUN mkdir -p /keys && chown 1654:1654 /keys
+
 # Usuário não-root embutido nas imagens .NET 8+ (UID 1654).
 USER app
 

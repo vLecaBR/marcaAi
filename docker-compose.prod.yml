@@ -1,0 +1,159 @@
+# ==============================================================================
+# MarcaAí — PRODUÇÃO self-hosted (PC 24/7 + Cloudflare Tunnel)
+#
+#   cp .env.prod.example .env.prod        # preencha (o .env.prod NÃO vai para o git)
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+#
+# Guia completo: docs/deploy-self-host.md · operação do dia a dia: docs/runbook.md
+# Só o `cloudflared` fala com a internet. Postgres não tem porta no host; web/api escutam apenas em 127.0.0.1
+# (para health-check e teste local) — o acesso público é exclusivamente pelo túnel.
+# ==============================================================================
+name: marcaai
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-marcaai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env.prod}
+      POSTGRES_DB: ${POSTGRES_DB:-marcaai}
+    volumes:
+      # Postgres 18+: montar em /var/lib/postgresql (não mais em .../data)
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-marcaai} -d ${POSTGRES_DB:-marcaai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  api:
+    image: marcaai-api:${TAG:-latest}
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-marcaai};Username=${POSTGRES_USER:-marcaai};Password=${POSTGRES_PASSWORD}
+      DataProtection__KeysPath: /keys
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?defina JWT_SIGNING_KEY no .env.prod}
+      Jwt__Issuer: ${APP_PUBLIC_URL}
+      App__PublicUrl: ${APP_PUBLIC_URL:?defina APP_PUBLIC_URL (https://app.SEUDOMINIO)}
+      Cors__FrontendOrigin: ${APP_PUBLIC_URL}
+      Resend__ApiKey: ${RESEND_API_KEY:-}
+      Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
+      Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      Stripe__SecretKey: ${STRIPE_SECRET_KEY:-}
+      Stripe__WebhookSecret: ${STRIPE_WEBHOOK_SECRET:-}
+      Stripe__ConnectWebhookSecret: ${STRIPE_CONNECT_WEBHOOK_SECRET:-}
+      Stripe__Prices__SoloPro: ${STRIPE_PRICE_SOLO_PRO:-}
+      Stripe__Prices__Clinica: ${STRIPE_PRICE_CLINICA:-}
+      Stripe__Prices__ClinicaPro: ${STRIPE_PRICE_CLINICA_PRO:-}
+      MercadoPago__ClientId: ${MP_CLIENT_ID:-}
+      MercadoPago__ClientSecret: ${MP_CLIENT_SECRET:-}
+      MercadoPago__RedirectUri: ${MP_REDIRECT_URI:-}
+      MercadoPago__WebhookSecret: ${MP_WEBHOOK_SECRET:-}
+      MercadoPago__NotificationUrl: ${MP_NOTIFICATION_URL:-}
+      MercadoPago__AccessToken: ${MP_ACCESS_TOKEN:-}
+      WhatsApp__ApiUrl: ${WHATSAPP_API_URL:-}
+      WhatsApp__ApiKey: ${WHATSAPP_API_KEY:-}
+      Admin__HangfireUserIds: ${ADMIN_HANGFIRE_USER_IDS:-}
+      Privacy__PolicyVersion: ${PRIVACY_POLICY_VERSION:-1.0}
+      # Sem o SQL de cada comando nos logs (ruído e superfície de dado pessoal nos logs — LGPD).
+      Logging__LogLevel__Microsoft.EntityFrameworkCore: Warning
+      # Rede interna do compose (o cloudflared e o web chegam por aqui). Padrão já cobre as faixas privadas do Docker.
+      Proxy__TrustedNetworks: ${PROXY_TRUSTED_NETWORKS:-127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7}
+    volumes:
+      - dpkeys:/keys
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+    healthcheck:
+      # A imagem aspnet não tem curl/wget: usa /dev/tcp do bash.
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf \"GET /health HTTP/1.0\\r\\n\\r\\n\" >&3 && head -1 <&3 | grep -q \" 200 \"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    logging: *logging
+
+  web:
+    image: marcaai-web:${TAG:-latest}
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${API_PUBLIC_URL:?defina API_PUBLIC_URL (https://api.SEUDOMINIO)}
+        NEXT_PUBLIC_APP_URL: ${APP_PUBLIC_URL}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+        DPO_EMAIL: ${DPO_EMAIL:-}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_INTERNAL_URL: http://api:8080
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/login || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: *logging
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      web:
+        condition: service_healthy
+    logging: *logging
+
+  backup:
+    image: marcaai-backup:${TAG:-latest}
+    build:
+      context: ./ops/backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-marcaai}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-marcaai}
+      TZ: ${TZ:-America/Sao_Paulo}
+      BACKUP_CRON: ${BACKUP_CRON:-30 3 * * *}
+      # Chave PÚBLICA do age (age-keygen). A privada fica fora do PC (cofre de senhas). Sem ela o backup NÃO roda.
+      AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      # Destino externo (rclone). Ex.: Cloudflare R2 → RCLONE_REMOTE=r2:marcaai-backups e as RCLONE_CONFIG_R2_* abaixo.
+      RCLONE_REMOTE: ${BACKUP_RCLONE_REMOTE:-}
+      RCLONE_CONFIG_R2_TYPE: ${RCLONE_CONFIG_R2_TYPE:-s3}
+      RCLONE_CONFIG_R2_PROVIDER: ${RCLONE_CONFIG_R2_PROVIDER:-Cloudflare}
+      RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      RCLONE_CONFIG_R2_ENDPOINT: ${R2_ENDPOINT:-}
+      RCLONE_CONFIG_R2_NO_CHECK_BUCKET: "true"
+    volumes:
+      - dpkeys:/keys:ro
+      - backups:/backups
+    logging: *logging
+
+volumes:
+  pgdata:
+  dpkeys:
+  backups:

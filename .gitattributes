@@ -1,0 +1,4 @@
+# Scripts executados em containers Linux precisam de LF (no Windows o git converteria para CRLF e quebraria o shebang).
+*.sh text eol=lf
+ops/** text eol=lf
+Dockerfile text eol=lf

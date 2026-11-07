@@ -55,3 +55,7 @@ yarn-debug.log*
 
 # Cobertura local dos testes .NET
 backend/tests/.cov/
+
+# Produção self-hosted (F9): segredos do compose de produção
+.env.prod
+.deploy-state
