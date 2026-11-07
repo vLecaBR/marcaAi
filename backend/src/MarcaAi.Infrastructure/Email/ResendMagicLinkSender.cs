@@ -58,7 +58,7 @@ public sealed class ResendMagicLinkSender(
 
             using var res = await http.SendAsync(req, cancellationToken);
             if (!res.IsSuccessStatusCode)
-                {
+            {
                 logger.LogError("[Resend] Falha ao enviar ({Status})", (int)res.StatusCode);
                 if (logger.IsEnabled(LogLevel.Debug))
                     logger.LogDebug("[Resend] Falha — corpo da resposta: {Body}", await res.Content.ReadAsStringAsync(cancellationToken));

@@ -26,6 +26,11 @@ Severidade: 🔴 crítica · 🟠 alta · 🟡 média. Fase = fase do `PLANO_DE_
 | G18 | 🟡 | **Sem testes** de segurança/DSAR/consentimento. | 0 testes no backend | Art. 46 | F8 |
 | G19 | 🟡 | **Supabase/Vercel/Render ainda existem** com dados e credenciais antigas. | plano F10 | Arts. 15, 46 | F10 |
 
+| G20 | 🟠 | **Detalhe e cancelamento de consulta anônimos por `uid` (CUID v1, previsível)** — expõe nome/e-mail do paciente a quem adivinhar. | `BookingsController.GetByUid/Cancel`; plano §2 #16 | Art. 46 | F7 |
+| G21 | 🟡 | **CSRF: antiforgery nunca validado**; só SameSite=Lax protege. | plano §2 #17 | Art. 46 | F7 |
+
+**Atualização F3 (06/11/2026):** G05 (IDOR) ✅ corrigido e testado · G06 (magic link em log) ✅ fail-fast em produção · G07 (PII em logs) ✅ removida (corpo de provedores só em Debug; senders simulados sem PII em Information) · G13 parcial (Hangfire protegido; rate limiting segue na F7).
+
 Totais: 6 críticos · 8 altos · 5 médios.
 
 ## Ações imediatas (alto retorno, baixo esforço)
