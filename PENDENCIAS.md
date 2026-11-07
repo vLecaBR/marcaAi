@@ -33,6 +33,15 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Testar o fluxo real "Conectar Google Agenda" no navegador (consentimento → callback → evento criado na agenda). O backend foi testado até o redirecionamento ao Google.
 - [ ] Tokens do Google em `accounts` continuam em texto no banco (G09) — cifrar na F7.
 
+## V1 — Produto (07/11/2026)
+
+- [ ] Anexar o `.ics` ao e-mail de confirmação (hoje só na página da consulta): exige suporte a anexos no `IEmailClient`/Resend.
+- [ ] Lembrete de 24 h (hoje só 2 h antes da consulta).
+- [ ] Favicon e imagem OG próprios (precisa de arte).
+- [ ] Remarcar consulta **paga** mantém o pagamento original; decidir se remarcar para outro serviço/valor deve cobrar a diferença.
+- [ ] `GET /slots/month` calcula até 31 dias por chamada: cachear se a carga (V2) mostrar custo.
+- [ ] Antiforgery/BFF para os novos POSTs públicos (`/api/book/{uid}/reschedule`) segue o padrão do cancelamento; revisar junto com o achado #17.
+
 ## F9 — Deploy de produção (no PC)
 
 - [ ] 🧑 Domínio na Cloudflare, túnel criado e `CLOUDFLARE_TUNNEL_TOKEN` no `.env.prod` (guia: `docs/deploy-self-host.md` §2). Sem o token o container `cloudflared` reinicia em loop (esperado).

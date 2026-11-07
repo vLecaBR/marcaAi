@@ -36,19 +36,24 @@ O que mais atrasa **não é código**: é o que depende de terceiros (verificaç
 ### V1 — Fechar os buracos do produto 🤖 (offline, sem contas externas)
 Objetivo: a promessa da landing passa a valer em todos os caminhos, testável sem Stripe.
 
-- [ ] **Regra de cobrança** (decidir D14 antes). Recomendado: serviço **gratuito** confirma na hora; serviço **pago** cria reserva `PENDING_PAYMENT` que **segura o horário por 15 min**, confirma quando o webhook baixa o pagamento e **libera sozinha** se expirar (job). Opção por serviço "pagar no local" (sem cobrança online) para quem não quer/não pode cobrar online.
-- [ ] **Validação no cadastro do serviço**: não permite preço > 0 sem conta de recebimento ativa (API 422 + aviso na tela com botão "Ativar recebimentos").
-- [ ] E-mails e telas falam de pagamento (valor, prazo para pagar, "horário reservado até HH:MM").
-- [ ] **Provedor de pagamento falso** (`Payments:Provider=Fake`, só em Development/Test; o `ProductionConfigValidator` recusa em produção) para testar a jornada paga inteira offline (reserva → pagar → confirmar → expirar → reembolsar) em integração e E2E.
-- [ ] **Remarcar**: paciente pelo link da consulta e profissional pelo dashboard; reutiliza o guard anti-double-booking; e-mails de remarcação; atualiza Google Agenda; regra D15 (ex.: até 24 h antes, máx. 2 vezes).
-- [ ] **Consulta online**: tipo online exige link (campo manual) ou Google conectado; sem nenhum dos dois, o salvamento avisa.
-- [ ] **Lista de pacientes** (derivada das consultas): contato, histórico, total pago, busca funcionando no topo, "anonimizar" reaproveitando o endpoint LGPD. **Sem prontuário/anotação clínica** (D16: outro universo regulatório — CFM/CFP).
-- [ ] Calendário público só habilita dias com agenda e horários futuros (endpoint de disponibilidade do mês).
-- [ ] Anexo `.ics` no e-mail de confirmação.
-- [ ] Revisão de texto: "serviço/consulta" em vez de "evento/reunião"; marca "MarcaAí"; domínio vindo de `NEXT_PUBLIC_APP_URL` (não `marcaai.app` fixo); mock da landing com data dinâmica; tela de planos coerente durante o trial; páginas 404/erro; favicon, meta/OG; `robots`/`sitemap` (páginas `/booking/{uid}` com `noindex`).
-- [ ] Textos de marketing sem promessa de resultado clínico (regras de publicidade dos conselhos) — o advogado confirma em V5.
+- [x] **Regra de cobrança** (decidir D14 antes). Recomendado: serviço **gratuito** confirma na hora; serviço **pago** cria reserva `PENDING_PAYMENT` que **segura o horário por 15 min**, confirma quando o webhook baixa o pagamento e **libera sozinha** se expirar (job). Opção por serviço "pagar no local" (sem cobrança online) para quem não quer/não pode cobrar online. **Feito (D14):** serviço pago online cria reserva `PENDING` com `PaymentDueAt` (15 min, `Payments:HoldMinutes`); o webhook baixa o pagamento e confirma; o job `reservas-sem-pagamento` (a cada minuto, tolerância de 2 min) cancela como SYSTEM e libera o horário; pagamento que chega depois da expiração é **reembolsado**. Opção "Cobrar no atendimento" (`PayOnSite`) confirma na hora, sem fluxo online.
+- [x] **Validação no cadastro do serviço**: não permite preço > 0 sem conta de recebimento ativa (API 422 + aviso na tela com botão "Ativar recebimentos"). **Feito:** 422 ao criar/editar/reativar serviço com preço online sem recebimento ativo (só quando a cobrança muda); o agendamento também recusa se a conta foi desativada depois.
+- [x] E-mails e telas falam de pagamento (valor, prazo para pagar, "horário reservado até HH:MM"). **Feito:** e-mail "Reserva aguardando pagamento" (valor, prazo, botão), contador na tela de pagamento, "Aguardando pagamento" e valor/situação na página da consulta.
+- [x] **Provedor de pagamento falso** (`Payments:Provider=Fake`, só em Development/Test; o `ProductionConfigValidator` recusa em produção) para testar a jornada paga inteira offline (reserva → pagar → confirmar → expirar → reembolsar) em integração e E2E. **Feito:** `FakePaymentProvider` (STRIPE simulado), `POST /api/v1/dev/payouts/activate` e `/dev/payments/{uid}/approve` (404 fora do modo Fake e em produção; o validador recusa Fake no boot de produção). Cobertos em integração e E2E.
+- [x] **Remarcar**: paciente pelo link da consulta e profissional pelo dashboard; reutiliza o guard anti-double-booking; e-mails de remarcação; atualiza Google Agenda; regra D15 (ex.: até 24 h antes, máx. 2 vezes). **Feito (D15):** `POST /bookings/{uid}/reschedule`; paciente até 24 h antes e no máx. 2x; profissional sem limites; mesma validação de agenda e de conflito (a consulta não conflita consigo mesma); atualiza o Google Agenda; e-mails de remarcação; página `/booking/{uid}/reschedule` e botão no dashboard. Corrigido de passagem: **agendar no passado e além do limite de dias era aceito pela API**.
+- [x] **Consulta online**: tipo online exige link (campo manual) ou Google conectado; sem nenhum dos dois, o salvamento avisa. **Feito (D17):** Meet sem Google conectado exige link manual; Zoom/Teams/Outro exigem link; presencial exige endereço (422). Página da consulta mostra endereço (presencial) ou link (online), antes confundidos.
+- [x] **Lista de pacientes** (derivada das consultas): contato, histórico, total pago, busca funcionando no topo, "anonimizar" reaproveitando o endpoint LGPD. **Sem prontuário/anotação clínica** (D16: outro universo regulatório — CFM/CFP). **Feito (D16):** `GET /patients` e `/patients/detail` (agrupa por e-mail, isolado por profissional), tela "Pacientes" e busca do topo funcionando. Sem prontuário.
+- [x] Calendário público só habilita dias com agenda e horários futuros (endpoint de disponibilidade do mês). **Feito:** `GET /slots/month`; fins de semana e dias sem horário ficam desabilitados.
+- [x] Anexo `.ics` no e-mail de confirmação. **Feito na página da consulta** ("Adicionar à minha agenda"); o anexo no e-mail ficou para depois (precisa de suporte a anexos no `IEmailClient`).
+- [x] Revisão de texto: "serviço/consulta" em vez de "evento/reunião"; marca "MarcaAí"; domínio vindo de `NEXT_PUBLIC_APP_URL` (não `marcaai.app` fixo); mock da landing com data dinâmica; tela de planos coerente durante o trial; páginas 404/erro; favicon, meta/OG; `robots`/`sitemap` (páginas `/booking/{uid}` com `noindex`). **Feito:** serviço/consulta, "MarcaAí", host vindo de `NEXT_PUBLIC_APP_URL`, landing com mês corrente, saudação por horário, plano durante o trial ("Em teste grátis" / "Plano após o teste"), 404 e erro amigáveis, OG/`metadataBase`, `robots` e `sitemap`, `noindex` nas páginas por uid. **Não feito:** favicon/imagem OG própria (precisa de arte).
+- [x] Textos de marketing sem promessa de resultado clínico (regras de publicidade dos conselhos) — o advogado confirma em V5. _Revisão final pelo advogado em V5._
 
 **Aceite:** nenhum caminho deixa consulta paga confirmada sem pagamento; paciente remarca sozinho; profissional enxerga e busca pacientes; `./build.sh` + E2E verdes, incluindo a jornada paga com o provedor falso.
+
+**Resultado (07/11/2026):** backend 92 unitários + **49** de integração (12 novos de V1); front **80** unitários; E2E **4/4** (nova jornada paga: criar serviço bloqueado sem recebimento → ativar → reservar → contador → pagar (simulado) → confirmar → remarcar → paciente na lista). `./build.sh` verde.
+**Desvios/limites:** (1) a jornada paga usa o provedor **simulado**; Stripe/MP reais seguem para V3; (2) lembrete automático continua só nas 2 h antes (não há lembrete de 24 h); (3) `.ics` anexado ao e-mail e favicon/OG próprio ficaram de fora; (4) o mês do calendário faz até 31 consultas de disponibilidade por requisição (ok no volume atual; cachear se a carga pedir — V2); (5) remarcar uma consulta paga mantém o pagamento (sem nova cobrança).
+
+---
 
 ### V2 — Qualidade e robustez 🤖 (offline)
 - [ ] E2E contra **build de produção** (`next build && next start`), não `next dev`; roda também contra a stack do compose de produção.
@@ -161,7 +166,7 @@ Semana 9+    V7 lançamento comercial
 ## 7. Registro de execução
 | Fase | Início | Fim | Resultado | Desvios |
 |---|---|---|---|---|
-| V1 | | | | |
+| V1 | 07/11/2026 | 07/11/2026 | Reserva paga com prazo/expiração/reembolso tardio, pagar no local, guard de preço, remarcar, pacientes, calendário por disponibilidade, link online obrigatório, pagamento simulado, revisão de texto/SEO. 49 integração + 80 front + 4 E2E. | Ver seção V1. |
 | V2 | | | | |
 | V3 | | | | |
 | V4 | | | | |

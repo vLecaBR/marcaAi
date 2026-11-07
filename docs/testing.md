@@ -5,9 +5,12 @@
 | Backend — unitários | `backend/tests/MarcaAi.Application.Tests` | `dotnet test backend/tests/MarcaAi.Application.Tests` | Agenda (`AvailabilityCalculator`, `SlotCalculator`, `TimeUtils`: fusos, horário de verão, exceções, buffers, grade), taxas (`FeeCalculator`), planos e status de cobrança, assinatura do webhook do Mercado Pago |
 | Backend — integração | `backend/tests/MarcaAi.Api.IntegrationTests` | `dotnet test backend/tests/MarcaAi.Api.IntegrationTests` (**precisa de Docker**) | API real (`WebApplicationFactory`) contra **Postgres 18 descartável** (Testcontainers): agendamento, **concorrência no mesmo horário**, cancelamento, RBAC de times, IDOR de payouts, webhooks do Stripe assinados, magic link, **gate LGPD** (consentimento gravado, exportar/anonimizar/excluir, job de retenção) |
 | Frontend — unitários | `frontend/tests/unit` | `cd frontend && npm test` | `ApiError` ↔ status, cliente do browser, `rawApiFetch` (CSRF, cookie, IP real), BFF (401 → refresh → retry), `plan-config`, `brand-theme`, `formatBRLCents`, `usePaymentStatus` (backoff) |
-| E2E (Playwright) | `frontend/tests/e2e` | `cd frontend && npm run test:e2e` | Landing/login/páginas legais; login por magic link (e-mail lido no Mailpit), onboarding, tipo de consulta, **agendamento público ponta a ponta** com consentimento obrigatório, detalhe e cancelamento |
+| E2E (Playwright) | `frontend/tests/e2e` | `cd frontend && npm run test:e2e` | Landing/login/páginas legais; login por magic link (e-mail lido no Mailpit), onboarding, tipo de consulta, **agendamento público ponta a ponta** com consentimento obrigatório, detalhe e cancelamento; **jornada paga** (bloqueio sem recebimento, reserva com contador, pagamento simulado, confirmação, remarcação, lista de pacientes) |
 
 Tudo de uma vez (build + unitários + integração + lint + build do front): `./build.sh`. Sem Docker, `SKIP_INTEGRATION=1 ./build.sh` pula a integração.
+
+## Pagamento simulado (jornada paga offline)
+`Payments:Provider=Fake` (só desenvolvimento/teste; o boot de produção recusa) troca o Stripe por um provedor simulado: `POST /api/v1/dev/payouts/activate` ativa os recebimentos do usuário logado e `POST /api/v1/dev/payments/{uid}/approve` aprova o pagamento pelo mesmo caminho do webhook (os endpoints respondem 404 fora do modo Fake). O `ApiFixture` e o `playwright.config.ts` já ligam esse modo. A tela de pagamento mostra o botão "Simular pagamento aprovado" quando o `clientSecret` começa com `fake_secret_`.
 
 ## E2E: pré-requisitos
 

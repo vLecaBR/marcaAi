@@ -52,6 +52,9 @@ Método: (1) suíte automatizada completa (`./build.sh` + E2E Playwright); (2) s
 
 **Pequenos (já anotados)**: CSP sem nonce; antiforgery do BFF não validado de ponta a ponta (#17); achado #16; `ProductionConfigValidator` rejeita chave JWT que contenha "dev", "secret" ou "changeme" mesmo ao acaso (probabilidade ~0,3%: se o boot reclamar, gere outra).
 
+## Atualização — V1 (07/11/2026)
+Resolvidos no código e cobertos por testes: achados **1** (cobrança: pagar para confirmar com reserva de 15 min, expiração, reembolso tardio, pagar no local, bloqueio de preço sem recebimento), **2** (remarcar), **4** (lista de pacientes e busca), **5** (link online obrigatório), **6** (plano durante o trial), **7** (host vindo da configuração), **8** (calendário só com dias livres) e **9** (linguagem de saúde e marca "MarcaAí"). Também corrigido: a API aceitava agendar **no passado** e além do limite de dias. Continuam em aberto: provedores reais (achado 3 → V3), painel do dono e rastreio de erros (achado 10 → V2).
+
 ## Como repetir
 ```bash
 ./build.sh                      # backend (unit + integração) + front (lint, tsc, unit, build)
