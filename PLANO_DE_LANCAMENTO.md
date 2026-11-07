@@ -21,11 +21,11 @@
 | F0 — Higiene do repo e ambiente de dev | ✅ concluída na branch `fase-0-higiene` (aguardando revisão/merge); pendente do dono: parar o serviço do PostgreSQL 17 nativo (admin) |
 | LGPD contínua (`goul4rt/lgpd-skills`) | 📌 incorporada ao plano (§5.0, gates por fase, D12). Skills instaladas em `.claude/skills/` (cópia fixa, commit `d85d79a`, D12 ✅ 06/11/2026). Ainda não executei o `lgpd-audit` de linha de base. |
 | F4 — Gaps de produto | ✅ concluída (merge na `main` em 07/11/2026) |
-| F5 — Pagamentos ponta a ponta | 🟡 código pronto na branch `fase-5-pagamentos`; faltam contas Stripe/MP e o roteiro em modo teste |
+| F5 — Pagamentos ponta a ponta | 🟡 código pronto (merge na `main`); contas Stripe/MP e roteiro em modo teste adiados → ver `PENDENCIAS.md` |
 | F3 — Correções críticas | ✅ concluída na branch `fase-3-correcoes-criticas` (aguardando revisão) |
 | F2 — Dependências | ✅ concluída na branch `fase-2-dependencias` (aguardando revisão) |
 | F1 — Banco local | ✅ implementada na branch `fase-1-banco-local` (aguardando revisão); falta só o teste manual de login/onboarding pela UI |
-| Próxima fase | ▶️ **F5 (fechar pendências de contas)** ou **F6 — Notificações e integrações** |
+| Próxima fase | ▶️ **F6 — Notificações e integrações** (pendências em `PENDENCIAS.md`) |
 
 **Mudanças no plano desde a primeira versão:**
 - A "Ação imediata" foi concluída: o backup existe, então a importação de dados na F1 deixou de ser hipotética e ganhou um procedimento concreto (restaurar o dump em **dev**; produção começa com banco limpo).
