@@ -25,11 +25,26 @@ export default defineConfig({
     },
   ],
 
-  // Run your local dev server before starting the tests
-  webServer: {
-    command: "npm run dev -- --webpack",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  // Sobe a API .NET (Development, usa o Postgres do docker-compose.dev.yml) e o Next. Reaproveita se já estiverem no ar.
+  webServer: [
+    {
+      command: "dotnet run --project ../backend/src/MarcaAi.Api --urls http://localhost:5080",
+      url: "http://localhost:5080/health",
+      reuseExistingServer: !process.env.CI,
+      timeout: 180 * 1000,
+      env: {
+        ASPNETCORE_ENVIRONMENT: "Development",
+        // Os user-secrets do dev podem ter Resend real: força e-mail LOCAL (Mailpit) para o E2E nunca enviar e-mail de verdade.
+        Resend__ApiKey: "",
+        Smtp__Host: "localhost",
+        Smtp__Port: "1025",
+      },
+    },
+    {
+      command: "npm run dev -- --webpack",
+      url: "http://localhost:3000",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+  ],
 })
