@@ -20,8 +20,9 @@
 | PostgreSQL 17 nativo no Windows | ⚠️ instalado via `winget install PostgreSQL.PostgreSQL.17` durante o backup — **provavelmente roda como serviço do Windows na porta 5432** e vai conflitar com o Postgres do Docker. Tratado na F0. |
 | F0 — Higiene do repo e ambiente de dev | ✅ concluída na branch `fase-0-higiene` (aguardando revisão/merge); pendente do dono: parar o serviço do PostgreSQL 17 nativo (admin) |
 | LGPD contínua (`goul4rt/lgpd-skills`) | 📌 incorporada ao plano (§5.0, gates por fase, D12). Skills instaladas em `.claude/skills/` (cópia fixa, commit `d85d79a`, D12 ✅ 06/11/2026). Ainda não executei o `lgpd-audit` de linha de base. |
+| F2 — Dependências | ✅ concluída na branch `fase-2-dependencias` (aguardando revisão) |
 | F1 — Banco local | ✅ implementada na branch `fase-1-banco-local` (aguardando revisão); falta só o teste manual de login/onboarding pela UI |
-| Próxima fase | ▶️ **F2 — Atualização de dependências** |
+| Próxima fase | ▶️ **F3 — Correções críticas (bloqueadores e segurança)** |
 
 **Mudanças no plano desde a primeira versão:**
 - A "Ação imediata" foi concluída: o backup existe, então a importação de dados na F1 deixou de ser hipotética e ganhou um procedimento concreto (restaurar o dump em **dev**; produção começa com banco limpo).
@@ -323,19 +324,19 @@ docker run --rm -e PGPASSWORD=$senha -v C:\Code\marcaAi-backup:/backup postgres:
 **Objetivo:** stack nas versões mais recentes estáveis (tabela da §4), sem regressão.
 
 Backend:
-- [ ] `dotnet list package --outdated` → subir todos os pacotes 10.0.x para o último patch; Hangfire; JWT.
-- [ ] Stripe.net para o último major: ler o changelog de breaking changes, ajustar `StripeBillingService`, `StripeConnectService`, `StripeWebhookController`; anotar a API version nova (vai para o dashboard do Stripe na F5).
-- [ ] `Dockerfile` do backend: porta padrão **8080** (`ASPNETCORE_HTTP_PORTS=8080`) em vez da 10000 do Render; rodar como usuário não-root (`USER app`, já existe nas imagens .NET 8+).
+- [x] `dotnet list package --outdated` → subir todos os pacotes 10.0.x para o último patch; Hangfire; JWT.
+- [x] Stripe.net para o último major: ler o changelog de breaking changes, ajustar `StripeBillingService`, `StripeConnectService`, `StripeWebhookController`; anotar a API version nova (vai para o dashboard do Stripe na F5).
+- [x] `Dockerfile` do backend: porta padrão **8080** (`ASPNETCORE_HTTP_PORTS=8080`) em vez da 10000 do Render; rodar como usuário não-root (`USER app`, já existe nas imagens .NET 8+).
 
 Frontend:
-- [ ] Node 24 LTS local; `npm install` limpo (apagar `node_modules` e regenerar `package-lock.json`).
-- [ ] `next`, `eslint-config-next`, `react`, `react-dom` → últimas 16.x / 19.2.x.
-- [ ] Demais deps para os últimos minors (`npx npm-check-updates --target minor -u`), depois majors recomendados: `react-day-picker` 9 (ajustar `components/ui/calendar.tsx` e remover `overrides`), `@stripe/*`, `@types/node` 24.
-- [ ] `next.config.ts`: remover `typescript.ignoreBuildErrors: true` (achado #12) e adicionar `output: "standalone"` (necessário para a imagem Docker da F9).
-- [ ] Testar se o `next dev`/`next build` funcionam com **Turbopack** (padrão do Next 16); se sim, remover a flag `--webpack` dos scripts; se não, manter e registrar o motivo.
-- [ ] `npm audit` sem vulnerabilidades high/critical.
+- [x] Node 24 LTS local; `npm install` limpo (apagar `node_modules` e regenerar `package-lock.json`).
+- [x] `next`, `eslint-config-next`, `react`, `react-dom` → últimas 16.x / 19.2.x.
+- [x] Demais deps para os últimos minors (`npx npm-check-updates --target minor -u`), depois majors recomendados: `react-day-picker` 9 (ajustar `components/ui/calendar.tsx` e remover `overrides`), `@stripe/*`, `@types/node` 24.
+- [x] `next.config.ts`: remover `typescript.ignoreBuildErrors: true` (achado #12) e adicionar `output: "standalone"` (necessário para a imagem Docker da F9).
+- [x] Testar se o `next dev`/`next build` funcionam com **Turbopack** (padrão do Next 16); se sim, remover a flag `--webpack` dos scripts; se não, manter e registrar o motivo.
+- [x] `npm audit` sem vulnerabilidades high/critical.
 
-**Aceite:** `./build.sh` verde (com `tsc --noEmit` sem ignorar erros), `npm run test` verde, app funcionando localmente nos fluxos da F1.
+**Aceite (verificado 06/11/2026; e2e Playwright não executado):** `./build.sh` verde (com `tsc --noEmit` sem ignorar erros), `npm run test` verde, app funcionando localmente nos fluxos da F1.
 
 ---
 
@@ -567,7 +568,7 @@ stripe listen --forward-to localhost:5080/api/v1/webhooks/stripe/connect
 | Imediata | 06/11/2026 | — (feito pelo dono, sem código) | Supabase reativado; `pg_dump` do schema `public` via Session pooler → `C:\Code\marcaAi-backup\marcaai-supabase.dump`, validado com `pg_restore -l`. Docker Desktop instalado e funcionando. PostgreSQL 17 nativo instalado via winget (possível conflito na 5432). | Copiar o backup para fora do PC; importar em dev (F1); excluir projeto Supabase (F10). |
 | F0 | 06/11/2026 | `fase-0-higiene` (3 commits, sem push) | `docs/` versionado (removido `/docs/` do .gitignore; `*.dump`/`*.backup` ignorados; varredura sem segredos reais); overrides corrigidos; `frontend/.env` limpo (backup local fora do repo); `docker-compose.dev.yml` (Postgres 18 :5433 + Mailpit); `.env.example` raiz e backend; `global.json` (10.0.100, `latestFeature` — `latestPatch` rejeitaria o SDK 10.0.301 instalado); `engines` Node>=24 + `.nvmrc`; `vercel.json` removido; READMEs atualizados. `./build.sh` verde, compose healthy, Mailpit 200. | Parar serviço PG17 nativo (admin). Para F1: user-secrets antigos (`ConnectionStrings:Default`, Google, Resend) e `appsettings.Development.json` ainda em 5432/testdb. Docker Desktop estava parado no início; está em `%LOCALAPPDATA%\Programs\DockerDesktop`. `PROMPT_CLAUDE_CODE.md` segue não versionado. |
 | F1 | 06/11/2026 | `fase-1-banco-local` (4 commits, sem push; parte de `main` já com a F0 mergeada em fast-forward local) | Pool/workers configuráveis (`Database:MaxPoolSize`, `Hangfire:*`); `appsettings.Development.json` -> Postgres do compose (5433); user-secret `ConnectionStrings:Default` (Supabase) removido; API cria 17 tabelas, 12 enums e schema Hangfire; `Check_Sync` vazio (removido); `scripts/import-supabase-backup.ps1/.sh` (testados; restore sem erros inesperados, `normalize_plan_codes.sql` roda; contagens conferidas); API sobre o banco importado: /health ok, perfil publico 200. Gate LGPD: `.lgpd/STATUS.md`, `data-map.md`, `gaps.md` (19 gaps, 6 criticos). | Teste manual login/onboarding pela UI (Resend esta nos user-secrets: magic link enviaria e-mail real; usar Mailpit na F6). Achado novo LGPD: landing diz 'Conforme a LGPD' e linka /termos e /privacidade que nao existem (G01). Descartar dump/banco de dev com dado real (G14). Seed nao feito. Armadilha: `dotnet run --no-build` apos `ef migrations add/remove` usa DLL velha - rebuild antes. |
-| F2 | | | | |
+| F2 | 06/11/2026 | `fase-2-dependencias` (5 commits, sem push; parte da `main` com F0+F1 em fast-forward local) | Backend: EF/Npgsql/ASP.NET 10.0.14, Hangfire 1.8.25/PG 1.21.1, JWT 8.23, OpenApi 2.13, cuid 7.1; **Stripe.net 51.1.0 -> 53.1.0 compilou sem ajustes** (API version do pacote: `2026-10-28.endive`). Dockerfile: porta 8080, usuario nao-root `app` (imagem buildada e /health 200). Frontend: Next 16.4.5, React 19.3.1, lockfile regenerado, minors via ncu, react-day-picker 9.14 (calendar.tsx reescrito; `overrides` removido), @stripe/stripe-js 10 + react-stripe-js 7, @types/node 24, Playwright 1.65; `ignoreBuildErrors` removido, `output: standalone`, Turbopack (dev e build, flags --webpack removidas). `./build.sh` verde, 12 testes unit ok, `npm audit --omit=dev`: 0 vulnerabilidades. | (1) **F5:** o endpoint de webhook do Stripe deve ser criado com a API version `2026-10-28.endive`, senao `EventUtility.ConstructEvent` lanca por mismatch; testar checkout/Connect/webhooks. (2) `calendar.tsx` (v9) nao e usado em nenhuma tela: sem teste visual. (3) Nao atualizados (majors fora da lista): lucide-react 1.x, motion 14, eslint 10, @hookform/resolvers 7, jsdom 31, vitest-coverage 5, dotenv 18, react-resizable-panels 4, jest-dom 7, recharts (mantem 2.x). react-day-picker tem v10 mas usei 9 conforme o plano. (4) `npm audit` completo: 8 moderate so em dev (cadeia eslint/minimatch); `audit fix --force` rebaixaria eslint-config-next, entao ignorado. (5) Warning ASPDEPR005 `KnownNetworks` -> `KnownIPNetworks` em Program.cs:171: resolver junto do ForwardedHeaders (F9/F7). (6) npm 12 bloqueia scripts de instalacao (esbuild); testes passam mesmo assim. (7) `next dev` gera `frontend/AGENTS.md` (regras para agentes); mantido no repo. (8) Playwright e2e nao rodado. |
 | F3 | | | | |
 | F4 | | | | |
 | F5 | | | | |
