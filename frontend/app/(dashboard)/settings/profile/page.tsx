@@ -4,20 +4,17 @@ import { Card } from "@/components/ui/card"
 import { requireOnboarded } from "@/lib/auth/guards"
 import { serverApiFetch } from "@/lib/api/http-client"
 import { endpoints } from "@/lib/api/endpoints"
-import type { PublicProfileDto } from "@/lib/api/types"
+import type { ProfileDto } from "@/lib/api/types"
 
 export const metadata: Metadata = { title: "Meu perfil" }
 
 /**
- * Perfil — via API .NET. Identidade base vem de `GET /auth/me`; nome/bio/marca são pré-preenchidos
- * a partir de `GET /public/{username}` quando o username já existe.
+ * Perfil — via API .NET. Identidade base vem de `GET /auth/me`; o restante, de `GET /me/profile`.
  */
 export default async function ProfilePage() {
   const me = await requireOnboarded()
 
-  const publicProfile = me.username
-    ? await serverApiFetch<PublicProfileDto>(endpoints.public(me.username)).catch(() => null)
-    : null
+  const profile = await serverApiFetch<ProfileDto>(endpoints.me.profile).catch(() => null)
 
   return (
     <div className="space-y-6">
@@ -31,14 +28,18 @@ export default async function ProfilePage() {
       <Card className="p-7 rounded-2xl border-border/60 max-w-3xl shadow-sm">
         <ProfileForm
           user={{
-            name: publicProfile?.name ?? null,
+            name: profile?.name ?? null,
             username: me.username,
             timeZone: me.timeZone,
-            bio: publicProfile?.bio ?? null,
-            image: publicProfile?.image ?? null,
+            bio: profile?.bio ?? null,
+            image: profile?.image ?? null,
             email: me.email,
-            theme: publicProfile?.theme ?? "LIGHT",
-            brandColor: publicProfile?.brandColor ?? null,
+            theme: profile?.theme ?? "LIGHT",
+            brandColor: profile?.brandColor ?? null,
+            specialty: profile?.specialty ?? null,
+            council: profile?.council ?? null,
+            registrationNumber: profile?.registrationNumber ?? null,
+            clinicName: profile?.clinicName ?? null,
           }}
         />
       </Card>

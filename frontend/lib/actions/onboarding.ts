@@ -22,12 +22,16 @@ export async function completeProfileAction(
     return { success: false, error: parsed.error.issues[0].message }
   }
 
-  const { name, username, timeZone, bio, theme, brandColor } = parsed.data
+  const { name, username, timeZone, bio, theme, brandColor, specialty, council, registrationNumber, clinicName } = parsed.data
   const result = await callApi(
     endpoints.me.profile,
     {
       method: "PUT",
-      body: { name, username, timeZone, bio: bio ?? null, theme, brandColor: brandColor ?? null },
+      body: {
+        name, username, timeZone, bio: bio ?? null, theme, brandColor: brandColor ?? null,
+        specialty: specialty || null, council: council || null,
+        registrationNumber: registrationNumber || null, clinicName: clinicName || null,
+      },
     },
     "Erro ao atualizar o perfil.",
   )

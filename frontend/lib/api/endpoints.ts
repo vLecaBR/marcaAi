@@ -45,10 +45,19 @@ export const endpoints = {
   },
   slots: "/slots",
   public: (username: string) => `/public/${username}`,
+  publicTeam: (slug: string) => `/public/team/${slug}`,
+  // LGPD — direitos do titular (Art. 18)
+  privacy: {
+    exportPatient: "/privacy/patients/export",
+    anonymizePatient: "/privacy/patients/anonymize",
+    exportAccount: "/privacy/account/export",
+    deleteAccount: "/privacy/account",
+  },
   bookings: {
     root: "/bookings",
     byUid: (uid: string) => `/bookings/${uid}`,
     cancel: (uid: string) => `/bookings/${uid}/cancel`,
+    confirm: (uid: string) => `/bookings/${uid}/confirm`,
     pay: (uid: string) => `/bookings/${uid}/pay`,
   },
   payouts: {

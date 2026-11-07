@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react"
+import type { PixChargeDto, PublicQuestionDto } from "@/lib/api/booking-types"
 
 const bookingFormSchema = z.object({
   name:  z.string().min(2, "Nome deve ter ao menos 2 caracteres."),
@@ -21,6 +22,8 @@ const bookingFormSchema = z.object({
   notes: z.string().max(500).optional(),
   responses: z.record(z.string(), z.string()).optional(),
   recurringCount: z.number().int().min(1).max(52).optional(),
+  // LGPD (Arts. 8º e 11): consentimento específico e destacado para o tratamento de dados de saúde.
+  consent: z.boolean().refine((v) => v === true, "É necessário concordar para agendar."),
 })
 
 type BookingFormInput = z.infer<typeof bookingFormSchema>
@@ -31,7 +34,7 @@ interface BookingFormProps {
     id: string; title: string; duration: number
     locationType: string; requiresConfirm: boolean
     price?: number | null
-    questions?: any[]
+    questions?: PublicQuestionDto[]
   }
   owner: { id: string; name: string | null }
   viewerTimeZone: string
@@ -39,7 +42,7 @@ interface BookingFormProps {
 }
 
 type BookingResult =
-  | { status: "success"; requiresConfirm: boolean; pixData?: any }
+  | { status: "success"; requiresConfirm: boolean; pixData?: PixChargeDto | null }
   | { status: "conflict" }
   | { status: "error"; message: string }
 
@@ -84,7 +87,7 @@ export function BookingForm({
         guestPhone:    data.phone,
         guestNotes:    data.notes,
         responses:     data.responses ? Object.entries(data.responses).map(([questionId, answer]) => ({ questionId, answer })) : [],
-        recurringCount: data.recurringCount ?? 1,
+        consentAccepted: data.consent === true,
       }),
     })
 
@@ -132,13 +135,13 @@ export function BookingForm({
             <div className="relative">
               <Input
                 readOnly
-                value={result.pixData.qrCode}
+                value={result.pixData.qrCode ?? ""}
                 className="w-full pr-12 text-xs font-mono"
               />
               <Button 
                 variant="ghost"
                 size="icon"
-                onClick={() => navigator.clipboard.writeText(result.pixData.qrCode)}
+                onClick={() => navigator.clipboard.writeText(result.pixData?.qrCode ?? "")}
                 className="absolute right-1 top-1 h-7 w-7"
                 title="Copiar"
               >
@@ -265,7 +268,7 @@ export function BookingForm({
         {eventType.questions && eventType.questions.length > 0 && (
           <div className="space-y-4 pt-4 border-t border-border mt-6">
             <h3 className="text-sm font-medium">Perguntas adicionais</h3>
-            {eventType.questions.map((q: any) => (
+            {eventType.questions.map((q) => (
               <div key={q.id}>
                 <label className="text-sm font-medium">
                   {q.label}{" "}
@@ -295,6 +298,19 @@ export function BookingForm({
           </div>
         )}
 
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <label className="flex items-start gap-3 text-sm leading-relaxed">
+            <input type="checkbox" {...register("consent")} className="mt-1 size-4 shrink-0 accent-[var(--brand)]" />
+            <span>
+              Autorizo o tratamento dos meus dados pessoais e de saúde (nome, contato e informações que eu informar)
+              pelo profissional e pela plataforma MarcaAí, <strong>apenas</strong> para agendar, confirmar e lembrar desta
+              consulta, conforme a <a href="/privacidade" className="underline">Política de Privacidade</a>.
+              Posso pedir acesso, correção ou exclusão dos meus dados a qualquer momento.
+            </span>
+          </label>
+          {errors.consent && <p className="text-xs text-destructive mt-2">{errors.consent.message}</p>}
+        </div>
+
         <div className="pt-2">
           <Button type="submit" disabled={isSubmitting} className="w-full h-11 rounded-xl">
             {isSubmitting
@@ -304,7 +320,7 @@ export function BookingForm({
               : "Confirmar agendamento"}
           </Button>
           <p className="text-xs text-muted-foreground text-center mt-3">
-            Ao confirmar, você concorda com nossos <a href="/termos" className="underline">Termos</a> e <a href="/privacidade" className="underline">Política de Privacidade</a>.
+            Veja também os <a href="/termos" className="underline">Termos de uso</a>.
           </p>
         </div>
       </form>

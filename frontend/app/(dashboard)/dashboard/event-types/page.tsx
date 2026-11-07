@@ -3,14 +3,13 @@ import { EventTypeList } from "@/components/event-types/event-type-list"
 import { requireOnboarded } from "@/lib/auth/guards"
 import { serverApiFetch } from "@/lib/api/http-client"
 import { endpoints } from "@/lib/api/endpoints"
-import type { EventTypeSummaryDto, TeamSummaryDto } from "@/lib/api/types"
+import type { EventTypeDetailDto, EventTypeSummaryDto, TeamSummaryDto } from "@/lib/api/types"
 
 export const metadata: Metadata = { title: "Tipos de consulta" }
 
 /**
- * Lista de tipos de consulta — 100% via API .NET (`GET /event-types`).
- * Gap: o resumo da API não traz buffers/questions; preenchemos com defaults para o formulário
- * (criação é completa; edição desses campos avançados fica degradada — ver backend-backlog.md).
+ * Lista de tipos de consulta — 100% via API .NET (`GET /event-types` + `GET /event-types/{id}` por item,
+ * que traz buffers, limite de agenda, local e perguntas para o formulário de edição).
  */
 export default async function EventTypesPage() {
   const user = await requireOnboarded()
@@ -20,25 +19,34 @@ export default async function EventTypesPage() {
     serverApiFetch<TeamSummaryDto[]>(endpoints.teams.root).catch(() => [] as TeamSummaryDto[]),
   ])
 
-  const eventTypes = (items ?? []).map((e) => ({
-    id: e.id,
-    title: e.title,
-    slug: e.slug,
-    description: e.description,
-    duration: e.duration,
-    color: e.color,
-    isActive: e.isActive,
-    requiresConfirm: e.requiresConfirm,
-    beforeEventBuffer: 0,
-    afterEventBuffer: 0,
-    bookingLimitDays: null as number | null,
-    locationType: e.locationType,
-    locationValue: null as string | null,
-    price: e.price,
-    questions: [] as unknown[],
-    teamId: null as string | null,
-    _count: { bookings: e.bookingCount },
-  }))
+  const details = await Promise.all(
+    (items ?? []).map((e) =>
+      serverApiFetch<EventTypeDetailDto>(endpoints.eventTypes.byId(e.id)).catch(() => null),
+    ),
+  )
+
+  const eventTypes = (items ?? []).map((e, i) => {
+    const d = details[i]
+    return {
+      id: e.id,
+      title: e.title,
+      slug: e.slug,
+      description: e.description,
+      duration: e.duration,
+      color: e.color,
+      isActive: e.isActive,
+      requiresConfirm: e.requiresConfirm,
+      beforeEventBuffer: d?.beforeEventBuffer ?? 0,
+      afterEventBuffer: d?.afterEventBuffer ?? 0,
+      bookingLimitDays: d?.bookingLimitDays ?? null,
+      locationType: e.locationType,
+      locationValue: d?.locationValue ?? null,
+      price: e.price,
+      questions: d?.questions ?? [],
+      teamId: null as string | null,
+      _count: { bookings: e.bookingCount },
+    }
+  })
 
   return (
     <div className="space-y-6">

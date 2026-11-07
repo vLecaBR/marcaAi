@@ -2,8 +2,7 @@ import { redirect } from "next/navigation"
 
 /**
  * Agendamento com um profissional dentro do contexto da clínica.
- * Enquanto o endpoint público de clínica não existe (docs/backend-backlog.md), redirecionamos
- * para a página individual do profissional, que já é 100% servida pela API. Sem Prisma.
+ * Redireciona para a página individual do profissional (agendamento), que já é servida pela API.
  */
 export default async function TeamMemberPublicPage({
   params,

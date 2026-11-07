@@ -38,6 +38,10 @@ interface ProfileFormProps {
     email: string
     theme?: string
     brandColor?: string | null
+    specialty?: string | null
+    council?: string | null
+    registrationNumber?: string | null
+    clinicName?: string | null
   }
 }
 
@@ -59,6 +63,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
       bio: user.bio ?? "",
       theme: (user.theme as any) ?? "DARK",
       brandColor: user.brandColor ?? "#0f9e8e",
+      specialty: user.specialty ?? "",
+      council: user.council ?? "",
+      registrationNumber: user.registrationNumber ?? "",
+      clinicName: user.clinicName ?? "",
     },
   })
 
@@ -165,6 +173,24 @@ export function ProfileForm({ user }: ProfileFormProps) {
           {errors.bio && (
             <p className="mt-1 text-xs text-destructive">{errors.bio.message}</p>
           )}
+        </div>
+
+        {/* Dados profissionais */}
+        <div>
+          <label className="text-sm font-medium">Especialidade</label>
+          <Input {...register("specialty")} placeholder="Ex.: Psicologia clínica" className="mt-1.5 h-11 rounded-xl" />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Clínica / consultório</label>
+          <Input {...register("clinicName")} placeholder="Nome do local de atendimento" className="mt-1.5 h-11 rounded-xl" />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Conselho profissional</label>
+          <Input {...register("council")} placeholder="CRM, CRP, CREFITO, CRN..." className="mt-1.5 h-11 rounded-xl" />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Número de registro</label>
+          <Input {...register("registrationNumber")} placeholder="Ex.: 06/12345" className="mt-1.5 h-11 rounded-xl" />
         </div>
 
         {/* Timezone */}

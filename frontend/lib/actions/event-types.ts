@@ -4,9 +4,7 @@
  * Tipos de consulta — proxy fino para a API .NET (Fase 5). Sem Prisma/NextAuth.
  * Assinaturas preservadas para os componentes client (`EventTypeList`/`Form`/`Card`).
  *
- * Gap de backend: a API não expõe `questions` do EventType (nem detalhe com buffers).
- * Os campos são enviados no upsert quando suportados; `questions` é ignorado por ora
- * (ver docs/backend-backlog.md).
+ * O upsert envia também as `questions` (formulário pré-consulta); a API substitui a lista inteira.
  */
 
 import { revalidatePath } from "next/cache"
@@ -44,6 +42,13 @@ export async function upsertEventTypeAction(
     locationValue: rest.locationValue ?? null,
     price: rest.price ?? null,
     currency: "BRL",
+    questions: (rest.questions ?? []).map((q, i) => ({
+      label: q.label,
+      type: q.type,
+      placeholder: q.placeholder ?? null,
+      required: q.required,
+      order: i + 1,
+    })),
   }
 
   const result = await apiAction(async () => {

@@ -24,6 +24,7 @@ import {
   Search,
   ChevronDown,
   CreditCard,
+  ShieldCheck,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -141,6 +142,7 @@ export default async function DashboardLayout({
             <NavLink href="/dashboard/plans" icon={<CreditCard />}>Planos e assinatura</NavLink>
             <NavLink href="/settings/profile" icon={<SettingsIcon />}>Perfil</NavLink>
             <NavLink href="/settings/availability" icon={<Clock />}>Disponibilidade</NavLink>
+            <NavLink href="/settings/privacy" icon={<ShieldCheck />}>Privacidade</NavLink>
           </div>
         </nav>
 

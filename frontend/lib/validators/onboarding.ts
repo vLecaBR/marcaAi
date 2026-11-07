@@ -17,6 +17,11 @@ export const profileSchema = z.object({
   bio: z.string().max(160, "Bio deve ter no máximo 160 caracteres.").optional(),
   theme: z.enum(["DARK", "LIGHT", "SYSTEM"]).default("DARK").optional(),
   brandColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida").optional().nullable(),
+  // Dados profissionais de saúde (opcionais)
+  specialty: z.string().max(120).optional().nullable(),
+  council: z.string().max(20).optional().nullable(),
+  registrationNumber: z.string().max(30).optional().nullable(),
+  clinicName: z.string().max(120).optional().nullable(),
 })
 
 export const availabilitySchema = z.object({

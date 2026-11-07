@@ -3,8 +3,7 @@
  * Substitui `createBooking` (Prisma). Mapeia o corpo para `CreateBookingRequest` da API e
  * repassa a resposta (incluindo `pix` quando o serviço tem preço).
  *
- * Gap: `responses` (perguntas) e `recurringCount` ainda não são aceitos pela API — enviados
- * apenas quando o backend suportar (ver docs/backend-backlog.md).
+ * `responses` (perguntas) e `consentAccepted` (LGPD) são repassados; `recurringCount` ainda não é suportado.
  */
 
 import { NextRequest, NextResponse } from "next/server"
@@ -25,6 +24,8 @@ interface BookBody {
   startTimeUtc: string
   endTimeUtc: string
   guestTimeZone: string
+  responses?: { questionId: string; answer: string }[]
+  consentAccepted?: boolean
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -45,6 +46,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     startTimeUtc: body.startTimeUtc,
     endTimeUtc: body.endTimeUtc,
     guestTimeZone: body.guestTimeZone,
+    responses: body.responses ?? [],
+    consentAccepted: body.consentAccepted === true,
   }
 
   try {

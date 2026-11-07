@@ -148,3 +148,46 @@ export interface PublicProfileDto {
   theme: Theme
   timeZone: string
 }
+
+/** `GET /me/profile` → perfil editável do profissional autenticado. */
+export interface ProfileDto {
+  name: string | null
+  username: string | null
+  timeZone: string
+  bio: string | null
+  image: string | null
+  theme: Theme
+  brandColor: string | null
+  specialty: string | null
+  council: string | null
+  registrationNumber: string | null
+  clinicName: string | null
+  onboarded: boolean
+}
+
+/** `GET /event-types/{id}` → tipo de consulta completo (edição). */
+export interface EventTypeDetailDto {
+  id: string
+  title: string
+  slug: string
+  description: string | null
+  duration: number
+  color: EventTypeColor
+  isActive: boolean
+  requiresConfirm: boolean
+  beforeEventBuffer: number
+  afterEventBuffer: number
+  bookingLimitDays: number | null
+  locationType: LocationType
+  locationValue: string | null
+  price: number | null
+  currency: string
+  questions: {
+    id: string
+    label: string
+    type: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX" | "PHONE"
+    placeholder: string | null
+    required: boolean
+    order: number
+  }[]
+}

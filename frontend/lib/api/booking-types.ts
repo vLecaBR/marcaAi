@@ -11,6 +11,23 @@ export interface Slot {
 }
 
 /** `GET /public/{username}` → perfil público + serviços ativos. */
+/** Cobrança PIX devolvida por `POST /bookings` quando o serviço tem preço. */
+export interface PixChargeDto {
+  id: string
+  qrCodeBase64: string | null
+  qrCode: string | null
+  ticketUrl: string | null
+}
+
+export interface PublicQuestionDto {
+  id: string
+  label: string
+  type: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX" | "PHONE"
+  placeholder: string | null
+  required: boolean
+  order: number
+}
+
 export interface PublicEventTypeDto {
   id: string
   title: string
@@ -25,6 +42,7 @@ export interface PublicEventTypeDto {
   beforeEventBuffer: number
   afterEventBuffer: number
   bookingLimitDays: number | null
+  questions: PublicQuestionDto[]
 }
 
 export interface PublicProfileWithEventsDto {
@@ -84,4 +102,21 @@ export interface BookingDetailDto {
   guestTimeZone: string
   locationType: string
   meetingUrl: string | null
+}
+
+/** `GET /public/team/{slug}` — página pública da clínica (sem e-mails). */
+export interface PublicTeamDto {
+  slug: string
+  name: string
+  description: string | null
+  logo: string | null
+  brandColor: string | null
+  theme: string
+  professionals: {
+    username: string
+    name: string | null
+    image: string | null
+    specialty: string | null
+    council: string | null
+  }[]
 }
