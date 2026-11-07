@@ -1,7 +1,7 @@
 # ==============================================================================
-# MarcaAí — API .NET 10 (deploy em container, ex.: Render Web Service via Docker)
-# Contexto de build = pasta `backend/` (defina "Root Directory: backend" no Render).
-# Multi-stage: SDK compila/publica; runtime aspnet roda só o publicado (imagem menor).
+# MarcaAí — API .NET 10 (container; orquestrado pelo docker-compose na F9)
+# Contexto de build = pasta `backend/`.
+# Multi-stage: SDK compila/publica; runtime aspnet roda só o publicado, como não-root.
 # ==============================================================================
 
 # ---- build ----
@@ -16,9 +16,12 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Render roteia para a porta 10000 por padrão (env PORT). Bindamos explicitamente nela.
-ENV ASPNETCORE_URLS=http://0.0.0.0:10000
+# Porta 8080 (padrão das imagens .NET 8+). TLS é terminado pelo Cloudflare/proxy.
+ENV ASPNETCORE_HTTP_PORTS=8080
 ENV ASPNETCORE_ENVIRONMENT=Production
-EXPOSE 10000
+EXPOSE 8080
+
+# Usuário não-root embutido nas imagens .NET 8+ (UID 1654).
+USER app
 
 ENTRYPOINT ["dotnet", "MarcaAi.Api.dll"]
