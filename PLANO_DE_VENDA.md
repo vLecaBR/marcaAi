@@ -75,6 +75,7 @@ Objetivo: a promessa da landing passa a valer em todos os caminhos, testável se
 ---
 
 ### V3 — Contas e provedores reais em modo teste 🧑 + 🤖
+> **Preparado em 08/11/2026 (sem contas ainda):** `scripts/v3-readiness.mjs` (pré-voo: formato das chaves, DNS SPF/DKIM/DMARC e, com `--online`, consulta somente-leitura de Stripe/Resend) e `docs/v3-provas.md` (roteiro de cada prova com cartões de teste e resultado esperado). **Bloqueio:** as provas exigem as contas E1–E5 (domínio, Resend, Stripe, Google).
 Depende de E1–E5 e E8.
 - [ ] 🤖 Ligar e **provar** cada integração (registrar no §9 do plano):
   - [ ] **E-mail**: magic link e confirmações chegando na **caixa de entrada** (Gmail/Outlook) e nota boa no mail-tester; DMARC alinhado.
