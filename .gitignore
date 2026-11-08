@@ -59,3 +59,5 @@ backend/tests/.cov/
 # Produção self-hosted (F9): segredos do compose de produção
 .env.prod
 .deploy-state
+
+**/TestResults/
