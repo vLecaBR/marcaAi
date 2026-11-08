@@ -39,6 +39,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(o =>
         o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
+builder.Services.AddExceptionHandler<MarcaAi.Api.Config.ErrorCaptureHandler>(); // 500 → painel do dono (sem dado pessoal)
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = ctx =>
@@ -231,6 +232,7 @@ builder.Services.AddRateLimiter(o =>
     Add("booking-pay", 30, TimeSpan.FromMinutes(10));
     Add("slots", 120, TimeSpan.FromMinutes(1));
     Add("public-read", 120, TimeSpan.FromMinutes(1));
+    Add("client-errors", 20, TimeSpan.FromMinutes(1));
 });
 
 var app = builder.Build();
@@ -264,6 +266,7 @@ else
 }
 
 app.UseCors(CorsPolicy);
+app.UseMiddleware<MarcaAi.Api.Auth.CsrfOriginGuard>(); // CSRF por origem (achado #17)
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

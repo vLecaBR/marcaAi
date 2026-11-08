@@ -36,6 +36,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
     public DbSet<PayoutAccount> PayoutAccounts => Set<PayoutAccount>();
     public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents => Set<ProcessedWebhookEvent>();
+    public DbSet<ErrorEvent> ErrorEvents => Set<ErrorEvent>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -264,6 +265,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.Property(x => x.EventId).HasMaxLength(200);
             e.HasIndex(x => x.ProcessedAt);
         });
+
+        // ---- error_events (erros inesperados, sem dado pessoal; V2) ----
+        b.Entity<ErrorEvent>(e =>
+        {
+            e.ToTable("error_events");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Source).HasMaxLength(8);
+            e.Property(x => x.Message).HasMaxLength(300);
+            e.Property(x => x.Detail).HasMaxLength(1500);
+            e.Property(x => x.Path).HasMaxLength(200);
+            e.HasIndex(x => x.CreatedAt);
+        });
     }
 
     /// <summary>Aplica nomes de coluna camelCase (padrão do Prisma) a todas as propriedades
@@ -294,9 +307,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             }
         }
 
-        // Booking.Uid: id público gerado por CUID (Prisma @default(cuid())).
+        // Booking.Uid: id público NÃO adivinhável (128 bits aleatórios) — dá acesso anônimo à consulta (achado #16).
         var uid = b.Entity<Booking>().Property(x => x.Uid);
-        uid.HasValueGenerator<CuidValueGenerator>().ValueGeneratedOnAdd();
+        uid.HasValueGenerator<PublicIdValueGenerator>().ValueGeneratedOnAdd();
     }
 
     private static string ToCamelCase(string name) =>

@@ -136,6 +136,7 @@ public static class DependencyInjection
             services.AddScoped<IWhatsAppSender, LoggingWhatsAppSender>();
 
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddSingleton<IErrorRecorder, MarcaAi.Infrastructure.Observability.ErrorRecorder>();
         services.AddScoped<IReminderJob, ReminderJob>();
         services.AddScoped<IExpireUnpaidBookingsJob, MarcaAi.Infrastructure.Jobs.ExpireUnpaidBookingsJob>();
         services.AddScoped<IRetentionJob, MarcaAi.Infrastructure.Jobs.RetentionJob>();

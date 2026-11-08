@@ -40,6 +40,8 @@ public sealed class RetentionJob(
         var tokensGone = await db.VerificationTokens.Where(v => v.Expires < DateTime.UtcNow.AddDays(-1)).ExecuteDeleteAsync(ct);
         var eventsGone = await db.ProcessedWebhookEvents.Where(e => e.ProcessedAt < DateTime.UtcNow.AddDays(-90)).ExecuteDeleteAsync(ct);
 
+        var errorsGone = await db.ErrorEvents.Where(e => e.CreatedAt < DateTime.UtcNow.AddDays(-30)).ExecuteDeleteAsync(ct);
+
         var legacy = await db.Accounts
             .Where(a => (a.AccessToken != null && !a.AccessToken.StartsWith("enc:")) || (a.RefreshToken != null && !a.RefreshToken.StartsWith("enc:")))
             .ToListAsync(ct);
@@ -50,7 +52,7 @@ public sealed class RetentionJob(
         }
         if (legacy.Count > 0) await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("[Retention] tokens de login removidos={Tokens} eventos de webhook removidos={Events} contas OAuth cifradas={Accounts}",
-            tokensGone, eventsGone, legacy.Count);
+        logger.LogInformation("[Retention] tokens de login removidos={Tokens} eventos de webhook removidos={Events} erros antigos removidos={Errors} contas OAuth cifradas={Accounts}",
+            tokensGone, eventsGone, errorsGone, legacy.Count);
     }
 }

@@ -316,6 +316,50 @@ namespace MarcaAi.Infrastructure.Migrations
                     b.ToTable("booking_responses", (string)null);
                 });
 
+            modelBuilder.Entity("MarcaAi.Domain.Entities.ErrorEvent", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(1500)
+                        .HasColumnType("character varying(1500)")
+                        .HasColumnName("detail");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Path")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("path");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("source");
+
+                    b.Property<int?>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("error_events", (string)null);
+                });
+
             modelBuilder.Entity("MarcaAi.Domain.Entities.EventType", b =>
                 {
                     b.Property<string>("Id")
