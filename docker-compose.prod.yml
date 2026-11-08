@@ -69,10 +69,14 @@ services:
       WhatsApp__ApiUrl: ${WHATSAPP_API_URL:-}
       WhatsApp__ApiKey: ${WHATSAPP_API_KEY:-}
       Admin__HangfireUserIds: ${ADMIN_HANGFIRE_USER_IDS:-}
+      # IDs (GUID/CUID) de quem abre o painel do dono em /admin (separados por vírgula). Vazio = ninguém.
+      Admin__UserIds: ${ADMIN_USER_IDS:-}
       Privacy__PolicyVersion: ${PRIVACY_POLICY_VERSION:-1.0}
       # Sem o SQL de cada comando nos logs (ruído e superfície de dado pessoal nos logs — LGPD).
       Logging__LogLevel__Microsoft.EntityFrameworkCore: Warning
       # Rede interna do compose (o cloudflared e o web chegam por aqui). Padrão já cobre as faixas privadas do Docker.
+      # Multiplicador dos limites de requisição (1 = limites reais). Só aumente em teste de carga (docs/load-test.md).
+      RateLimit__Multiplier: ${RATE_LIMIT_MULTIPLIER:-1}
       # Minutos que uma reserva de consulta paga online segura o horário esperando o pagamento.
       Payments__HoldMinutes: ${PAYMENT_HOLD_MINUTES:-15}
       Proxy__TrustedNetworks: ${PROXY_TRUSTED_NETWORKS:-127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7}

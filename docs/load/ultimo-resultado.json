@@ -1,0 +1,34 @@
+{
+  "quando": "2026-11-08T22:34:42.057Z",
+  "api": "http://127.0.0.1:8180",
+  "conexoes": 50,
+  "leitura": {
+    "reqs": 46222,
+    "rps": 2307.9,
+    "p50": 17.9,
+    "p95": 45.6,
+    "p99": 56.9,
+    "max": 253.6,
+    "codigos": {
+      "200": 46222
+    }
+  },
+  "tempestade": {
+    "horarios_distintos": {
+      "disparos": 18,
+      "criados_201": 18,
+      "p95": 322.9,
+      "total_ms": 326,
+      "erros_5xx": 0,
+      "outros": []
+    },
+    "mesmo_horario": {
+      "disparos": 30,
+      "criados_201": 1,
+      "recusados": 29,
+      "erros_5xx": 0,
+      "outros": []
+    }
+  },
+  "falhas": []
+}
