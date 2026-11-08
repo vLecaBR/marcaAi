@@ -54,7 +54,8 @@ export default function proxy(req: NextRequest) {
   const isProtected =
     nextUrl.pathname.startsWith("/dashboard") ||
     nextUrl.pathname.startsWith("/settings") ||
-    nextUrl.pathname.startsWith("/onboarding")
+    nextUrl.pathname.startsWith("/onboarding") ||
+    nextUrl.pathname.startsWith("/admin")
   const isPublic = PUBLIC_ROUTES.has(nextUrl.pathname)
 
   // Sem cookie tentando acessar área logada → login.

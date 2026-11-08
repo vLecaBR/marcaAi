@@ -1,9 +1,19 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
 
 /** Erro inesperado de renderização: mensagem humana e saída clara (sem detalhes técnicos para o usuário). */
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  // Avisa o painel do dono (sem dado pessoal: mensagem curta, digest e caminho sem querystring).
+  useEffect(() => {
+    fetch("/api/client-errors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: error.message, digest: error.digest, path: window.location.pathname }),
+    }).catch(() => {})
+  }, [error])
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-muted/30 px-6 text-center">
       <div>
