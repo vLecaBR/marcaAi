@@ -55,6 +55,9 @@ Método: (1) suíte automatizada completa (`./build.sh` + E2E Playwright); (2) s
 ## Atualização — V1 (07/11/2026)
 Resolvidos no código e cobertos por testes: achados **1** (cobrança: pagar para confirmar com reserva de 15 min, expiração, reembolso tardio, pagar no local, bloqueio de preço sem recebimento), **2** (remarcar), **4** (lista de pacientes e busca), **5** (link online obrigatório), **6** (plano durante o trial), **7** (host vindo da configuração), **8** (calendário só com dias livres) e **9** (linguagem de saúde e marca "MarcaAí"). Também corrigido: a API aceitava agendar **no passado** e além do limite de dias. Continuam em aberto: provedores reais (achado 3 → V3), painel do dono e rastreio de erros (achado 10 → V2).
 
+## Atualização — V2 (08/11/2026)
+Fechados: achado **10** (painel do dono em `/admin` e captura de erros sem dado pessoal; falta só alerta ativo e o monitor externo), os achados pequenos **#16** (uid previsível) e **#17** (CSRF), e as dúvidas de **lembrete** (provado com e-mail capturado), **rate limit** e **fim do trial** (testes automatizados). Medido: acessibilidade (axe) sem violações graves nas telas principais, cobertura do front 93%, E2E em build de produção (8/8, ~1 min) e carga (API 2,3 mil req/s; 30 pacientes no mesmo horário → 1 vence). Continuam **não verificados**: pagamento/e-mail/Google reais (V3), túnel/domínio/R2 (F9/V4).
+
 ## Como repetir
 ```bash
 ./build.sh                      # backend (unit + integração) + front (lint, tsc, unit, build)

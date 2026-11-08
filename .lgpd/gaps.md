@@ -26,10 +26,12 @@ Severidade: 🔴 crítica · 🟠 alta · 🟡 média. Fase = fase do `PLANO_DE_
 | G18 | 🟡 | **Sem testes** de segurança/DSAR/consentimento. | 0 testes no backend | Art. 46 | F8 |
 | G19 | 🟡 | **Supabase/Vercel/Render ainda existem** com dados e credenciais antigas. | plano F10 | Arts. 15, 46 | F10 |
 
-| G20 | 🟠 | **Detalhe e cancelamento de consulta anônimos por `uid` (CUID v1, previsível)** — expõe nome/e-mail do paciente a quem adivinhar. | `BookingsController.GetByUid/Cancel`; plano §2 #16 | Art. 46 | F7 |
-| G21 | 🟡 | **CSRF: antiforgery nunca validado**; só SameSite=Lax protege. | plano §2 #17 | Art. 46 | F7 |
+| G20 | ✅ V2 | **Detalhe e cancelamento de consulta anônimos por `uid` (CUID v1, previsível)** — expõe nome/e-mail do paciente a quem adivinhar. | `BookingsController.GetByUid/Cancel`; plano §2 #16 | Art. 46 | F7 |
+| G21 | ✅ V2 | **CSRF: antiforgery nunca validado**; só SameSite=Lax protege. | plano §2 #17 | Art. 46 | F7 |
 
 **Atualização F3 (06/11/2026):** G05 (IDOR) ✅ corrigido e testado · G06 (magic link em log) ✅ fail-fast em produção · G07 (PII em logs) ✅ removida (corpo de provedores só em Debug; senders simulados sem PII em Information) · G13 parcial (Hangfire protegido; rate limiting segue na F7).
+
+**Atualização V2 (08/11/2026):** G20 e G21 fechados — o uid público da consulta passou a ser aleatório de 128 bits (antes: CUID previsível) e a API bloqueia requisições que alteram estado vindas de outra origem quando há cookie de sessão. Novo tratamento: a tabela `error_events` (erros inesperados) **não** guarda dado pessoal (sem usuário, corpo ou querystring; e-mails e números longos mascarados; retenção de 30 dias) e o painel `/admin` só mostra dados agregados, restrito a `ADMIN_USER_IDS`. Testes cobrem a ausência de e-mail no painel e a limpeza das mensagens.
 
 **Atualização V1 (07/11/2026):** a nova lista de pacientes é derivada das consultas (mesma finalidade, só o próprio profissional vê — coberto por teste de isolamento) e a anonimização existente continua valendo; os e-mails de pagamento/remarcação não trazem dado de saúde além do título do serviço; os atalhos do pagamento simulado respondem 404 fora do modo Fake. Sem prontuário (D16), portanto sem novo dado sensível.
 

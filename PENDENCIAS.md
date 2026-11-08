@@ -33,6 +33,17 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Testar o fluxo real "Conectar Google Agenda" no navegador (consentimento → callback → evento criado na agenda). O backend foi testado até o redirecionamento ao Google.
 - [ ] Tokens do Google em `accounts` continuam em texto no banco (G09) — cifrar na F7.
 
+## V2 — Qualidade e robustez (08/11/2026)
+
+- [ ] 🧑 Preencher `ADMIN_USER_IDS` no `.env.prod` com o seu id (`select id, email from users` — veja `docs/runbook.md`) para abrir o `/admin`.
+- [ ] Sentry/GlitchTip externo (opcional): hoje os erros ficam na tabela `error_events` e no `/admin`; um DSN permitiria alerta por e-mail/Telegram.
+- [ ] Alerta ativo: o `/admin` mostra erros, mas ninguém é avisado. Ligar o monitor externo (F9) e, se quiser, um aviso quando `errors.last24h` passar de um limite.
+- [ ] CSP com nonce (hoje `unsafe-inline` em script/style).
+- [ ] Repetir o teste de carga no PC de produção (com o túnel) e antes do beta (`docs/load-test.md`).
+- [ ] E2E contra a stack completa do compose de produção (hoje: build de produção do Next + API em Development com pagamento simulado).
+- [ ] Lembrete de 24 h e ver um e-mail de lembrete real chegar (depende do Resend).
+- [ ] Cache de `GET /slots/month` e do perfil público se a carga real pedir.
+
 ## V1 — Produto (07/11/2026)
 
 - [ ] Anexar o `.ics` ao e-mail de confirmação (hoje só na página da consulta): exige suporte a anexos no `IEmailClient`/Resend.
@@ -40,7 +51,7 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Favicon e imagem OG próprios (precisa de arte).
 - [ ] Remarcar consulta **paga** mantém o pagamento original; decidir se remarcar para outro serviço/valor deve cobrar a diferença.
 - [ ] `GET /slots/month` calcula até 31 dias por chamada: cachear se a carga (V2) mostrar custo.
-- [ ] Antiforgery/BFF para os novos POSTs públicos (`/api/book/{uid}/reschedule`) segue o padrão do cancelamento; revisar junto com o achado #17.
+- [x] Antiforgery dos novos POSTs públicos coberto pela guarda de origem (V2).
 
 ## F9 — Deploy de produção (no PC)
 
@@ -72,8 +83,8 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] **ZAP baseline:** varredura OWASP não executada (exige baixar a imagem Docker do ZAP — pedir autorização) e o app completo no ar.
 - [ ] RIPD, ROPA, política de incidentes e DPAs finais (`.lgpd/`): rodar as skills `lgpd-ripd`, `lgpd-ropa`, `lgpd-incident-response` quando houver encarregado/advogado.
 - [ ] CSP com nonce (hoje `unsafe-inline` em script/style) — endurecimento futuro.
-- [ ] Antiforgery no BFF ainda não validado de ponta a ponta (achado #17).
-- [ ] Achados #16/#17 (cancelamento/consulta por uid adivinhável, antiforgery) seguem abertos.
+- [x] Antiforgery/CSRF (achado #17): guarda de origem na API + teste (V2).
+- [x] Achado #16 (uid adivinhável): uid aleatório de 128 bits para consultas novas (V2). Consultas antigas mantêm o CUID; em produção o banco começa limpo.
 
 ## Gerais (de fases anteriores)
 - [ ] **Reativar o CI** (`.github/workflows/ci.yml`): desativado em 07/11/2026 por falta de minutos do GitHub Actions (hoje só `workflow_dispatch`). Restaurar o gatilho `push`/`pull_request` na `main` quando houver minutos; enquanto isso, validar localmente com `./build.sh`.

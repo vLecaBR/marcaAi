@@ -56,17 +56,23 @@ Objetivo: a promessa da landing passa a valer em todos os caminhos, testável se
 ---
 
 ### V2 — Qualidade e robustez 🤖 (offline)
-- [ ] E2E contra **build de produção** (`next build && next start`), não `next dev`; roda também contra a stack do compose de produção.
-- [ ] **Teste de carga** (k6): 50 agendamentos simultâneos, página pública a ~100 req/s; dimensiona se o PC aguenta e ajusta o pool do Postgres/Hangfire. Meta: sem erro 5xx, p95 < 500 ms nas rotas públicas.
-- [ ] **Lembrete real**: disparar o job com horário ajustado e ver o e-mail de lembrete chegar (hoje só teste de unidade); idem lembrete de pós-consulta/no-show se existir.
-- [ ] Teste automatizado de **rate limit** e de **expiração de trial**.
-- [ ] Cobertura do front ≥ 70% em `lib/` e hooks; acessibilidade (axe) nas telas públicas e no onboarding.
-- [ ] Achados #16 (consulta/cancelamento por uid adivinhável → token longo/assinado) e #17 (antiforgery do BFF) fechados e testados.
-- [ ] **Rastreio de erros** (Sentry free ou GlitchTip self-hosted) no front e na API, **sem dado pessoal** nos eventos (LGPD); logs estruturados e retenção definida.
-- [ ] Painel mínimo do dono (`/admin`, só seu usuário): cadastros, onboardings concluídos, consultas por dia, erros recentes.
-- [ ] Reativar o CI quando houver minutos (ou rodar o workflow localmente).
+- [x] E2E contra **build de produção** (`next build && next start`), não `next dev`; roda também contra a stack do compose de produção. **Feito:** `next build && next start` é o padrão do Playwright (`E2E_DEV=1` volta ao `next dev`); 8 testes em ~1 min (antes passava de 2 min e oscilava). Rodar contra a stack completa do compose fica para o dia do deploy.
+- [x] **Teste de carga** (k6): 50 agendamentos simultâneos, página pública a ~100 req/s; dimensiona se o PC aguenta e ajusta o pool do Postgres/Hangfire. Meta: sem erro 5xx, p95 < 500 ms nas rotas públicas. **Feito** com script próprio sem dependências (`scripts/loadtest.mjs`, `docs/load-test.md`) contra as imagens de produção: API **2.308 req/s, p95 46 ms**; página pública (Next) 131 req/s, p95 302 ms; 18 agendamentos simultâneos sem erro; 30 disputando o mesmo horário → **1** vence. Repetir no PC de produção (V4).
+- [x] **Lembrete real**: disparar o job com horário ajustado e ver o e-mail de lembrete chegar (hoje só teste de unidade); idem lembrete de pós-consulta/no-show se existir. **Feito:** teste de integração dispara o job com a consulta a 1 h e confere o e-mail capturado (sai uma vez, não repete, não sai para cancelada). Falta ver chegar um e-mail real (Resend, V3).
+- [x] Teste automatizado de **rate limit** e de **expiração de trial**. **Feito:** magic link acima de 20/h por IP → 429 com `Retry-After` (sem o multiplicador da suíte); fim do trial no prazo.
+- [x] Cobertura do front ≥ 70% em `lib/` e hooks; acessibilidade (axe) nas telas públicas e no onboarding. **Feito:** 49% → **93%** de linhas (limiar de 70% atendido) com testes de Server Actions, sessão, guardas, billing e intenção de plano; axe-core nas telas públicas e na jornada (landing, login, legais, 404, serviço, pagamento, consulta, remarcar, pacientes).
+- [x] Achados #16 (consulta/cancelamento por uid adivinhável → token longo/assinado) e #17 (antiforgery do BFF) fechados e testados. **Feito:** `Booking.Uid` agora é aleatório de 128 bits (base64url, 22 caracteres; os antigos continuam válidos); **#17**: guarda de origem (`CsrfOriginGuard`) bloqueia POST/PUT/PATCH/DELETE com cookie de sessão vindo de outra origem; ambos com testes de integração.
+- [x] **Rastreio de erros** (Sentry free ou GlitchTip self-hosted) no front e na API, **sem dado pessoal** nos eventos (LGPD); logs estruturados e retenção definida. **Feito (interno, sem terceiros):** tabela `error_events` (API: exceções não tratadas; front: error boundary), mensagem com e-mails e números longos mascarados, sem corpo/usuário/querystring, retenção de 30 dias. Sentry/GlitchTip externo fica opcional (adicionar um DSN depois).
+- [x] Painel mínimo do dono (`/admin`, só seu usuário): cadastros, onboardings concluídos, consultas por dia, erros recentes. **Feito:** `/admin` (ids em `ADMIN_USER_IDS`; 404 para os demais): cadastros, onboarding, ativados, consultas por status/7 dias, pagamentos e taxa, erros recentes — só números agregados.
+- [ ] Reativar o CI quando houver minutos (ou rodar o workflow localmente). **Não feito** (continua sem minutos do GitHub Actions; `./build.sh` e o E2E rodam localmente).
 
 **Aceite:** relatório de carga no `docs/`; zero P0/P1 abertos; rastreio de erros recebendo um erro de teste.
+
+**Resultado (08/11/2026):** backend 92 unitários + **59** de integração; front **126+4** unitários (cobertura 93%); E2E **8/8** (jornada completa, jornada paga, 4 de acessibilidade) contra o build de produção; carga sem 5xx e sem double-booking.
+**Bugs reais achados pelos testes desta fase:** (1) o limitador do `proxy.ts` do Next valia para todo `/api/book/*` (5 req/min) e **estrangulava o checkout do paciente** (polling do pagamento, pagar, remarcar) — só vale agora para o POST de criação; (2) contraste insuficiente (WCAG AA) na cor primária, no verde de sucesso e nos avisos em âmbar — tokens escurecidos; (3) botões do calendário sem nome acessível; (4) o tema padrão da clínica era DARK no validador e LIGHT na ação; (5) erro de hidratação no contador de prazo; (6) a aprovação do pagamento simulado era bloqueada pela CSP de produção (agora passa pelo servidor do Next).
+**Limites:** carga medida numa só máquina e sem o túnel da Cloudflare; CSP com nonce e CI no GitHub seguem pendentes; lembrete por e-mail só foi provado com e-mail capturado.
+
+---
 
 ### V3 — Contas e provedores reais em modo teste 🧑 + 🤖
 Depende de E1–E5 e E8.
@@ -167,7 +173,7 @@ Semana 9+    V7 lançamento comercial
 | Fase | Início | Fim | Resultado | Desvios |
 |---|---|---|---|---|
 | V1 | 07/11/2026 | 07/11/2026 | Reserva paga com prazo/expiração/reembolso tardio, pagar no local, guard de preço, remarcar, pacientes, calendário por disponibilidade, link online obrigatório, pagamento simulado, revisão de texto/SEO. 49 integração + 80 front + 4 E2E. | Ver seção V1. |
-| V2 | | | | |
+| V2 | 08/11/2026 | 08/11/2026 | uid imprevisível, CSRF por origem, captura de erros + painel do dono, testes de rate limit/trial/lembrete, cobertura 93%, axe, E2E em build de produção, carga. 59 integração + 130 front + 8 E2E. | CI do GitHub segue desligado; CSP com nonce adiada. |
 | V3 | | | | |
 | V4 | | | | |
 | V5 | | | | |

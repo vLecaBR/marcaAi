@@ -39,6 +39,10 @@ Atalho: `$dc = "docker compose --env-file .env.prod -f docker-compose.prod.yml"`
 - Token do túnel: recrie no painel Cloudflare e atualize `CLOUDFLARE_TUNNEL_TOKEN`.
 - Chave do backup (age): gere novo par, troque `BACKUP_AGE_RECIPIENT`; mantenha a privada antiga enquanto existirem backups cifrados com ela.
 
+## Painel do dono e erros
+- `https://app.SEUDOMINIO/admin` (só para os ids em `ADMIN_USER_IDS`): cadastros, onboarding concluído, "ativados" (têm consulta), consultas por status, pagamentos e **erros recentes** (exceções da API e erros de tela). Número de erros subindo = olhar `docker compose ... logs --tail 200 api`.
+- Os erros ficam 30 dias em `error_events` e **não** contêm dado pessoal. Para descobrir o seu id depois de se cadastrar: `docker compose --env-file .env.prod -f docker-compose.prod.yml exec postgres psql -U marcaai -d marcaai -c "select id, email from users"`.
+
 ## Rotina
 - **Diário**: nada (alertas do monitor externo).
 - **Semanal**: `docker compose ... logs --since 168h api | Select-String "fail|crit"`; espaço em disco; confirmar que o backup do dia está no R2.
