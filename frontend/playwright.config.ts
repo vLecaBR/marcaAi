@@ -40,13 +40,23 @@ export default defineConfig({
         Smtp__Port: "1025",
         // Pagamento SIMULADO (só dev/teste): permite a jornada paga offline, sem conta Stripe.
         Payments__Provider: "Fake",
+        // Todas as requisições do E2E vêm do mesmo IP: sem isto o rate limit real (15 agendamentos/10 min) derruba execuções repetidas.
+        RateLimit__Multiplier: "50",
       },
     },
     {
-      command: "npm run dev -- --webpack",
+      // E2E_DEV=1 usa `next dev` (HMR; lento e instável para E2E). O padrão é o BUILD DE PRODUÇÃO (`next build` + `next start`),
+      // que é o que vai ao ar: sem recompilação por rota e sem Fast Refresh abortando navegações.
+      command: process.env.E2E_DEV ? "npm run dev -- --webpack" : "npm run build && npm run start",
       url: "http://localhost:3000",
       reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
+      timeout: 360 * 1000,
+      env: {
+        NEXT_PUBLIC_API_URL: "http://localhost:5080",
+        NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+        // O build de produção lê o aviso do encarregado em tempo de build (páginas estáticas).
+        DPO_EMAIL: "dpo@marcaai.test",
+      },
     },
   ],
 })

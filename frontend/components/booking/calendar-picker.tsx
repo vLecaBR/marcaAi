@@ -103,6 +103,7 @@ export function CalendarPicker({
             variant="ghost"
             onClick={() => setViewMonth((m) => subMonths(m, 1))}
             disabled={isSameMonth(viewMonth, today)}
+            aria-label="Mês anterior"
             className="h-8 w-8 rounded-lg"
           >
             <ChevronLeft size={16} />
@@ -111,6 +112,7 @@ export function CalendarPicker({
             size="icon"
             variant="ghost"
             onClick={() => setViewMonth((m) => addMonths(m, 1))}
+            aria-label="Próximo mês"
             className="h-8 w-8 rounded-lg"
           >
             <ChevronRight size={16} />

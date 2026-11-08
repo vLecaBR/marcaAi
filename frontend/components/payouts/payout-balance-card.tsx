@@ -33,7 +33,7 @@ const KIND_META: Record<PayoutTransactionKind, { icon: typeof Banknote; label: s
 
 const TX_STATUS_LABEL: Record<PayoutTransactionStatus, { text: string; className: string }> = {
   PAID: { text: "Concluído", className: "bg-care/10 text-care" },
-  PENDING: { text: "Pendente", className: "bg-warning/10 text-warning" },
+  PENDING: { text: "Pendente", className: "bg-warning/10 text-warning-foreground" },
   IN_TRANSIT: { text: "A caminho do banco", className: "bg-brand-primary/10 text-brand-primary" },
   FAILED: { text: "Falhou", className: "bg-destructive/10 text-destructive" },
 }

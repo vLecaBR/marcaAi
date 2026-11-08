@@ -39,7 +39,7 @@ const STATUS_STYLES: Record<PayoutAccountStatus, StatusStyle> = {
   PENDING: {
     label: "Cadastro em andamento",
     helper: "Falta pouco: conclua seu cadastro no provedor para começar a receber.",
-    badgeClass: "bg-warning/10 text-warning",
+    badgeClass: "bg-warning/10 text-warning-foreground",
     icon: AlertTriangle,
     iconClass: "text-warning",
   },

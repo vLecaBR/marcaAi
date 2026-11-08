@@ -14,9 +14,9 @@
   --font-size: 16px;
 
   /* Tokens de marca Healthtech (§4.2) — a fonte da verdade da paleta. */
-  --brand-primary: #0f9e8e;         /* teal — ações primárias, confiança */
+  --brand-primary: #0b7a6e;         /* teal — ações primárias, confiança */
   --brand-secondary: #134e6f;       /* azul profundo — cabeçalhos, navegação */
-  --accent-care: #3fbf8f;           /* verde suave — sucesso, "confirmada" */
+  --accent-care: #17784a;           /* verde suave — sucesso, "confirmada" */
   --warning: #e9a23b;               /* âmbar — pendências (pagamento pendente) */
   --warning-foreground: #4a2e00;
   --danger: #d64550;                /* vermelho contido — cancelamento, erro */

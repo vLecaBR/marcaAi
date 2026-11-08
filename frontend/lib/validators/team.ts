@@ -12,7 +12,7 @@ export const teamSchema = z.object({
     .max(64, "Slug muito longo.")
     .regex(/^[a-z0-9-]+$/, "Apenas letras minúsculas, números e hífens."),
   description: z.string().max(500).optional().nullable(),
-  theme: z.enum(["DARK", "LIGHT", "SYSTEM"]).default("DARK").optional(),
+  theme: z.enum(["DARK", "LIGHT", "SYSTEM"]).default("LIGHT").optional(),
   brandColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida").optional().nullable(),
 })
 

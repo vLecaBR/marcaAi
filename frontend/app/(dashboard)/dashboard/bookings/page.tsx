@@ -83,7 +83,7 @@ export default async function BookingsPage() {
       badgeClass = "bg-destructive/10 text-destructive border-destructive/20"
     } else if (isPending) {
       badgeText = "Pendente"
-      badgeClass = "bg-warning/10 text-warning border-warning/20"
+      badgeClass = "bg-warning/10 text-warning-foreground border-warning/20"
     } else if (type === "past") {
       badgeText = "Passado"
       badgeClass = "bg-muted text-muted-foreground border-border"

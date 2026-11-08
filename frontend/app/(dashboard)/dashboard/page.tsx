@@ -87,7 +87,7 @@ export default async function DashboardPage() {
         {[
           { label: "Total de agendamentos", value: totalBookings.toString(), icon: Calendar, color: "bg-secondary text-brand-primary" },
           { label: "Confirmados", value: confirmedCount.toString(), icon: CheckCircle2, color: "bg-care/15 text-care" },
-          { label: "Pendentes", value: pendingCount.toString(), icon: Clock, color: "bg-warning/15 text-warning" },
+          { label: "Pendentes", value: pendingCount.toString(), icon: Clock, color: "bg-warning/15 text-warning-foreground" },
           { label: "Cancelados", value: cancelledCount.toString(), icon: Users, color: "bg-destructive/15 text-destructive" },
         ].map((s) => (
           <StaggerItem key={s.label}>

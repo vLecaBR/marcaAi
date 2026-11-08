@@ -63,7 +63,7 @@ const STATUS_CONFIG: Record<
     ),
     bg:    "bg-warning/10",
     label: "Aguardando confirmação",
-    badge: "bg-warning/10 text-warning",
+    badge: "bg-warning/10 text-warning-foreground",
   },
   CANCELLED: {
     icon: (

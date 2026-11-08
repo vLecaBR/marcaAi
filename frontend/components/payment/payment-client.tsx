@@ -98,7 +98,7 @@ export function PaymentClient({
       </div>
 
       {left !== null && !expired && (
-        <div className="mb-4 flex items-center justify-center gap-2 rounded-xl bg-warning/10 px-4 py-2.5 text-sm text-warning">
+        <div className="mb-4 flex items-center justify-center gap-2 rounded-xl bg-warning/10 px-4 py-2.5 text-sm text-warning-foreground">
           <Clock size={14} /> Horário reservado por mais <b className="tabular-nums">{fmtLeft(left)}</b>
         </div>
       )}
@@ -229,8 +229,8 @@ function FakePanel({ uid }: { uid: string }) {
   async function approve() {
     setBusy(true)
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080"
-      await fetch(`${api}/api/v1/dev/payments/${uid}/approve`, { method: "POST" })
+      // Pelo servidor do Next (a CSP de produção bloqueia chamadas diretas do navegador à API).
+      await fetch(`/api/book/${uid}/fake-approve`, { method: "POST" })
     } finally {
       setBusy(false)
     }

@@ -7,6 +7,7 @@
  * Fluxo: login por magic link (e-mail lido na API do Mailpit) → onboarding → tipo de consulta →
  * agendamento público ponta a ponta (regressão do achado #1) → detalhe e cancelamento.
  */
+import AxeBuilder from "@axe-core/playwright"
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test"
 
 const MAILPIT = process.env.MAILPIT_URL ?? "http://localhost:8025"
@@ -28,7 +29,8 @@ async function linkDoMagicLink(request: APIRequest, email: string): Promise<stri
 }
 type APIRequest = APIRequestContext
 
-async function escolheDiaEHorario(page: Page) {
+/** `pulaDias`: começa a procurar a partir do N-ésimo dia habilitado (evita horários a menos de 24h, que o paciente não remarca). */
+async function escolheDiaEHorario(page: Page, pulaDias = 0) {
   const grade = page.locator(".grid-cols-7").last()
   const dias = grade.locator("button:not([disabled])", { hasText: /^\d{1,2}$/ })
   const horario = page.getByRole("button").filter({ hasText: /^\d{2}:\d{2}$/ }).first()
@@ -36,7 +38,7 @@ async function escolheDiaEHorario(page: Page) {
 
   // O calendário habilita todos os dias futuros (inclusive fins de semana sem agenda): percorre até achar um com horários.
   const total = Math.min(await dias.count(), 12)
-  for (let i = 0; i < total; i++) {
+  for (let i = pulaDias; i < total; i++) {
     // O clique antes da hidratação (next dev) não faz nada: repete até o painel de horários abrir.
     await expect(async () => {
       await dias.nth(i).click()
@@ -74,6 +76,15 @@ async function entraEConfigura(page: Page, request: APIRequest, sufixo: string, 
   // O flag `onboarded` vem no token da sessão: o wizard rotaciona o token em seguida; o teste faz o mesmo.
   expect((await page.request.post("/api/auth/refresh")).ok()).toBeTruthy()
   return username
+}
+
+/** Falha se a tela tiver violação grave/crítica de acessibilidade (WCAG 2.1 A/AA, axe-core). */
+async function acessivel(pg: Page, rotulo: string) {
+  const r = await new AxeBuilder({ page: pg }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()
+  const graves = r.violations
+    .filter((v) => v.impact === "serious" || v.impact === "critical")
+    .map((v) => `${v.id}: ${v.help} (ex.: ${v.nodes[0]?.target.join(" ")})`)
+  expect(graves, `${rotulo}: acessibilidade`).toEqual([])
 }
 
 /** `goto` tolerante a Fast Refresh/compilação do `next dev`, que às vezes aborta a navegação (ERR_ABORTED). */
@@ -212,8 +223,9 @@ test.describe("Jornada paga, remarcação e pacientes (pagamento simulado)", () 
     const pg = await paciente.newPage()
     await vai(pg, `/${username}/sessao-paga`)
     await pg.waitForLoadState("networkidle")
+    await acessivel(pg, "página pública do serviço")
     try {
-      await escolheDiaEHorario(pg)
+      await escolheDiaEHorario(pg, 3)
     } catch (e) {
       await pg.screenshot({ path: testInfo.outputPath("paciente-paga.png"), fullPage: true })
       throw e
@@ -226,6 +238,7 @@ test.describe("Jornada paga, remarcação e pacientes (pagamento simulado)", () 
     await expect(pg).toHaveURL(/\/booking\/[^/]+\/pay/, { timeout: 20_000 })
     const uid = pg.url().split("/booking/")[1].split("/")[0]
     await expect(pg.getByText(/Horário reservado por mais/)).toBeVisible()
+    await acessivel(pg, "pagamento")
     await expect(pg.getByText("R$ 150,00").first()).toBeVisible()
 
     // Antes de pagar, a consulta aparece como aguardando pagamento.
@@ -238,11 +251,13 @@ test.describe("Jornada paga, remarcação e pacientes (pagamento simulado)", () 
     await pg.getByTestId("fake-pay").click()
     await expect(pg).toHaveURL(new RegExp(`/booking/${uid}$`), { timeout: 30_000 })
     await expect(pg.getByRole("heading", { name: "Confirmado" })).toBeVisible()
+    await acessivel(pg, "consulta confirmada")
     await expect(pg.getByText(/pago$/).first()).toBeVisible()
 
     // Remarca (outro dia, com 24h+ de antecedência).
     await pg.getByRole("link", { name: "Remarcar" }).click()
     await expect(pg.getByRole("heading", { name: "Remarcar consulta" })).toBeVisible()
+    await acessivel(pg, "remarcar")
     const horarioAntes = await pg.locator("b").first().textContent()
     const grade = pg.locator(".grid-cols-7").last()
     const dias = grade.locator("button:not([disabled])", { hasText: /^\d{1,2}$/ })
@@ -272,6 +287,7 @@ test.describe("Jornada paga, remarcação e pacientes (pagamento simulado)", () 
     expect(pacientes.some((p) => p.name === "Paciente Pago E2E" && p.totalPaidCents === 15000)).toBeTruthy()
     await vai(page, "/dashboard/patients")
     await expect(page.getByText("Paciente Pago E2E")).toBeVisible({ timeout: 30_000 })
+    await acessivel(page, "lista de pacientes")
 
     await paciente.close()
   })

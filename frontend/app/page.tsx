@@ -113,7 +113,7 @@ export default async function RootPage() {
           {/* Mock app preview */}
           <div className="mt-16 relative hidden md:block">
             <div className="absolute -inset-4 bg-linear-to-r from-brand-primary/20 via-brand-secondary/15 to-brand-primary/20 blur-3xl rounded-[40px]" />
-            <Card className="relative mx-auto max-w-4xl overflow-hidden border-border/60 shadow-2xl rounded-2xl p-0">
+            <Card aria-hidden="true" className="relative mx-auto max-w-4xl overflow-hidden border-border/60 shadow-2xl rounded-2xl p-0">
               <div className="grid grid-cols-1 md:grid-cols-3 bg-card">
                 <div className="p-6 border-r border-border/60 text-left">
                   <div className="w-12 h-12 rounded-full bg-brand-primary/10 mb-4 flex items-center justify-center text-brand-primary font-semibold">
@@ -134,7 +134,7 @@ export default async function RootPage() {
                     {["D","S","T","Q","Q","S","S"].map((d,i) => <div key={i} className="text-center text-muted-foreground py-1 font-medium">{d}</div>)}
                     {Array.from({length: mock.offset}).map((_,i) => <div key={`o${i}`} />)}
                     {Array.from({length: mock.days}).map((_,i) => (
-                      <div key={i} className={`aspect-square rounded-md flex items-center justify-center transition-colors ${i+1===mock.selected?"bg-primary text-primary-foreground shadow-sm":mock.open.includes(i+1)?"hover:bg-secondary cursor-pointer text-foreground":"text-muted-foreground/30"}`}>
+                      <div key={i} className={`aspect-square rounded-md flex items-center justify-center transition-colors ${i+1===mock.selected?"bg-primary text-primary-foreground shadow-sm":mock.open.includes(i+1)?"hover:bg-secondary cursor-pointer text-foreground":"text-muted-foreground"}`}>
                         {i+1}
                       </div>
                     ))}

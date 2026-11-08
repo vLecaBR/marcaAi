@@ -46,13 +46,13 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-warning/10 px-4 py-3 border border-warning/20">
           <div className="flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-warning" />
-            <p className="text-sm font-medium text-warning">
+            <p className="text-sm font-medium text-warning-foreground">
               Assinatura pendente. Ative o plano para a clínica receber agendamentos.
             </p>
           </div>
           <Link
             href={`/dashboard/teams/${team.id}/billing`}
-            className="rounded-lg bg-warning/20 px-3 py-1.5 text-xs font-medium text-warning hover:bg-warning/30 transition-colors"
+            className="rounded-lg bg-warning/20 px-3 py-1.5 text-xs font-medium text-warning-foreground hover:bg-warning/30 transition-colors"
           >
             Assinar agora
           </Link>

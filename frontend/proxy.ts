@@ -21,10 +21,11 @@ export const config = {
 // Rate limit em memória para a rota de agendamento (best-effort; produção usa store distribuído).
 const rateLimit = new Map<string, { count: number; lastReset: number }>()
 const RATE_LIMIT_WINDOW_MS = 60 * 1000
-const MAX_REQUESTS_PER_WINDOW = 5
+const MAX_REQUESTS_PER_WINDOW = 10
 
 function isRateLimited(req: NextRequest): boolean {
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown-ip"
+  // IP real: atrás do Cloudflare vem em CF-Connecting-IP; senão o primeiro item de X-Forwarded-For.
+  const ip = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown-ip"
   const now = Date.now()
   const windowStart = now - RATE_LIMIT_WINDOW_MS
   const record = rateLimit.get(ip)
@@ -41,7 +42,9 @@ function isRateLimited(req: NextRequest): boolean {
 export default function proxy(req: NextRequest) {
   const { nextUrl } = req
 
-  if (nextUrl.pathname.startsWith("/api/book")) {
+  // Só a CRIAÇÃO do agendamento (POST /api/book). Antes valia para todo /api/book/* e estrangulava o checkout do paciente
+  // (polling do pagamento, /pay, /reschedule, /cancel): a API tem os limites próprios de cada rota.
+  if (req.method === "POST" && nextUrl.pathname === "/api/book") {
     if (isRateLimited(req)) {
       return new NextResponse(
         JSON.stringify({ error: "Muitas requisições. Tente novamente mais tarde." }),

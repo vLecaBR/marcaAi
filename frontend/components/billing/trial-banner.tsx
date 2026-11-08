@@ -37,8 +37,8 @@ export function TrialBanner({ billing, upgradeHref = PLANS_ROUTE }: TrialBannerP
       role="status"
       className={`mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 ${
         isWarning
-          ? "border-warning/30 bg-warning/10 text-warning"
-          : "border-brand-primary/20 bg-brand-primary/10 text-brand-primary"
+          ? "border-warning/30 bg-warning/10 text-warning-foreground"
+          : "border-brand-primary/20 bg-brand-primary/10 text-foreground"
       }`}
     >
       <div className="flex items-center gap-2.5">
@@ -51,8 +51,8 @@ export function TrialBanner({ billing, upgradeHref = PLANS_ROUTE }: TrialBannerP
 
       <Link
         href={upgradeHref}
-        className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold text-white transition-colors ${
-          isWarning ? "bg-warning hover:bg-warning/90" : "bg-brand-primary hover:bg-brand-primary/90"
+        className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+          isWarning ? "bg-warning text-warning-foreground hover:bg-warning/90" : "bg-brand-primary text-white hover:bg-brand-primary/90"
         }`}
       >
         Escolher plano
