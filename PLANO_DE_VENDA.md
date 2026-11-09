@@ -4,6 +4,8 @@
 > Convenções: 🤖 = eu executo no repositório · 🧑 = depende de você (conta, decisão, dinheiro, advogado) · ⏱ = prazo de calendário, não de trabalho.
 > Regras de trabalho continuam as mesmas: fase a fase, verificar, atualizar docs, parar e reportar; nada de segredo no git; LGPD em cada fase.
 
+> **Enquanto as contas externas (V3–V5) não existem**, as melhorias internas estão em `PLANO_INTERNO.md` (I1–I6). Contexto para quem abre o repositório: `CLAUDE.md`. Prompt de continuação para um chat novo: `PROMPT_NOVO_CHAT.md`.
+
 ## 0. Veredito honesto
 
 | Pergunta | Resposta |
