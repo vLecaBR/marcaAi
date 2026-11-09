@@ -13,8 +13,26 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MarcaAi.Infrastructure.Persistence;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Log: JSON com traceId fora de Development (Logging:Format = "json" | "simple" força). Ver Config/JsonLogFormatter.
+{
+    var logFormat = builder.Configuration["Logging:Format"] ?? (builder.Environment.IsDevelopment() ? "simple" : "json");
+    if (string.Equals(logFormat, "json", StringComparison.OrdinalIgnoreCase))
+    {
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole(o => o.FormatterName = MarcaAi.Api.Config.JsonLogFormatter.Name);
+        builder.Logging.AddConsoleFormatter<MarcaAi.Api.Config.JsonLogFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>();
+    }
+}
+
+// Desligamento limpo (SIGTERM): termina requisições em curso e deixa os jobs do Hangfire acabarem antes de sair.
+// O compose dá `stop_grace_period` maior que isto.
+builder.Services.Configure<HostOptions>(o =>
+    o.ShutdownTimeout = TimeSpan.FromSeconds(builder.Configuration.GetValue("Shutdown:TimeoutSeconds", 30)));
 
 // Fail-fast: fora de Development, configuração essencial ausente impede o boot (ver ProductionConfigValidator).
 if (!builder.Environment.IsDevelopment())
@@ -45,7 +63,8 @@ builder.Services.AddProblemDetails(options =>
     options.CustomizeProblemDetails = ctx =>
     {
         ctx.ProblemDetails.Instance = ctx.HttpContext.Request.Path;
-        ctx.ProblemDetails.Extensions["traceId"] = ctx.HttpContext.TraceIdentifier;
+        // Mesmo id das linhas de log (Activity W3C); cai para o TraceIdentifier se não houver Activity.
+        ctx.ProblemDetails.Extensions["traceId"] = System.Diagnostics.Activity.Current?.TraceId.ToString() ?? ctx.HttpContext.TraceIdentifier;
     };
 });
 
@@ -181,7 +200,14 @@ builder.Services.AddHangfireServer(o =>
 {
     o.WorkerCount = builder.Configuration.GetValue("Hangfire:WorkerCount", 5);
     o.SchedulePollingInterval = TimeSpan.FromSeconds(30);
+    // Jobs em curso têm este tempo para terminar no SIGTERM (menor que Shutdown:TimeoutSeconds do host).
+    o.ShutdownTimeout = TimeSpan.FromSeconds(builder.Configuration.GetValue("Shutdown:JobsSeconds", 20));
 });
+
+// Saúde: /health/live = processo respondendo; /health/ready = banco + migrations + Hangfire vivo (503 se algo falhar).
+builder.Services.AddHealthChecks()
+    .AddCheck<MarcaAi.Api.Config.DatabaseReadyCheck>("database", tags: ["ready"])
+    .AddCheck<MarcaAi.Api.Config.HangfireReadyCheck>("jobs", tags: ["ready"]);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 6b. Forwarded headers — atrás de proxy que termina TLS (Render/Vercel/etc.).
@@ -287,7 +313,9 @@ app.UseAuthorization();
 }
 
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "marcaai-api" }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "marcaai-api" })); // legado = live
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = r => r.Tags.Contains("ready") });
 
 // Lembretes de consulta a cada 15 min (anti no-show) — substitui o GET /api/cron/reminders do Next.
 app.Services.GetRequiredService<IRecurringJobManager>()

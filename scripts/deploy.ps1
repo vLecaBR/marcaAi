@@ -33,7 +33,7 @@ function Wait-Healthy {
   $deadline = (Get-Date).AddSeconds($TimeoutSec)
   while ((Get-Date) -lt $deadline) {
     try {
-      $api = Invoke-WebRequest "http://127.0.0.1:$apiPort/health" -UseBasicParsing -TimeoutSec 5
+      $api = Invoke-WebRequest "http://127.0.0.1:$apiPort/health/ready" -UseBasicParsing -TimeoutSec 5
       $web = Invoke-WebRequest "http://127.0.0.1:$webPort/login" -UseBasicParsing -TimeoutSec 5
       if ($api.StatusCode -eq 200 -and $web.StatusCode -eq 200) { return $true }
     } catch { }

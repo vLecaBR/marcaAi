@@ -11,9 +11,11 @@ public sealed class ErrorCaptureHandler(IErrorRecorder recorder, ILogger<ErrorCa
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext ctx, Exception ex, CancellationToken ct)
     {
-        logger.LogError(ex, "[Unhandled] {Method} {Path}", ctx.Request.Method, ctx.Request.Path);
+        // Rota (template), não o caminho real: o caminho carrega o uid da consulta (credencial de acesso do paciente).
+        var route = (ctx.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? "(sem rota)";
+        logger.LogError(ex, "[Unhandled] {Method} {Route}", ctx.Request.Method, route);
         var stack = string.Join('\n', (ex.StackTrace ?? "").Split('\n').Take(6).Select(l => l.Trim()));
-        await recorder.RecordAsync("api", $"{ex.GetType().Name}: {ex.Message}", stack, $"{ctx.Request.Method} {ctx.Request.Path}", 500, ct);
+        await recorder.RecordAsync("api", $"{ex.GetType().Name}: {MarcaAi.Infrastructure.Observability.SafeException.Message(ex)}", stack, $"{ctx.Request.Method} {route}", 500, ct);
         return false;
     }
 }
