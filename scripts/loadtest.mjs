@@ -77,6 +77,7 @@ async function leitura(s) {
   const alvos = [
     () => `${API}/api/v1/public/${s.username}`,
     () => `${API}/api/v1/slots?ownerId=${s.ownerId}&eventTypeId=${s.eventTypeId}&date=${dia}&tz=America%2FSao_Paulo`,
+    () => `${API}/api/v1/slots/month?ownerId=${s.ownerId}&eventTypeId=${s.eventTypeId}&month=${dia.slice(0, 7)}&tz=America%2FSao_Paulo`, // calendário do mês (I2: cache + carga única)
     () => `${API}/health`,
   ]
   const t0 = Date.now()

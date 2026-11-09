@@ -29,12 +29,12 @@ Objetivo: qualquer mudança futura é validada com **um comando**, e o serviço 
 
 ### I2 — Backend: confiabilidade e desempenho
 Objetivo: nenhuma notificação se perde; listas escalam; leituras públicas ficam baratas.
-- ⬜ **Outbox de notificações**: tabela `outbox_messages` (tipo, destinatário, payload sem dado desnecessário, tentativas, próxima tentativa, estado); `NotificationService` grava na mesma transação; um job drena com **retry exponencial** e **dead-letter** visível no `/admin`. Testes: falha do e-mail → reenvia; sucesso não duplica; consulta cancelada antes do envio não notifica.
-- ⬜ **Paginação** por cursor/offset em `GET /bookings` e `GET /patients` (com `total`, filtro por período/status/busca no servidor); o front pagina e filtra.
-- ⬜ **Cache** de `GET /public/{user}` e `GET /slots/month` (`IMemoryCache` com expiração curta e **invalidação** ao salvar agenda/serviço/consulta); métricas de acerto. Prova no teste de carga (`docs/load-test.md`).
-- ⬜ **Idempotência** em `POST /bookings` (cabeçalho `Idempotency-Key` do front, protegendo duplo clique/retry de rede) e `POST /bookings/{uid}/pay`.
-- ⬜ Revisão de índices e N+1 com `EXPLAIN` nas consultas quentes (slots, lista de consultas, pacientes, financeiro); migrations de índice quando houver ganho medido.
-- ⬜ Resiliência dos jobs: retries do Hangfire configurados, jobs idempotentes, painel do `/admin` mostrando fila/falhas.
+- ✅ **Outbox de notificações**: tabela `outbox_messages` (tipo, destinatário, payload sem dado desnecessário, tentativas, próxima tentativa, estado); `NotificationService` grava e entrega na hora (no lembrete, a mesma transação do `ReminderSent`); um job drena com **retry exponencial** e **dead-letter** visível no `/admin`. Testes: falha do e-mail → reenvia; sucesso não duplica; consulta cancelada antes do envio não notifica.
+- ✅ **Paginação** por cursor/offset em `GET /bookings` e `GET /patients` (com `total`, filtro por período/status/busca no servidor); o front pagina e filtra.
+- ✅ **Cache** de `GET /public/{user}` e `GET /slots/month` (`IMemoryCache` com expiração curta e **invalidação** ao salvar agenda/serviço/consulta); métricas de acerto. Prova no teste de carga (`docs/load-test.md`).
+- ✅ **Idempotência** em `POST /bookings` (cabeçalho `Idempotency-Key` do front, protegendo duplo clique/retry de rede) e `POST /bookings/{uid}/pay`.
+- ✅ Revisão de índices e N+1 com `EXPLAIN` nas consultas quentes (slots, lista de consultas, pacientes, financeiro); migrations de índice quando houver ganho medido.
+- ✅ Resiliência dos jobs: retries do Hangfire configurados, jobs idempotentes, painel do `/admin` mostrando fila/falhas.
 - **Aceite:** teste que derruba o envio de e-mail e prova a entrega posterior; listas com 10 mil linhas respondem < 200 ms; carga de leitura sem regressão (e melhor no cache); nenhum 5xx no teste de carga.
 
 ### I3 — Produto: o que um profissional de saúde espera de uma agenda
@@ -96,7 +96,7 @@ Objetivo: o dono enxerga a saúde do sistema e confia no backup sem ação manua
 | Fase | Início | Fim | Resultado | Desvios |
 |---|---|---|---|---|
 | I1 | 09/11/2026 | 09/11/2026 | `scripts/verify.sh` verde do zero (14 passos, ~160 s): 92 unit + 69 integração (backend), 130 unit (front), E2E Playwright, lint sem avisos. Hooks testados (pre-commit barra segredo falso). `/health/ready` 503 com o Postgres parado e volta sozinho (provado com a API real). SIGTERM no container: saída 0 em < 2 s. | O teste do formatter de log achou um vazamento real: a `Message` do `PostgresException` traz o DETAIL com valores de colunas (também ia para `error_events`) → `SafeException`. O scanner de segredos reimprimia parte da chave → corrigido (só arquivo:linha). Não provado: drenagem de requisição/job **em curso** no SIGTERM (só o desligamento limpo ocioso); pre-push executado direto (`.githooks/pre-push`, verde em 108 s) e o caminho de pular; não rodei um `git push` de verdade (sem push, por regra). |
-| I2 | | | | |
+| I2 | 09/11/2026 | 09/11/2026 | 96 testes de integração (27 novos: outbox, listas, cache, idempotência, mês, jobs), 132 unitários no front. Carga de leitura 166 → 2.723 req/s e p95 1.096 → 53 ms; sem 5xx; 1 vencedor na disputa. EXPLAIN: conflitos de horário 13,2 → 0,06 ms. | Notificação de consulta nova é gravada logo DEPOIS do commit da consulta (não na mesma transação): uma queda entre os dois comandos perderia o aviso. O teste de listas achou um bug antigo: a lista de consultas mostrava sempre "Consulta" (a API mandava `eventTitle`, o front lia `eventType.title`). Execução abandonada com `Idempotency-Key` retoma e devolve "horário ocupado" (a consulta existe). O E2E de acessibilidade falhou uma vez por corrida com a `transition` dos dias do calendário (axe media cores intermediárias; passava isolado): o helper agora espera as animações finitas terminarem. |
 | I3 | | | | |
 | I4 | | | | |
 | I5 | | | | |

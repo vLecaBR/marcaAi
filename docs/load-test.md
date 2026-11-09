@@ -18,6 +18,22 @@ docker compose ... down -v   # apaga o banco de teste
 ```
 Exemplo do override (`compose.load.yml`): `services.api.environment` com `ASPNETCORE_ENVIRONMENT: Development`, `Payments__Provider: Fake`, `RateLimit__Multiplier: "1000"`, `Resend__ApiKey: ""`, `Smtp__Host: ""`.
 
+## I2 — antes × depois do cache e do calendário em carga única (09/11/2026)
+Mesma máquina, mesmo `loadtest.mjs` (cenário A agora inclui `GET /slots/month`), API em Release/Development contra um Postgres descartável, 50 conexões, 20 s. "Antes" = commit `eee83da` (fim da I1); "depois" = I2.
+
+| Cenário A — leitura pública (perfil + horários do dia + calendário do mês + health) | Antes | Depois |
+|---|---|---|
+| Requisições/s | 166 | **2.723** |
+| p50 / p95 / p99 | 39 / **1.096** / 2.367 ms | 10 / **53** / 76 ms |
+| Erros | 0 | 0 |
+
+| Cenário B — tempestade | Antes | Depois |
+|---|---|---|
+| 18 horários distintos | 18/18, p95 358 ms | 18/18, p95 393 ms |
+| 30 no **mesmo** horário | 1 vencedor, 29 recusados, 0 5xx | 1 vencedor, 29 recusados, 0 5xx |
+
+**Ressalva honesta:** parte do ganho vem de a mistura incluir o calendário do mês, que antes recalculava ~31 dias a cada chamada (consultas ao banco e ao Google por dia) e agora é uma carga só com cache de 30 s; o perfil público também passou a vir do cache (60 s). A escrita (cenário B) não mudou, como esperado (a diferença de p95 é ruído de uma máquina compartilhada com o Docker). Reproduzir: Postgres descartável em outra porta, API com `RateLimit__Multiplier=1000`, `Payments__Provider=Fake`, e `node scripts/loadtest.mjs --api ... --pg <container>`.
+
 ## Resultado de referência (08/11/2026, PC de desenvolvimento, Docker Desktop/WSL2)
 Imagens de produção (`marcaai-api`, `marcaai-web`, Postgres 18), 50 conexões, 20 s:
 

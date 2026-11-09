@@ -134,9 +134,17 @@ Cria a consulta (anti double-booking + disponibilidade + evento Google/Meet). Bo
 → `201` (`uid, startTime, endTime, status, requiresConfirm, eventTitle, meetingUrl`) ·
 `404` evento inexistente · `422` duração inválida / fora da disponibilidade · `409` horário ocupado.
 
-### GET `/bookings` 🔒 (dono)
-Lista as consultas do profissional. Query opcional: `status`, `from`, `to`.
-Retorna `BookingListItemDto[]`.
+**Idempotência (I2):** envie `Idempotency-Key: <8–64 caracteres A-Z a-z 0-9 _ ->` (também em `POST /bookings/{uid}/pay`). A 1ª execução guarda a resposta (2xx/4xx); repetir a mesma chave com o mesmo corpo devolve a MESMA resposta com `Idempotent-Replayed: true`, sem criar outra consulta/cobrança. Repetição enquanto executa → `409` + `Retry-After`; mesma chave com outro corpo → `422`; chave inválida → `400`. 5xx e 429 não são guardados. TTL: 24 h (30 min no pagamento). Sem o cabeçalho, nada muda.
+
+### GET `/bookings` 🔒 (dono) — paginado
+Query: `status`, `from`, `to`, `q` (nome/e-mail do paciente), `scope` = `upcoming` | `pending` | `past` | `cancelled` (as abas), `page` (1…), `pageSize` (padrão 20, máx. 100).
+Retorna `{ items: BookingListItemDto[], total, page, pageSize }`; cada item traz `eventType: { title, color, duration, locationType }`.
+
+### GET `/bookings/summary` 🔒 (dono)
+Contagens (`total`, `confirmed`, `pending`, `cancelled`, `upcoming`, `pendingApproval`, `past`, `cancelledOrExpired`) e `nextUp` (as 5 próximas consultas).
+
+### GET `/patients` 🔒 (dono) — paginado
+Pacientes agrupados por e-mail no banco. Query: `q` (nome, e-mail ou telefone), `page`, `pageSize`. Retorna `{ items: PatientSummaryDto[], total, page, pageSize }`, em ordem alfabética.
 
 ### GET `/bookings/{uid}` (público)
 Detalhe da consulta (página de confirmação). Retorna `BookingDetailDto`. → `404`.

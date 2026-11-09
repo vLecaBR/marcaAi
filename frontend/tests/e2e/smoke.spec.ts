@@ -80,6 +80,17 @@ async function entraEConfigura(page: Page, request: APIRequest, sufixo: string, 
 
 /** Falha se a tela tiver violação grave/crítica de acessibilidade (WCAG 2.1 A/AA, axe-core). */
 async function acessivel(pg: Page, rotulo: string) {
+  // Mede o estado ASSENTADO: botões com `transition` (ex.: dias do calendário que habilitam quando a lista do mês chega) passam por
+  // cores intermediárias durante ~150 ms e o axe, medindo nesse intervalo, acusa contraste que o usuário nunca vê. Espera as
+  // animações/transições FINITAS terminarem (as infinitas, como o spinner, são ignoradas). A regra em si não muda.
+  await pg.evaluate(async () => {
+    await new Promise((r) => requestAnimationFrame(() => r(null)))
+    await Promise.all(
+      document.getAnimations()
+        .filter((a) => (a.effect?.getComputedTiming().iterations ?? 1) !== Infinity)
+        .map((a) => a.finished.catch(() => null)),
+    )
+  })
   const r = await new AxeBuilder({ page: pg }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()
   const graves = r.violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")

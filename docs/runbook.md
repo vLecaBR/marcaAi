@@ -23,6 +23,9 @@ Atalho: `$dc = "docker compose --env-file .env.prod -f docker-compose.prod.yml"`
 5. `api` sobe mas `unhealthy`: o Postgres está `healthy`? `logs postgres`. Disco cheio (`docker system df`, `Get-PSDrive C`)?
 6. Erro logo após um deploy: `scripts\deploy.ps1 -Rollback`.
 
+## Notificações que não saíram (outbox)
+O painel `/admin` mostra "Notificações na fila" (tentando de novo, com espera crescente de 1 min a 12 h) e "Notificações mortas" (esgotaram 8 tentativas). Quase sempre é o provedor de e-mail (Resend/SMTP) fora do ar ou sem remetente verificado: corrija a causa e clique em **Reenviar** em cada morta (o conteúdo fica guardado por 30 dias; depois some). As enviadas viram só metadado e saem em 7 dias. Consulta cancelada antes do envio descarta as mensagens dela (estado SKIPPED) — isso é esperado. `Outbox:MaxAttempts` ajusta o limite.
+
 ## O PC caiu / queimou / foi roubado
 1. Em outra máquina com Docker: clone o repositório; recrie o `.env.prod` (cofre de senhas).
 2. Suba só o banco: `docker compose ... up -d postgres`.

@@ -13,6 +13,7 @@ Só o build/testes (sem E2E, auditoria e segredos): `./build.sh`. Sem Docker, `S
 
 ## Acessibilidade, cobertura e carga (V2)
 - **Acessibilidade:** `@axe-core/playwright` varre landing, login, páginas legais, 404 e, dentro da jornada paga, a página do serviço, o pagamento, a consulta, a remarcação e a lista de pacientes. Falha com violação `serious`/`critical` (WCAG 2.1 A/AA).
+- **I2 (backend/integração):** `I2OutboxTests` (e-mail cai e volta, sem duplicar, cancelada antes do envio, morta e reenfileirada, jobs simultâneos, retenção), `I2ListsTests` (paginação, abas, busca, 10 mil consultas), `I2CacheTests` (acerto, invalidação por API e por gravação, commit × rollback), `I2IdempotencyTests` (replay, corpo diferente, duplo clique simultâneo, pagamento), `I2SlotsMonthTests` (mês = dia a dia), `I2JobsTests` (retries e painel).
 - **Cobertura do front:** `cd frontend && npm run test:coverage` (limiar 70%; hoje ~93% de linhas em `lib/`).
 - **E2E:** roda contra o **build de produção** do Next (`next build && next start`); `E2E_DEV=1` usa o `next dev`. A API do E2E sobe com `RateLimit__Multiplier=50` (todas as requisições vêm do mesmo IP).
 - **Carga:** `scripts/loadtest.mjs` — ver `docs/load-test.md`.

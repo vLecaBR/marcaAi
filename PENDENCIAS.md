@@ -42,6 +42,15 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Logs ainda trazem o `uid` da consulta em alguns eventos de aviso (ex.: `[Refund]`, `[Confirm]`); é credencial de acesso do paciente. Decidir se troca por um hash curto (I5).
 - [ ] Provar a drenagem de requisição/job em curso no SIGTERM (faz parte do caos leve da I6).
 
+## I2 — Backend: confiabilidade e desempenho (09/11/2026)
+
+- [ ] Notificação de consulta **nova** é enfileirada logo depois do commit da consulta, não dentro dele: uma queda do processo entre os dois comandos perde o aviso. Fechar de vez exige gravar o outbox dentro da transação de `BookingService.CreateAsync` (mudança maior; baixa probabilidade).
+- [ ] `Idempotency-Key`: se o processo morrer depois de criar a consulta e antes de guardar a resposta, a repetição (após 2 min) recebe "horário indisponível" mesmo com a consulta criada. Raro; resolver devolvendo a consulta existente pelo e-mail+horário.
+- [ ] Cache de leitura e invalidação valem para **uma** instância da API (deploy atual). Com réplicas, trocar por cache distribuído; `ExecuteUpdate/ExecuteDelete` em consultas/agenda/usuário não invalidam (hoje nenhum caminho os usa nessas entidades).
+- [ ] Sem proteção contra "estouro de cache" (várias requisições calculando a mesma chave ao mesmo tempo no 1º acesso); irrelevante no volume atual.
+- [ ] Outbox: com Resend/SMTP reais, conferir o tempo da 1ª entrega (hoje inline, como antes) e o aviso de mortas no `/admin`. Alertar por webhook as mortas entra na I6.
+- [ ] Lembrete de 24 h e anexo `.ics` seguem na I3 (agora têm onde se apoiar: o outbox).
+
 ## V2 — Qualidade e robustez (08/11/2026)
 
 - [ ] 🧑 Preencher `ADMIN_USER_IDS` no `.env.prod` com o seu id (`select id, email from users` — veja `docs/runbook.md`) para abrir o `/admin`.
@@ -51,7 +60,7 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Repetir o teste de carga no PC de produção (com o túnel) e antes do beta (`docs/load-test.md`).
 - [ ] E2E contra a stack completa do compose de produção (hoje: build de produção do Next + API em Development com pagamento simulado).
 - [ ] Lembrete de 24 h e ver um e-mail de lembrete real chegar (depende do Resend).
-- [ ] Cache de `GET /slots/month` e do perfil público se a carga real pedir.
+- [x] Cache de `GET /slots/month` e do perfil público (I2, invalidação por commit).
 
 ## V1 — Produto (07/11/2026)
 
@@ -59,7 +68,7 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Lembrete de 24 h (hoje só 2 h antes da consulta).
 - [ ] Favicon e imagem OG próprios (precisa de arte).
 - [ ] Remarcar consulta **paga** mantém o pagamento original; decidir se remarcar para outro serviço/valor deve cobrar a diferença.
-- [ ] `GET /slots/month` calcula até 31 dias por chamada: cachear se a carga (V2) mostrar custo.
+- [x] `GET /slots/month` calculava até 31 dias por chamada: agora uma carga só + cache de 30 s (I2).
 - [x] Antiforgery dos novos POSTs públicos coberto pela guarda de origem (V2).
 
 ## F9 — Deploy de produção (no PC)
