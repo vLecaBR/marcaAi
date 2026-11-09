@@ -14,6 +14,9 @@ interface Overview {
   users: { total: number; onboarded: number; newLast7Days: number; activated: number }
   bookings: { byStatus: { status: string; n: number }[]; createdLast7Days: number; upcomingConfirmed: number; pendingPayment: number }
   payments: { paidCount: number; grossCents: number; platformFeeCents: number }
+  jobs: { available: boolean; servers?: number; enqueued?: number; processing?: number; failed?: number; scheduled?: number;
+    recurring?: { id: string; cron: string; lastExecution: string | null; nextExecution: string | null; lastState: string | null }[]
+    recentFailures?: { id: string; job: string; errorType: string | null; failedAt: string | null }[] }
   cache: { area: string; hits: number; misses: number; hitRate: number }[]
   outbox: { pending: number; retrying: number; dead: number; oldestPendingMinutes: number; deadRecent: { id: string; kind: string; channel: string; attempts: number; lastError: string | null; createdAt: string }[] }
   errors: { last24h: number; recent: { source: string; message: string; path: string | null; status: number | null; createdAt: string }[] }
@@ -60,6 +63,35 @@ export default async function AdminPage() {
         {tile("Notificações na fila", o.outbox.pending, o.outbox.pending ? `${o.outbox.retrying} em nova tentativa · mais antiga há ${o.outbox.oldestPendingMinutes} min` : "nada pendente")}
         {tile("Notificações mortas", o.outbox.dead, o.outbox.dead ? "esgotaram as tentativas — veja abaixo" : "nenhuma")}
       </section>
+
+      {o.jobs.available && (
+        <section>
+          <h2 className="mb-2 text-lg font-semibold">Jobs em segundo plano</h2>
+          <p className="mb-2 text-sm text-muted-foreground">
+            {o.jobs.servers} servidor(es) · {o.jobs.enqueued} na fila · {o.jobs.processing} rodando · {o.jobs.scheduled} agendados ·{" "}
+            <b className={o.jobs.failed ? "text-destructive" : ""}>{o.jobs.failed} falhas</b>
+          </p>
+          <Card className="overflow-hidden rounded-2xl border-border/60">
+            <ul className="divide-y divide-border/60 text-sm">
+              {(o.jobs.recurring ?? []).map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
+                  <span className="font-medium">{r.id} <span className="text-xs text-muted-foreground">({r.cron})</span></span>
+                  <span className="text-xs text-muted-foreground">
+                    última: {r.lastExecution ? new Date(r.lastExecution).toLocaleString("pt-BR") : "—"} · {r.lastState ?? "—"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          {(o.jobs.recentFailures ?? []).length > 0 && (
+            <ul className="mt-2 space-y-1 text-xs text-destructive">
+              {(o.jobs.recentFailures ?? []).map((f) => (
+                <li key={f.id}>{f.job} — {f.errorType ?? "erro"}{f.failedAt ? ` · ${new Date(f.failedAt).toLocaleString("pt-BR")}` : ""}</li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {o.cache.length > 0 && (
         <section>

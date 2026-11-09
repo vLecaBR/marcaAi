@@ -58,19 +58,9 @@ public sealed class SlotsController(IAvailabilityService availability, IReadCach
         var viewerTz = string.IsNullOrWhiteSpace(tz) ? "UTC" : tz;
         // 30 s de cache por (profissional, tipo, mês, fuso). Consulta/agenda/exceção do profissional invalidam na hora; o TTL curto
         // cobre o que o cache não enxerga (agenda do Google). O dia clicado sempre consulta os horários reais.
-        var days = await cache.GetOrCreateAsync<string[]?>("slots-month", ownerId, $"{eventTypeId}|{month}|{viewerTz}", TimeSpan.FromSeconds(30), async () =>
-        {
-            var today = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)); // folga de fuso; o cálculo por dia já descarta horários passados
-            var list = new List<string>();
-            for (var d = first; d.Month == first.Month; d = d.AddDays(1))
-            {
-                if (d < today) continue;
-                var r = await availability.GetSlotsForDateAsync(ownerId, eventTypeId, d, viewerTz, ct);
-                if (r is null) return null; // evento/agenda inexistente: não guarda
-                if (r.Slots.Count > 0) list.Add(d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-            }
-            return list.ToArray();
-        }, shouldCache: v => v is not null);
+        var days = await cache.GetOrCreateAsync<IReadOnlyList<string>?>("slots-month", ownerId, $"{eventTypeId}|{month}|{viewerTz}", TimeSpan.FromSeconds(30),
+            () => availability.GetAvailableDaysAsync(ownerId, eventTypeId, first, viewerTz, ct), // null (evento/agenda inexistente) não é guardado
+            shouldCache: v => v is not null);
         if (days is null) return Problem(statusCode: StatusCodes.Status404NotFound, detail: "Evento ou agenda não encontrados.");
         return Ok(new { days });
     }

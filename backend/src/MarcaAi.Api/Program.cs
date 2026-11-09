@@ -191,6 +191,11 @@ var hangfireConn = new Npgsql.NpgsqlConnectionStringBuilder(
     ApplicationName = "marcaai-hangfire"
 }.ConnectionString;
 
+// Resiliência dos jobs (I2): 5 tentativas com espera crescente (30 s, 2 min, 10 min, 30 min, 1 h) em vez das 10 padrão do Hangfire,
+// e uma execução por vez de cada job (um job lento não empilha a próxima rodada). Os filtros são globais e estáticos: remove os
+// antigos antes de pôr os nossos (vários hosts de teste no mesmo processo não duplicam).
+MarcaAi.Api.Config.HangfireResilience.Apply();
+
 builder.Services.AddHangfire(cfg => cfg
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()

@@ -204,6 +204,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasIndex(x => x.PayoutAccountId);
             // Índice composto crítico p/ a query anti double-booking.
             e.HasIndex(x => new { x.UserId, x.StartTime, x.EndTime, x.Status });
+            // I2 (medido com EXPLAIN ANALYZE): a consulta de conflitos de horário filtra por endTime > início da janela; sem este índice
+            // ela varre todo o histórico do profissional (a composta acima começa por startTime < fim da janela).
+            e.HasIndex(x => new { x.UserId, x.EndTime });
+            // I2: o job que expira reservas sem pagamento roda a cada minuto e olha só PENDING com prazo — índice parcial minúsculo.
+            e.HasIndex(x => x.PaymentDueAt).HasDatabaseName("IX_bookings_paymentDueAt_pending")
+                .HasFilter("status = 'PENDING' AND \"paymentDueAt\" IS NOT NULL");
             e.HasOne(x => x.Owner).WithMany(u => u.BookingsAsOwner)
                 .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.EventType).WithMany(t => t.Bookings)

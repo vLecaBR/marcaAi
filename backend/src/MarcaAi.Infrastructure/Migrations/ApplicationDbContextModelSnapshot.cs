@@ -269,6 +269,10 @@ namespace MarcaAi.Infrastructure.Migrations
 
                     b.HasIndex("GuestEmail");
 
+                    b.HasIndex("PaymentDueAt")
+                        .HasDatabaseName("IX_bookings_paymentDueAt_pending")
+                        .HasFilter("status = 'PENDING' AND \"paymentDueAt\" IS NOT NULL");
+
                     b.HasIndex("PayoutAccountId");
 
                     b.HasIndex("ProviderPaymentId");
@@ -281,6 +285,8 @@ namespace MarcaAi.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "EndTime");
 
                     b.HasIndex("UserId", "StartTime", "EndTime", "Status");
 

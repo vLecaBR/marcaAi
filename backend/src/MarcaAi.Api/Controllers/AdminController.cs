@@ -16,7 +16,7 @@ namespace MarcaAi.Api.Controllers;
 [ApiController]
 [Route("api/v1/admin")]
 [Authorize]
-public sealed class AdminController(ApplicationDbContext db, IConfiguration config, MarcaAi.Application.Common.Interfaces.IReadCache cache) : ControllerBase
+public sealed class AdminController(ApplicationDbContext db, IConfiguration config, MarcaAi.Application.Common.Interfaces.IReadCache cache, Hangfire.JobStorage jobs) : ControllerBase
 {
     private bool IsAdmin()
     {
@@ -71,9 +71,29 @@ public sealed class AdminController(ApplicationDbContext db, IConfiguration conf
         var deadCount = await db.OutboxMessages.AsNoTracking().CountAsync(o => o.Status == OutboxStatus.DEAD, ct);
         var oldestPendingMinutes = pendingOutbox.Count == 0 ? 0 : (int)(now - pendingOutbox.Min(o => o.CreatedAt)).TotalMinutes;
 
+        // Jobs (Hangfire): estado geral, cada job recorrente e as últimas falhas — só nome e tipo do erro (a mensagem pode ter dado pessoal).
+        object jobsInfo;
+        try
+        {
+            var mon = jobs.GetMonitoringApi();
+            var st = mon.GetStatistics();
+            using var conn = jobs.GetConnection();
+            var recurring = Hangfire.Storage.StorageConnectionExtensions.GetRecurringJobs(conn)
+                .OrderBy(r => r.Id)
+                .Select(r => new { r.Id, r.Cron, lastExecution = r.LastExecution, nextExecution = r.NextExecution, lastState = r.LastJobState }).ToList();
+            var failed = mon.FailedJobs(0, 10).Select(f => new
+            {
+                id = f.Key, job = f.Value.Job is null ? "?" : $"{f.Value.Job.Type.Name}.{f.Value.Job.Method.Name}",
+                errorType = f.Value.ExceptionType, failedAt = f.Value.FailedAt,
+            }).ToList();
+            jobsInfo = new { available = true, servers = st.Servers, enqueued = st.Enqueued, processing = st.Processing, failed = st.Failed, scheduled = st.Scheduled, recurring, recentFailures = failed };
+        }
+        catch { jobsInfo = new { available = false }; }
+
         return Ok(new
         {
             generatedAt = now,
+            jobs = jobsInfo,
             cache = cache.Stats().Select(kv => new
             {
                 area = kv.Key, hits = kv.Value.Hits, misses = kv.Value.Misses,
