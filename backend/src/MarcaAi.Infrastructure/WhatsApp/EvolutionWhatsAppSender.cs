@@ -37,9 +37,13 @@ public sealed class EvolutionWhatsAppSender(
             req.Headers.Add("apikey", apiKey);
             using var res = await http.SendAsync(req, cancellationToken);
             if (!res.IsSuccessStatusCode)
-                logger.LogError("[WhatsApp] Falha ({Status})", (int)res.StatusCode); if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[WhatsApp] Falha — corpo da resposta: {Body}", await res.Content.ReadAsStringAsync(cancellationToken));
+            {
+                logger.LogError("[WhatsApp] Falha ({Status})", (int)res.StatusCode);
+                if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[WhatsApp] Falha — corpo da resposta: {Body}", await res.Content.ReadAsStringAsync(cancellationToken));
+                throw new HttpRequestException($"Evolution API respondeu {(int)res.StatusCode}", null, res.StatusCode);
+            }
         }
-        catch (Exception ex) { logger.LogError(ex, "[WhatsApp] Erro ao enviar mensagem"); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogError("[WhatsApp] Erro ao enviar mensagem ({Type})", ex.GetType().Name); throw; }
     }
 
     /// <summary>Limpa e adiciona DDI 55 (Brasil) se ausente.</summary>

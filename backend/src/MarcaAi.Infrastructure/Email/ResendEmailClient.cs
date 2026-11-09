@@ -25,8 +25,13 @@ public sealed class ResendEmailClient(
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
             using var res = await http.SendAsync(req, cancellationToken);
             if (!res.IsSuccessStatusCode)
-                logger.LogError("[Resend] Falha ({Status})", (int)res.StatusCode); if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[Resend] Falha — corpo da resposta: {Body}", await res.Content.ReadAsStringAsync(cancellationToken));
+            {
+                logger.LogError("[Resend] Falha ({Status})", (int)res.StatusCode);
+                if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("[Resend] Falha — corpo da resposta: {Body}", await res.Content.ReadAsStringAsync(cancellationToken));
+                // Só o status (o corpo pode citar o destinatário). O outbox decide se repete.
+                throw new HttpRequestException($"Resend respondeu {(int)res.StatusCode}", null, res.StatusCode);
+            }
         }
-        catch (Exception ex) { logger.LogError(ex, "[Resend] Erro ao enviar e-mail"); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogError("[Resend] Erro ao enviar e-mail ({Type})", ex.GetType().Name); throw; }
     }
 }

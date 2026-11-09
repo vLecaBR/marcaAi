@@ -136,6 +136,9 @@ public static class DependencyInjection
             services.AddScoped<IWhatsAppSender, LoggingWhatsAppSender>();
 
         services.AddScoped<INotificationService, NotificationService>();
+        // Outbox de notificações: entrega com repetição (I2). O mesmo objeto atende o caminho rápido e o job.
+        services.AddScoped<OutboxDispatcher>();
+        services.AddScoped<IOutboxDrainJob>(sp => sp.GetRequiredService<OutboxDispatcher>());
         services.AddSingleton<IErrorRecorder, MarcaAi.Infrastructure.Observability.ErrorRecorder>();
         services.AddScoped<IReminderJob, ReminderJob>();
         services.AddScoped<IExpireUnpaidBookingsJob, MarcaAi.Infrastructure.Jobs.ExpireUnpaidBookingsJob>();

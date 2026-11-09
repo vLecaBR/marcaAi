@@ -47,11 +47,12 @@ public sealed class ReminderJob(
 
             // WhatsApp reminder é premium (Q7): só envia se o plano do profissional permitir.
             var allowWhatsApp = await plans.UserHasFeatureAsync(b.UserId, "whatsapp_reminders", cancellationToken);
-            await notify.NotifyBookingReminderAsync(n, allowWhatsApp, cancellationToken);
+            // Marca ANTES: o Notify grava o outbox com SaveChanges, então "lembrado" e "mensagem na fila" saem na mesma transação.
             b.ReminderSent = true;
+            await notify.NotifyBookingReminderAsync(n, allowWhatsApp, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("[Reminder] {Count} lembrete(s) enviado(s).", due.Count);
+        logger.LogInformation("[Reminder] {Count} lembrete(s) enfileirado(s).", due.Count);
     }
 }

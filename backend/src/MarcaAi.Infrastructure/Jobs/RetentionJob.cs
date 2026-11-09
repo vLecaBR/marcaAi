@@ -1,5 +1,7 @@
 using MarcaAi.Application.Common.Interfaces;
 using MarcaAi.Infrastructure.Persistence;
+using MarcaAi.Domain.Entities;
+using MarcaAi.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -42,6 +44,11 @@ public sealed class RetentionJob(
 
         var errorsGone = await db.ErrorEvents.Where(e => e.CreatedAt < DateTime.UtcNow.AddDays(-30)).ExecuteDeleteAsync(ct);
 
+        // Outbox: enviadas/descartadas viram só metadado e saem em 7 dias; as mortas (conteúdo guardado para reenvio) em 30.
+        var outboxGone = await db.OutboxMessages.Where(o =>
+            ((o.Status == OutboxStatus.SENT || o.Status == OutboxStatus.SKIPPED) && o.ProcessedAt < DateTime.UtcNow.AddDays(-7))
+            || (o.Status == OutboxStatus.DEAD && o.ProcessedAt < DateTime.UtcNow.AddDays(-30))).ExecuteDeleteAsync(ct);
+
         var legacy = await db.Accounts
             .Where(a => (a.AccessToken != null && !a.AccessToken.StartsWith("enc:")) || (a.RefreshToken != null && !a.RefreshToken.StartsWith("enc:")))
             .ToListAsync(ct);
@@ -52,7 +59,7 @@ public sealed class RetentionJob(
         }
         if (legacy.Count > 0) await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("[Retention] tokens de login removidos={Tokens} eventos de webhook removidos={Events} erros antigos removidos={Errors} contas OAuth cifradas={Accounts}",
-            tokensGone, eventsGone, errorsGone, legacy.Count);
+        logger.LogInformation("[Retention] tokens de login removidos={Tokens} eventos de webhook removidos={Events} erros antigos removidos={Errors} contas OAuth cifradas={Accounts} outbox removidas={Outbox}",
+            tokensGone, eventsGone, errorsGone, legacy.Count, outboxGone);
     }
 }

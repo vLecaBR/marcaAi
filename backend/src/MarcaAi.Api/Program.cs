@@ -327,6 +327,15 @@ app.Services.GetRequiredService<IRecurringJobManager>()
     .AddOrUpdate<IExpireUnpaidBookingsJob>("reservas-sem-pagamento",
         j => j.RunAsync(CancellationToken.None), "* * * * *");
 
+// Outbox de notificações: entrega o que falhou no caminho rápido, com espera crescente (I2). A cada minuto.
+// Jobs:OutboxEnabled=false (só os testes de integração) não agenda o job, para ele não competir com a execução manual do teste.
+if (app.Configuration.GetValue("Jobs:OutboxEnabled", true))
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IOutboxDrainJob>("outbox-notificacoes",
+            j => j.RunAsync(CancellationToken.None), "* * * * *");
+else
+    app.Services.GetRequiredService<IRecurringJobManager>().RemoveIfExists("outbox-notificacoes");
+
 // Retenção/higiene diária (03:30 UTC): anonimiza consultas antigas, limpa tokens/eventos efêmeros e cifra tokens legados.
 app.Services.GetRequiredService<IRecurringJobManager>()
     .AddOrUpdate<IRetentionJob>("retencao-lgpd",

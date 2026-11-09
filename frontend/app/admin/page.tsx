@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card"
 import { requireOnboarded } from "@/lib/auth/guards"
 import { serverApiFetch } from "@/lib/api/http-client"
 import { isApiError } from "@/lib/api/problem-details"
+import { RequeueButton } from "./requeue-button"
 
 export const metadata: Metadata = { title: "Painel do dono", robots: { index: false, follow: false } }
 export const dynamic = "force-dynamic"
@@ -13,6 +14,7 @@ interface Overview {
   users: { total: number; onboarded: number; newLast7Days: number; activated: number }
   bookings: { byStatus: { status: string; n: number }[]; createdLast7Days: number; upcomingConfirmed: number; pendingPayment: number }
   payments: { paidCount: number; grossCents: number; platformFeeCents: number }
+  outbox: { pending: number; retrying: number; dead: number; oldestPendingMinutes: number; deadRecent: { id: string; kind: string; channel: string; attempts: number; lastError: string | null; createdAt: string }[] }
   errors: { last24h: number; recent: { source: string; message: string; path: string | null; status: number | null; createdAt: string }[] }
 }
 
@@ -54,6 +56,8 @@ export default async function AdminPage() {
         {tile("Pagamentos", o.payments.paidCount, brl(o.payments.grossCents))}
         {tile("Taxa da plataforma", brl(o.payments.platformFeeCents))}
         {tile("Erros (24 h)", o.errors.last24h, o.errors.last24h ? "veja abaixo" : "tudo calmo")}
+        {tile("Notificações na fila", o.outbox.pending, o.outbox.pending ? `${o.outbox.retrying} em nova tentativa · mais antiga há ${o.outbox.oldestPendingMinutes} min` : "nada pendente")}
+        {tile("Notificações mortas", o.outbox.dead, o.outbox.dead ? "esgotaram as tentativas — veja abaixo" : "nenhuma")}
       </section>
 
       <section>
@@ -64,6 +68,27 @@ export default async function AdminPage() {
           ))}
         </div>
       </section>
+
+      {o.outbox.deadRecent.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-semibold">Notificações que não saíram</h2>
+          <Card className="overflow-hidden rounded-2xl border-border/60">
+            <ul className="divide-y divide-border/60 text-sm">
+              {o.outbox.deadRecent.map((m) => (
+                <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                  <div>
+                    <div className="font-medium">{m.kind} <span className="rounded bg-muted px-1.5 py-0.5 text-xs uppercase">{m.channel}</span></div>
+                    <div className="text-xs text-muted-foreground">
+                      {m.attempts} tentativas · {new Date(m.createdAt).toLocaleString("pt-BR")}{m.lastError ? ` · ${m.lastError}` : ""}
+                    </div>
+                  </div>
+                  <RequeueButton id={m.id} />
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 text-lg font-semibold">Erros recentes</h2>

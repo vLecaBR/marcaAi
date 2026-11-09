@@ -26,12 +26,16 @@ public sealed class SmtpEmailClient(IConfiguration config, ILogger<SmtpEmailClie
             msg.To.Add(to);
             await client.SendMailAsync(msg, cancellationToken);
         }
-        catch (Exception ex) { logger.LogError(ex, "[SMTP] Erro ao enviar e-mail"); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogError("[SMTP] Erro ao enviar e-mail ({Type})", ex.GetType().Name); throw; }
     }
 }
 
 public sealed class SmtpMagicLinkSender(IEmailClient email) : IMagicLinkSender
 {
-    public Task SendAsync(string toEmail, string magicLinkUrl, CancellationToken cancellationToken = default) =>
-        email.SendAsync(toEmail, MagicLinkEmail.Subject, MagicLinkEmail.Html(magicLinkUrl), cancellationToken);
+    public async Task SendAsync(string toEmail, string magicLinkUrl, CancellationToken cancellationToken = default)
+    {
+        // O login nunca falha por causa do e-mail (o cliente de e-mail agora lança; antes engolia o erro).
+        try { await email.SendAsync(toEmail, MagicLinkEmail.Subject, MagicLinkEmail.Html(magicLinkUrl), cancellationToken); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { /* já registrado pelo cliente */ }
+    }
 }

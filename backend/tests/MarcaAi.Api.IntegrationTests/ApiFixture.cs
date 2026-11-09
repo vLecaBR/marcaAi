@@ -38,6 +38,7 @@ public sealed class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
             ["Stripe__ConnectWebhookSecret"] = StripeConnectSecret,
             ["DataProtection__KeysPath"] = Path.Combine(Path.GetTempPath(), "marcaai-it-keys-" + Guid.NewGuid()),
             ["RateLimit__Multiplier"] = "1000",
+            ["Jobs__OutboxEnabled"] = "false", // os testes do outbox rodam o job à mão (sem corrida com o agendamento)
             ["Payments__Provider"] = "Fake", // jornada paga offline (nunca fala com o Stripe)
             ["Resend__ApiKey"] = "", ["Smtp__Host"] = "", ["Google__ClientId"] = "", ["Google__ClientSecret"] = "",
             ["MercadoPago__AccessToken"] = "", ["MercadoPago__WebhookSecret"] = "",
@@ -92,6 +93,8 @@ public sealed class TestUser(ApiFixture api, string id, string email, string coo
 {
     public string Id { get; } = id;
     public string Email { get; } = email;
+    /// <summary>Cookie de sessão pronto para o cabeçalho (para usar com outro host de teste).</summary>
+    public string Cookies { get; } = cookies;
 
     public Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body = null)
     {

@@ -37,6 +37,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PayoutAccount> PayoutAccounts => Set<PayoutAccount>();
     public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents => Set<ProcessedWebhookEvent>();
     public DbSet<ErrorEvent> ErrorEvents => Set<ErrorEvent>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -276,6 +277,24 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.Property(x => x.Detail).HasMaxLength(1500);
             e.Property(x => x.Path).HasMaxLength(200);
             e.HasIndex(x => x.CreatedAt);
+        });
+
+        // ---- outbox_messages (notificações com entrega garantida; I2) ----
+        b.Entity<OutboxMessage>(e =>
+        {
+            e.ToTable("outbox_messages");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Channel).HasMaxLength(10);
+            e.Property(x => x.Kind).HasMaxLength(40);
+            e.Property(x => x.BookingUid).HasMaxLength(64);
+            e.Property(x => x.Recipient).HasMaxLength(320);
+            e.Property(x => x.Subject).HasMaxLength(300);
+            e.Property(x => x.LastError).HasMaxLength(300);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(10);
+            // Fila de entrega: pendentes por próxima tentativa; e limpeza/painel por estado e data.
+            e.HasIndex(x => new { x.Status, x.NextAttemptAt });
+            e.HasIndex(x => new { x.Status, x.ProcessedAt });
+            e.HasIndex(x => x.BookingUid);
         });
     }
 

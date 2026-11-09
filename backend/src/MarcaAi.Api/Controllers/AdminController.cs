@@ -1,4 +1,5 @@
 using MarcaAi.Api.Auth;
+using MarcaAi.Domain.Entities;
 using MarcaAi.Domain.Enums;
 using MarcaAi.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -23,6 +24,17 @@ public sealed class AdminController(ApplicationDbContext db, IConfiguration conf
         if (id is null) return false;
         var raw = (config["Admin:UserIds"] ?? "") + "," + (config["Admin:HangfireUserIds"] ?? "");
         return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(id);
+    }
+
+    /// <summary>Recoloca na fila uma mensagem morta (o conteúdo foi guardado justamente para isso). Tentativas voltam a zero.</summary>
+    [HttpPost("outbox/{id}/requeue")]
+    public async Task<IActionResult> Requeue(string id, CancellationToken ct)
+    {
+        if (!IsAdmin()) return NotFound();
+        var n = await db.OutboxMessages.Where(o => o.Id == id && o.Status == OutboxStatus.DEAD)
+            .ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, OutboxStatus.PENDING).SetProperty(o => o.Attempts, 0)
+                .SetProperty(o => o.NextAttemptAt, DateTime.UtcNow).SetProperty(o => o.ProcessedAt, (DateTime?)null), ct);
+        return n == 0 ? NotFound() : NoContent();
     }
 
     [HttpGet("overview")]
@@ -51,9 +63,22 @@ public sealed class AdminController(ApplicationDbContext db, IConfiguration conf
         var recent = await db.ErrorEvents.AsNoTracking().OrderByDescending(e => e.CreatedAt).Take(30)
             .Select(e => new { e.Source, e.Message, e.Path, e.Status, e.CreatedAt }).ToListAsync(ct);
 
+        // Fila de notificações (outbox): sem destinatário nem conteúdo — só tipo, tentativas e o erro já mascarado.
+        var pendingOutbox = await db.OutboxMessages.AsNoTracking().Where(o => o.Status == OutboxStatus.PENDING).ToListAsync(ct);
+        var deadOutbox = await db.OutboxMessages.AsNoTracking().Where(o => o.Status == OutboxStatus.DEAD)
+            .OrderByDescending(o => o.ProcessedAt).Take(30)
+            .Select(o => new { o.Id, o.Kind, o.Channel, o.Attempts, o.LastError, o.CreatedAt }).ToListAsync(ct);
+        var deadCount = await db.OutboxMessages.AsNoTracking().CountAsync(o => o.Status == OutboxStatus.DEAD, ct);
+        var oldestPendingMinutes = pendingOutbox.Count == 0 ? 0 : (int)(now - pendingOutbox.Min(o => o.CreatedAt)).TotalMinutes;
+
         return Ok(new
         {
             generatedAt = now,
+            outbox = new
+            {
+                pending = pendingOutbox.Count, retrying = pendingOutbox.Count(o => o.Attempts > 0), dead = deadCount,
+                oldestPendingMinutes, deadRecent = deadOutbox,
+            },
             users = new { total = users, onboarded, newLast7Days = newUsers7d, activated },
             bookings = new { byStatus, createdLast7Days = bookings7d, upcomingConfirmed = upcoming, pendingPayment },
             payments = new { paidCount = paid?.N ?? 0, grossCents = paid?.Cents ?? 0, platformFeeCents = paid?.Fee ?? 0 },
