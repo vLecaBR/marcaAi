@@ -7,7 +7,9 @@
 | Frontend — unitários | `frontend/tests/unit` | `cd frontend && npm test` | `ApiError` ↔ status, cliente do browser, `rawApiFetch` (CSRF, cookie, IP real), BFF (401 → refresh → retry), `plan-config`, `brand-theme`, `formatBRLCents`, `usePaymentStatus` (backoff) |
 | E2E (Playwright) | `frontend/tests/e2e` | `cd frontend && npm run test:e2e` | Landing/login/páginas legais; login por magic link (e-mail lido no Mailpit), onboarding, tipo de consulta, **agendamento público ponta a ponta** com consentimento obrigatório, detalhe e cancelamento; **jornada paga** (bloqueio sem recebimento, reserva com contador, pagamento simulado, confirmação, remarcação, lista de pacientes) |
 
-Tudo de uma vez (build + unitários + integração + lint + build do front): `./build.sh`. Sem Docker, `SKIP_INTEGRATION=1 ./build.sh` pula a integração.
+**Verificação única (recomendada):** `scripts/verify.sh` (Windows: `scriptserify.ps1`) — segredos, build e testes do backend (unit + integração), migrations sem mudança pendente, auditoria de dependências, front (tsc, lint **sem avisos**, unit, build) e E2E contra o build de produção; resume por passo e sai com 1 se algo falhar. `--fast` pula o E2E (é o que o pre-push roda); `--no-docker` pula integração e E2E (não substitui o completo). Hooks: `scripts/install-hooks.sh`. O scanner de segredos tem teste próprio (`scripts/tests/test-scan-secrets.sh`).
+
+Só o build/testes (sem E2E, auditoria e segredos): `./build.sh`. Sem Docker, `SKIP_INTEGRATION=1 ./build.sh` pula a integração.
 
 ## Acessibilidade, cobertura e carga (V2)
 - **Acessibilidade:** `@axe-core/playwright` varre landing, login, páginas legais, 404 e, dentro da jornada paga, a página do serviço, o pagamento, a consulta, a remarcação e a lista de pacientes. Falha com violação `serious`/`critical` (WCAG 2.1 A/AA).

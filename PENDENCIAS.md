@@ -33,6 +33,15 @@ Lista viva de tudo que ficou para depois por depender de contas externas, decis�
 - [ ] Testar o fluxo real "Conectar Google Agenda" no navegador (consentimento → callback → evento criado na agenda). O backend foi testado até o redirecionamento ao Google.
 - [ ] Tokens do Google em `accounts` continuam em texto no banco (G09) — cifrar na F7.
 
+## I1 — Fundação de engenharia (09/11/2026)
+
+- [ ] 🧑 Decidir o destino dos specs históricos em `docs/` (`future-phases-spec.md`, `recovery-spec.md`, `spec_q.md`, `phase-0-plan.md`, `specs/frontend-healthtech-spec.md`): descrevem a era Vercel/Render/NextAuth e ainda são citados por ADRs e pelo `PLANO_DE_LANCAMENTO.md`. Recomendação: mover para `docs/arquivo/` e ajustar as citações (não apaguei).
+- [ ] 8 avisos **moderados** do `npm audit` (minimatch ReDoS na cadeia do eslint/typescript-eslint, só desenvolvimento). A correção exige major do eslint; reavaliar quando o `eslint-config-next` suportar. O `verify` falha só em alto/crítico.
+- [ ] `dotnet-ef` global está na 10.0.10 e os pacotes na 10.0.14 (aviso inofensivo): `dotnet tool update -g dotnet-ef`.
+- [ ] Dependências com major novo (eslint 10, typescript 7, vitest 5, recharts 3, react-day-picker 10…): atualizar uma a uma, com teste, fora das fases de feature.
+- [ ] Logs ainda trazem o `uid` da consulta em alguns eventos de aviso (ex.: `[Refund]`, `[Confirm]`); é credencial de acesso do paciente. Decidir se troca por um hash curto (I5).
+- [ ] Provar a drenagem de requisição/job em curso no SIGTERM (faz parte do caos leve da I6).
+
 ## V2 — Qualidade e robustez (08/11/2026)
 
 - [ ] 🧑 Preencher `ADMIN_USER_IDS` no `.env.prod` com o seu id (`select id, email from users` — veja `docs/runbook.md`) para abrir o `/admin`.

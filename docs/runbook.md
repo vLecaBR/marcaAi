@@ -8,7 +8,7 @@ Atalho: `$dc = "docker compose --env-file .env.prod -f docker-compose.prod.yml"`
 | Subir tudo | `docker compose --env-file .env.prod -f docker-compose.prod.yml up -d` |
 | Derrubar (dados ficam nos volumes) | `docker compose ... down` — **nunca** `down -v` em produção (apaga o banco) |
 | Logs (api/web/backup/cloudflared) | `docker compose ... logs -f --tail 100 api` |
-| Atualizar a versão | `scripts\deploy.ps1` (rollback automático se `/health` falhar) |
+| Atualizar a versão | `scripts\deploy.ps1` (rollback automático se `/health/ready` falhar) |
 | Voltar a versão anterior | `scripts\deploy.ps1 -Rollback` |
 | Reiniciar um serviço | `docker compose ... restart api` |
 | Shell no banco | `docker compose ... exec postgres psql -U marcaai -d marcaai` |
@@ -16,7 +16,7 @@ Atalho: `$dc = "docker compose --env-file .env.prod -f docker-compose.prod.yml"`
 | Restaurar (teste) | `scripts\restore-backup.ps1 -Dump ARQ.dump.age -Identity chave.txt` |
 
 ## O site caiu — triagem (5 minutos)
-1. `https://api.SEUDOMINIO/health` responde? Se **não**: o PC/internet/Docker está fora (próximo item). Se **sim** mas o app não: veja `logs web`.
+1. `https://api.SEUDOMINIO/health/ready` responde 200? (`/health/live` só diz que o processo está de pé; `ready` também exige banco, migrations e jobs. 503 = banco ou jobs fora.) Se **não**: o PC/internet/Docker está fora (próximo item). Se **sim** mas o app não: veja `logs web`.
 2. No PC: Docker Desktop está rodando? `docker ps`. Se não, abra-o; os containers voltam (`restart: unless-stopped`).
 3. `ps` mostra `cloudflared` reiniciando? Token inválido/expirado → recrie o token no painel e atualize `CLOUDFLARE_TUNNEL_TOKEN`, depois `up -d cloudflared`.
 4. `api` não sobe: `logs api` mostra a validação de configuração (ex.: falta `RESEND_API_KEY`). Corrija o `.env.prod` e `up -d api`.

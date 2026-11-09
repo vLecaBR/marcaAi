@@ -223,7 +223,7 @@ Config (user-secrets): `Stripe:SecretKey`, `Stripe:WebhookSecret`, `Stripe:Price
 ---
 
 ## Infra
-- `GET /health` — status do serviço.
+- `GET /health/live` — processo respondendo (200). `GET /health/ready` — banco, migrations e Hangfire (200 `Healthy` / 503 `Unhealthy`, sem detalhes). `GET /health` — legado, igual ao live.
 - `GET /openapi/v1.json` (dev) — documento OpenAPI.
 - `/hangfire` — dashboard de jobs.
 

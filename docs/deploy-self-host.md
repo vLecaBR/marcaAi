@@ -42,10 +42,10 @@ powershell -ExecutionPolicy Bypass -File scripts\deploy.ps1 -NoPull
 ```
 (Se quiser rodar `.\scripts\deploy.ps1` direto: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.)
 
-O script constrói as imagens com tag = commit, sobe tudo, espera `/health` da API e `/login` do web e, se falhar, volta para a versão anterior. Depois, confira:
+O script constrói as imagens com tag = commit, sobe tudo, espera `/health/ready` da API e `/login` do web e, se falhar, volta para a versão anterior. Depois, confira:
 ```powershell
 docker compose --env-file .env.prod -f docker-compose.prod.yml ps
-curl https://api.SEUDOMINIO/health      # {"status":"ok",...}
+curl https://api.SEUDOMINIO/health/ready   # Healthy (503 se banco/jobs fora)
 ```
 Abra `https://app.SEUDOMINIO` no celular com 4G (fora da sua rede).
 
@@ -89,7 +89,7 @@ Retenção: 7 diários + 4 semanais (domingo) + 6 mensais (dia 01), tanto no vol
 
 ## 7. Monitoramento externo (🧑, gratuito)
 Crie num serviço como UptimeRobot / Better Stack / Healthchecks.io:
-- HTTP `https://api.SEUDOMINIO/health` (a cada 5 min) e `https://app.SEUDOMINIO/login`.
+- HTTP `https://api.SEUDOMINIO/health/ready` (a cada 5 min) e `https://app.SEUDOMINIO/login`.
 - Alerta por e-mail e/ou Telegram. Assim você descobre quando o PC/internet cai.
 - Backup: use um *heartbeat* (Healthchecks.io) chamado ao fim do backup, se quiser alerta de "backup não rodou".
 

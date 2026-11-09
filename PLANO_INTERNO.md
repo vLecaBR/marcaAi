@@ -19,12 +19,12 @@ Pontos fracos reais, vistos no código e nos testes:
 
 ### I1 — Fundação de engenharia (verificação única, higiene, saúde do serviço)
 Objetivo: qualquer mudança futura é validada com **um comando**, e o serviço diz a verdade sobre si mesmo.
-- ⬜ `scripts/verify.sh` (e `verify.ps1`): build + testes backend/front + lint + E2E (build de produção) + varredura de segredos + auditoria de dependências; saída resumida e código de saída correto. Opção `--fast` (sem E2E) e `--no-docker`.
-- ⬜ Hook de **pre-push** (instalável por `scripts/install-hooks.sh`) rodando `verify --fast`; hook de **pre-commit** com varredura de segredos (padrões `sk_live_`, `AGE-SECRET-KEY`, `whsec_`, `re_…`, `.env`, dumps).
-- ⬜ `GET /health/live` (processo) e `GET /health/ready` (banco responde, migrations aplicadas, Hangfire vivo); o compose usa `ready`.
-- ⬜ Log **estruturado** (JSON) com `traceId` em toda linha e nos ProblemDetails; nível por ambiente; sem dado pessoal (revisão dos `LogInformation` existentes).
-- ⬜ Desligamento limpo (SIGTERM: termina requisições e jobs em curso) e teste de que as migrations não deixam o modelo defasado (`dotnet ef migrations has-pending-model-changes` no `verify`).
-- ⬜ Higiene: eliminar os 5 avisos de lint, remover código e docs mortos (NextAuth, specs obsoletas), `npm audit` / `dotnet list package --vulnerable` sem alto/crítico (ou registrados), atualizar dependências com patch seguro.
+- ✅ `scripts/verify.sh` (e `verify.ps1`): build + testes backend/front + lint + E2E (build de produção) + varredura de segredos + auditoria de dependências; saída resumida e código de saída correto. Opção `--fast` (sem E2E) e `--no-docker`.
+- ✅ Hook de **pre-push** (instalável por `scripts/install-hooks.sh`) rodando `verify --fast`; hook de **pre-commit** com varredura de segredos (padrões `sk_live_`, `AGE-SECRET-KEY`, `whsec_`, `re_…`, `.env`, dumps).
+- ✅ `GET /health/live` (processo) e `GET /health/ready` (banco responde, migrations aplicadas, Hangfire vivo); o compose usa `ready`.
+- ✅ Log **estruturado** (JSON) com `traceId` em toda linha e nos ProblemDetails; nível por ambiente; sem dado pessoal (revisão dos `LogInformation` existentes).
+- ✅ Desligamento limpo (SIGTERM: termina requisições e jobs em curso) e teste de que as migrations não deixam o modelo defasado (`dotnet ef migrations has-pending-model-changes` no `verify`).
+- ✅ Higiene: eliminar os 5 avisos de lint, remover código e docs mortos (NextAuth, specs obsoletas), `npm audit` / `dotnet list package --vulnerable` sem alto/crítico (ou registrados), atualizar dependências com patch seguro. _(feito: lint com zero avisos e exigido no verify; `noUnusedLocals` ligado; 2 docs mortos removidos; specs históricos ainda referenciados ficaram — ver PENDENCIAS; 8 avisos moderados do npm são só da cadeia do eslint, registrados; .NET sem vulnerabilidade e só com majors pendentes)_
 - **Aceite:** `scripts/verify.sh` verde do zero; `/health/ready` fica 503 com o Postgres parado e volta sozinho; hooks instalados e testados.
 
 ### I2 — Backend: confiabilidade e desempenho
@@ -95,7 +95,7 @@ Objetivo: o dono enxerga a saúde do sistema e confia no backup sem ação manua
 ## 3. Registro de execução
 | Fase | Início | Fim | Resultado | Desvios |
 |---|---|---|---|---|
-| I1 | | | | |
+| I1 | 09/11/2026 | 09/11/2026 | `scripts/verify.sh` verde do zero (14 passos, ~160 s): 92 unit + 69 integração (backend), 130 unit (front), E2E Playwright, lint sem avisos. Hooks testados (pre-commit barra segredo falso). `/health/ready` 503 com o Postgres parado e volta sozinho (provado com a API real). SIGTERM no container: saída 0 em < 2 s. | O teste do formatter de log achou um vazamento real: a `Message` do `PostgresException` traz o DETAIL com valores de colunas (também ia para `error_events`) → `SafeException`. O scanner de segredos reimprimia parte da chave → corrigido (só arquivo:linha). Não provado: drenagem de requisição/job **em curso** no SIGTERM (só o desligamento limpo ocioso); pre-push só testado pelo caminho de pular. |
 | I2 | | | | |
 | I3 | | | | |
 | I4 | | | | |

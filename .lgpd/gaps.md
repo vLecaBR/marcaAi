@@ -62,6 +62,8 @@ Severidade: 🔴 crítica · 🟠 alta · 🟡 média. Fase = fase do `PLANO_DE_
 - Novo dado pessoal do profissional: especialidade, conselho, nº de registro, clínica (A003).
 - Efeito colateral positivo: o cancelamento deixou de aceitar o papel `OWNER` vindo do corpo anônimo (decidido pela identidade autenticada).
 
+**Atualização I1 (09/11/2026):** revisão técnica dos logs. (1) A `Message` de erros do Postgres inclui o `DETAIL` com valores de colunas (e-mail, por exemplo); log e `error_events` agora usam `SafeException` (código, texto-base e restrição) — teste cobre. (2) O log JSON não imprime escopos (o `RequestPath` leva o uid da consulta) e o erro 500 registra o **template** da rota, não o caminho real. (3) Novo: pre-commit e `verify` barram segredos/dumps no git. Aberto (baixo): `uid` ainda aparece em alguns avisos de log — ver `PENDENCIAS.md`.
+
 Totais: 6 críticos · 8 altos · 5 médios.
 
 ## Ações imediatas (alto retorno, baixo esforço)

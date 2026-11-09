@@ -21,6 +21,8 @@ Meta: relançar **hospedado no PC do dono** (Docker Compose + Cloudflare Tunnel)
 
 ## Comandos
 ```bash
+scripts/verify.sh [--fast|--no-docker]  # VERIFICAÇÃO ÚNICA (CI local): segredos, backend unit+integração, migrations, auditoria, front, E2E. No Windows: powershell -ExecutionPolicy Bypass -File scriptserify.ps1
+scripts/install-hooks.sh            # pre-commit (segredos) + pre-push (verify --fast); SKIP_VERIFY=1 git push pula em emergência
 ./build.sh                          # backend (build + unit + integração) + front (lint, tsc, unit, build). SKIP_INTEGRATION=1 pula a integração
 cd frontend && npx playwright test  # E2E contra o BUILD DE PRODUÇÃO do Next (E2E_DEV=1 usa next dev); sobe a API sozinho
 cd frontend && npm run test:coverage
@@ -35,6 +37,7 @@ node scripts/v3-readiness.mjs       # pré-voo das contas (só quando houver con
 
 ## Arquitetura (o que não é óbvio no código)
 - **BFF:** o navegador só fala com o Next (`/api/bff/*` com allowlist em `lib/api/config.ts`, `/api/book/*` públicas, Server Actions). O Next fala com a API (`API_INTERNAL_URL`). Cookies de sessão HttpOnly (`marcaai_at`/`marcaai_rt`); o flag `onboarded` vai **no token** — depois de concluir o onboarding é preciso `POST /api/auth/refresh`.
+- **Saúde/logs:** `/health/live` (processo), `/health/ready` (banco + migrations + Hangfire; 503 sem detalhe) e `/health` (legado = live). Fora de Development o log é JSON com `traceId` (o mesmo do ProblemDetails), sem escopos; exceções passam por `SafeException` (a `Message` do `PostgresException` traz o DETAIL com valores de colunas).
 - **Segurança:** `CsrfOriginGuard` (origem) na API; rate limit nativo por IP (`RateLimit:Multiplier` só para testes/carga); `Booking.Uid` aleatório de 128 bits; `ProductionConfigValidator` falha o boot de produção sem config essencial; CSP no `next.config.ts`; `proxy.ts` do Next limita só `POST /api/book`.
 - **Agendamento:** anti double-booking = `pg_advisory_xact_lock` por profissional + `FOR UPDATE SKIP LOCKED` (`BookingConcurrencyGuard`). Consulta **paga online** = reserva `PENDING` com `PaymentDueAt` (15 min, `Payments:HoldMinutes`) → webhook confirma → job `reservas-sem-pagamento` expira; pagamento tardio é reembolsado. `PayOnSite` = cobrança no consultório. Remarcação: paciente ≥24 h antes e ≤2x; profissional sem limite.
 - **Pagamento simulado:** `Payments:Provider=Fake` (só dev/teste; o boot de produção recusa) + `POST /api/v1/dev/...` (404 fora do modo Fake). `ApiFixture` e `playwright.config.ts` já ligam.
