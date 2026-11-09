@@ -10,7 +10,6 @@ import { Stagger, StaggerItem } from "@/components/motion/primitives"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import { RoleBadge, roleLabel } from "@/components/team/role-badge"
 import {
   inviteTeamMemberAction,

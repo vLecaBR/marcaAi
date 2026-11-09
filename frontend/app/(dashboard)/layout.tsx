@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { Logo } from "@/components/ui/logo"
-import { Input } from "@/components/ui/input"
 import { NavLink } from "@/components/dashboard/nav-link"
 import { DevNav } from "@/components/dashboard/dev-nav"
 import { GlobalSearch } from "@/components/dashboard/global-search"
@@ -22,7 +21,6 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   Clock,
-  Search,
   ChevronDown,
   CreditCard,
   ShieldCheck,

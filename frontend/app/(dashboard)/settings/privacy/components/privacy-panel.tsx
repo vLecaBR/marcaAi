@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -21,6 +22,7 @@ function download(filename: string, data: unknown) {
 }
 
 export function PrivacyPanel() {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [confirm, setConfirm] = useState("")
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -56,7 +58,8 @@ export function PrivacyPanel() {
     const r = await deleteAccountAction(confirm)
     if (!r.success) return setMsg({ ok: false, text: r.error })
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => null)
-    window.location.assign("/")
+    router.push("/")
+    router.refresh() // descarta o cache de dados do usuário que acabou de sair
   })
 
   return (

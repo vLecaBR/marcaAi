@@ -1,6 +1,6 @@
 "use client"
 
-import { useForm, useFieldArray } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useState } from "react"
 import { availabilitySchema, type AvailabilityInput } from "@/lib/validators/onboarding"
@@ -61,7 +61,6 @@ export function StepAvailability({
   const {
     register,
     handleSubmit,
-    control,
     watch,
     setValue,
     formState: { errors, isSubmitting },

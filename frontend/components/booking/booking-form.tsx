@@ -4,11 +4,11 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { formatInTimeZone } from "date-fns-tz"
 import { ptBR } from "date-fns/locale"
 import { format } from "date-fns"
 import type { Slot } from "@/lib/api/booking-types"
-import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
@@ -54,6 +54,7 @@ export function BookingForm({
   viewerTimeZone,
   onBack,
 }: BookingFormProps) {
+  const router = useRouter()
   const [result, setResult] = useState<BookingResult | null>(null)
 
   const {
@@ -100,7 +101,7 @@ export function BookingForm({
       setResult({ status: "error", message: json.message ?? json.error ?? "Erro ao agendar." })
     } else if (json.paymentRequired && json.uid) {
       // Consulta paga online → a reserva segura o horário e o checkout confirma (PIX × Cartão + polling).
-      window.location.assign(`/booking/${json.uid}/pay`)
+      router.push(`/booking/${json.uid}/pay`)
     } else {
       setResult({
         status: "success",

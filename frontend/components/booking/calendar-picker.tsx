@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, addMonths, subMonths, isSameMonth,
-  isSameDay, isToday, isBefore, startOfDay, format,
+  isBefore, startOfDay, format,
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
