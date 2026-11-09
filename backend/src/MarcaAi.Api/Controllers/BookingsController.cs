@@ -75,15 +75,27 @@ public sealed class BookingsController(
         };
     }
 
-    /// <summary>Lista as consultas do profissional autenticado (dashboard). Filtros opcionais.</summary>
+    private static readonly System.Linq.Expressions.Expression<Func<Domain.Entities.Booking, BookingListItemDto>> ToListItem = b =>
+        new BookingListItemDto(
+            b.Uid, b.GuestName, b.GuestEmail, b.GuestPhone, b.StartTime, b.EndTime, b.Status,
+            new BookingEventTypeDto(b.EventType.Title, b.EventType.Color, b.EventType.Duration, b.EventType.LocationType),
+            b.MeetingUrl, b.PaymentStatus);
+
+    /// <summary>
+    /// Lista paginada das consultas do profissional autenticado (dashboard). Filtros: <c>status</c>, <c>from</c>/<c>to</c>,
+    /// <c>q</c> (nome ou e-mail do paciente) e <c>scope</c> = upcoming | pending | past | cancelled (as abas da tela).
+    /// Paginação: <c>page</c> (1…) e <c>pageSize</c> (padrão 20, máx. 100). Devolve <c>{ items, total, page, pageSize }</c>.
+    /// </summary>
     [Authorize]
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<BookingListItemDto>>> List(
+    public async Task<ActionResult<PagedResult<BookingListItemDto>>> List(
         [FromQuery] string? status, [FromQuery] DateTimeOffset? from, [FromQuery] DateTimeOffset? to,
+        [FromQuery] string? q, [FromQuery] string? scope, [FromQuery] int? page, [FromQuery] int? pageSize,
         CancellationToken ct)
     {
         var userId = User.GetUserId();
         if (userId is null) return Unauthorized();
+        var (pg, size) = PagedResult<BookingListItemDto>.Normalize(page, pageSize);
 
         var query = db.Bookings.AsNoTracking().Where(b => b.UserId == userId);
 
@@ -92,16 +104,51 @@ public sealed class BookingsController(
             query = query.Where(b => b.Status == st);
         if (from is { } f) query = query.Where(b => b.StartTime >= f.UtcDateTime);
         if (to is { } t) query = query.Where(b => b.StartTime <= t.UtcDateTime);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var like = "%" + q.Trim().Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
+            query = query.Where(b => EF.Functions.ILike(b.GuestName, like) || EF.Functions.ILike(b.GuestEmail, like));
+        }
 
-        var items = await query
-            .OrderByDescending(b => b.StartTime)
-            .Select(b => new BookingListItemDto(
-                b.Uid, b.GuestName, b.GuestEmail, b.GuestPhone,
-                b.StartTime, b.EndTime, b.Status, b.EventType.Title,
-                b.MeetingUrl, b.PaymentStatus))
-            .ToListAsync(ct);
+        var now = DateTime.UtcNow;
+        var ascending = false;
+        switch (scope?.ToLowerInvariant())
+        {
+            case "upcoming": query = query.Where(b => b.Status == Domain.Enums.BookingStatus.CONFIRMED && b.StartTime > now); ascending = true; break;
+            case "pending": query = query.Where(b => b.Status == Domain.Enums.BookingStatus.PENDING && b.StartTime > now); ascending = true; break;
+            case "past": query = query.Where(b => b.Status == Domain.Enums.BookingStatus.CONFIRMED && b.StartTime <= now); break;
+            case "cancelled": query = query.Where(b => b.Status == Domain.Enums.BookingStatus.CANCELLED || (b.Status == Domain.Enums.BookingStatus.PENDING && b.StartTime <= now)); break;
+        }
 
-        return Ok(items);
+        var total = await query.CountAsync(ct);
+        var ordered = ascending ? query.OrderBy(b => b.StartTime).ThenBy(b => b.Id) : query.OrderByDescending(b => b.StartTime).ThenBy(b => b.Id);
+        var items = await ordered.Skip((pg - 1) * size).Take(size).Select(ToListItem).ToListAsync(ct);
+
+        return Ok(new PagedResult<BookingListItemDto>(items, total, pg, size));
+    }
+
+    /// <summary>Contagens por aba/status e as próximas consultas — alimenta o dashboard sem baixar a lista inteira.</summary>
+    [Authorize]
+    [HttpGet("summary")]
+    public async Task<ActionResult<BookingSummaryDto>> Summary(CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        var now = DateTime.UtcNow;
+        var own = db.Bookings.AsNoTracking().Where(b => b.UserId == userId);
+
+        var byStatus = await own.GroupBy(b => b.Status).Select(g => new { Status = g.Key, N = g.Count() }).ToListAsync(ct);
+        int N(Domain.Enums.BookingStatus s) => byStatus.FirstOrDefault(x => x.Status == s)?.N ?? 0;
+        var upcoming = await own.CountAsync(b => b.Status == Domain.Enums.BookingStatus.CONFIRMED && b.StartTime > now, ct);
+        var pendingApproval = await own.CountAsync(b => b.Status == Domain.Enums.BookingStatus.PENDING && b.StartTime > now, ct);
+        var past = await own.CountAsync(b => b.Status == Domain.Enums.BookingStatus.CONFIRMED && b.StartTime <= now, ct);
+        var cancelledOrExpired = await own.CountAsync(b => b.Status == Domain.Enums.BookingStatus.CANCELLED || (b.Status == Domain.Enums.BookingStatus.PENDING && b.StartTime <= now), ct);
+        var nextUp = await own.Where(b => (b.Status == Domain.Enums.BookingStatus.CONFIRMED || b.Status == Domain.Enums.BookingStatus.PENDING) && b.StartTime >= now)
+            .OrderBy(b => b.StartTime).ThenBy(b => b.Id).Take(5).Select(ToListItem).ToListAsync(ct);
+
+        return Ok(new BookingSummaryDto(
+            byStatus.Sum(x => x.N), N(Domain.Enums.BookingStatus.CONFIRMED), N(Domain.Enums.BookingStatus.PENDING), N(Domain.Enums.BookingStatus.CANCELLED),
+            upcoming, pendingApproval, past, cancelledOrExpired, nextUp));
     }
 
     /// <summary>Detalhe público da consulta (página de confirmação/gerenciamento).</summary>

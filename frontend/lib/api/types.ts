@@ -121,6 +121,27 @@ export interface TeamMemberDto {
  */
 export type { TeamBillingDto, SubscriptionStatus, PlanUsageDto, TrialStateDto } from "@/lib/api/billing-types"
 
+/** Página de resultados da API (`GET /bookings`, `GET /patients`). `total` é o total do filtro, não só da página. */
+export interface PagedResult<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+/** `GET /bookings/summary` → contagens por aba/status e as próximas consultas (sem baixar a lista inteira). */
+export interface BookingSummaryDto {
+  total: number
+  confirmed: number
+  pending: number
+  cancelled: number
+  upcoming: number
+  pendingApproval: number
+  past: number
+  cancelledOrExpired: number
+  nextUp: BookingListItemDto[]
+}
+
 /** `GET /bookings` → item de lista do profissional. */
 export interface BookingListItemDto {
   uid: string

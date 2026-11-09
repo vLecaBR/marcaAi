@@ -123,7 +123,8 @@ public class BookingTests(ApiFixture api)
         var minhas = await (await a.GetAsync("/api/v1/bookings")).Content.ReadFromJsonAsync<JsonElement>();
         var alheias = await (await outro.GetAsync("/api/v1/bookings")).Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.True(minhas.GetArrayLength() >= 1);
-        Assert.Equal(0, alheias.GetArrayLength());
+        Assert.True(minhas.GetProperty("items").GetArrayLength() >= 1);
+        Assert.Equal(0, alheias.GetProperty("items").GetArrayLength());
+        Assert.Equal(0, alheias.GetProperty("total").GetInt32());
     }
 }

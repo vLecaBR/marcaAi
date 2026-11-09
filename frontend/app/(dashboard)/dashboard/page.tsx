@@ -1,7 +1,7 @@
 import { requireOnboarded } from "@/lib/auth/guards"
 import { serverApiFetch } from "@/lib/api/http-client"
 import { endpoints } from "@/lib/api/endpoints"
-import type { BookingListItemDto } from "@/lib/api/types"
+import type { BookingSummaryDto } from "@/lib/api/types"
 import Link from "next/link"
 import type { Metadata } from "next"
 import { Card } from "@/components/ui/card"
@@ -28,12 +28,9 @@ export default async function DashboardPage() {
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite"
   const user = await requireOnboarded()
 
-  // Fonte única: API .NET (`GET /bookings`). Stats e próximas consultas derivam desta lista.
-  const list = await serverApiFetch<BookingListItemDto[]>(endpoints.bookings.root).catch(
-    () => [] as BookingListItemDto[],
-  )
-  const now = new Date()
-  const all = (list ?? []).map((b) => ({
+  // Fonte única: API .NET (`GET /bookings/summary`) — contagens e próximas consultas calculadas no servidor.
+  const summary = await serverApiFetch<BookingSummaryDto>(endpoints.bookings.summary).catch(() => null)
+  const upcomingBookings = (summary?.nextUp ?? []).map((b) => ({
     uid: b.uid,
     guestName: b.guestName,
     status: b.status,
@@ -41,15 +38,10 @@ export default async function DashboardPage() {
     eventType: { title: b.eventType?.title ?? "Consulta", color: b.eventType?.color ?? "TEAL" },
   }))
 
-  const totalBookings = all.length
-  const confirmedCount = all.filter((b) => b.status === "CONFIRMED").length
-  const pendingCount = all.filter((b) => b.status === "PENDING").length
-  const cancelledCount = all.filter((b) => b.status === "CANCELLED").length
-
-  const upcomingBookings = all
-    .filter((b) => (b.status === "CONFIRMED" || b.status === "PENDING") && b.startTime >= now)
-    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
-    .slice(0, 5)
+  const totalBookings = summary?.total ?? 0
+  const confirmedCount = summary?.confirmed ?? 0
+  const pendingCount = summary?.pending ?? 0
+  const cancelledCount = summary?.cancelled ?? 0
 
   const todayCount = upcomingBookings.filter((b) => isToday(b.startTime)).length
 

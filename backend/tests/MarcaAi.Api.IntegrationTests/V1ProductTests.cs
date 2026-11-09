@@ -305,13 +305,13 @@ public class V1ProductTests(ApiFixture api)
         await AgendaAsync(owner, evt, slots[2], "joao@example.test");
 
         var todos = await (await pro.GetAsync("/api/v1/patients")).Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(2, todos.GetArrayLength());
-        var maria = todos.EnumerateArray().First(p => p.GetProperty("email").GetString() == "maria@example.test");
+        Assert.Equal(2, todos.GetProperty("total").GetInt32());
+        var maria = todos.GetProperty("items").EnumerateArray().First(p => p.GetProperty("email").GetString() == "maria@example.test");
         Assert.Equal(2, maria.GetProperty("totalBookings").GetInt32());
         Assert.NotNull(maria.GetProperty("nextBookingAt").GetString());
 
         var busca = await (await pro.GetAsync("/api/v1/patients?q=joao")).Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(1, busca.GetArrayLength());
+        Assert.Equal(1, busca.GetProperty("total").GetInt32());
 
         var detalhe = await pro.GetAsync("/api/v1/patients/detail?email=maria@example.test");
         Assert.Equal(HttpStatusCode.OK, detalhe.StatusCode);
@@ -319,7 +319,7 @@ public class V1ProductTests(ApiFixture api)
 
         // O outro profissional não enxerga esses pacientes (nem por detalhe).
         var doOutro = await (await outroPro.GetAsync("/api/v1/patients")).Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(0, doOutro.GetArrayLength());
+        Assert.Equal(0, doOutro.GetProperty("total").GetInt32());
         Assert.Equal(HttpStatusCode.NotFound, (await outroPro.GetAsync("/api/v1/patients/detail?email=maria@example.test")).StatusCode);
 
         // Anônimo não acessa.

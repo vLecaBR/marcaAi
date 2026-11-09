@@ -181,7 +181,7 @@ test.describe("Jornada completa", () => {
     // 4) A consulta aparece para o profissional.
     const lista = await page.request.get("/api/bff/bookings")
     expect(lista.ok()).toBeTruthy()
-    const consultas = (await lista.json()) as { guestName: string; uid: string; status: string }[]
+    const consultas = ((await lista.json()) as { items: { guestName: string; uid: string; status: string }[] }).items
     const minha = consultas.find((c) => c.guestName === "Paciente E2E")
     expect(minha).toBeTruthy()
 
@@ -283,7 +283,7 @@ test.describe("Jornada paga, remarcação e pacientes (pagamento simulado)", () 
     // O profissional enxerga o paciente (lista e busca).
     const lista = await page.request.get("/api/bff/patients?q=Pago")
     expect(lista.ok()).toBeTruthy()
-    const pacientes = (await lista.json()) as { name: string; totalBookings: number; totalPaidCents: number }[]
+    const pacientes = ((await lista.json()) as { items: { name: string; totalBookings: number; totalPaidCents: number }[] }).items
     expect(pacientes.some((p) => p.name === "Paciente Pago E2E" && p.totalPaidCents === 15000)).toBeTruthy()
     await vai(page, "/dashboard/patients")
     await expect(page.getByText("Paciente Pago E2E")).toBeVisible({ timeout: 30_000 })

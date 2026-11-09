@@ -6,6 +6,8 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { requireOnboarded } from "@/lib/auth/guards"
 import { serverApiFetch } from "@/lib/api/http-client"
 import { endpoints } from "@/lib/api/endpoints"
+import type { PagedResult } from "@/lib/api/types"
+import { ListPager } from "@/components/dashboard/list-pager"
 
 export const metadata: Metadata = { title: "Pacientes" }
 
@@ -27,10 +29,13 @@ const day = (iso: string | null) => (iso ? new Intl.DateTimeFormat("pt-BR", { da
  * Pacientes do profissional — derivados das consultas (agrupados por e-mail). Contato, histórico e total pago.
  * Não há prontuário nem anotações clínicas: este produto organiza a agenda e o recebimento.
  */
-export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
   await requireOnboarded()
-  const { q } = await searchParams
-  const list = await serverApiFetch<PatientSummary[]>(endpoints.patients, { query: q ? { q } : undefined }).catch(() => [] as PatientSummary[])
+  const { q, page } = await searchParams
+  const pageNumber = Math.max(1, Number.parseInt(page ?? "1", 10) || 1)
+  const result = await serverApiFetch<PagedResult<PatientSummary>>(endpoints.patients, { query: { ...(q ? { q } : {}), page: pageNumber } })
+    .catch(() => ({ items: [], total: 0, page: 1, pageSize: 20 }) as PagedResult<PatientSummary>)
+  const list = result.items
 
   return (
     <div className="space-y-6">
@@ -86,6 +91,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
           </div>
         </Card>
       )}
+      <ListPager basePath="/dashboard/patients" params={q ? { q } : {}} page={result.page} pageSize={result.pageSize} total={result.total} noun="pacientes" />
     </div>
   )
 }

@@ -8,11 +8,12 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { ListPager } from "@/components/dashboard/list-pager"
 import { requireOnboarded } from "@/lib/auth/guards"
 import { serverApiFetch } from "@/lib/api/http-client"
 import { endpoints } from "@/lib/api/endpoints"
-import type { BookingListItemDto } from "@/lib/api/types"
+import type { BookingSummaryDto, PagedResult, BookingListItemDto } from "@/lib/api/types"
 
 export const metadata: Metadata = { title: "Agendamentos" }
 
@@ -35,19 +36,42 @@ type Row = {
   eventType: { title: string; color: string; duration: number }
 }
 
+type Scope = "upcoming" | "pending" | "past" | "cancelled"
+const SCOPES: { id: Scope; label: string }[] = [
+  { id: "upcoming", label: "Próximos" },
+  { id: "pending", label: "Pendentes" },
+  { id: "past", label: "Passados" },
+  { id: "cancelled", label: "Cancelados" },
+]
+
+const EMPTY: Record<Scope, { icon: typeof Calendar; title: string; description: string }> = {
+  upcoming: { icon: CalendarClock, title: "Nenhuma consulta futura por aqui", description: "Quando um paciente marcar um horário, a consulta aparece nesta lista. Compartilhe seu link publicando os tipos de consulta que você atende." },
+  pending: { icon: CalendarClock, title: "Nada aguardando aprovação", description: "As consultas que precisam da sua confirmação aparecem aqui. Por enquanto, está tudo em dia." },
+  past: { icon: CalendarCheck2, title: "Ainda sem consultas realizadas", description: "Seu histórico de atendimentos concluídos vai aparecer aqui conforme as consultas acontecem." },
+  cancelled: { icon: CalendarX2, title: "Nenhuma consulta cancelada", description: "Consultas canceladas ou expiradas sem confirmação ficam registradas aqui." },
+}
+
 /**
- * Agendamentos do profissional — via API .NET (`GET /bookings`).
- * Normaliza `startTime` (ISO string → Date) para a formatação com date-fns.
+ * Agendamentos do profissional — via API .NET. A aba, a busca e a página são resolvidas NO SERVIDOR
+ * (`GET /bookings?scope=&q=&page=`), então a tela continua rápida com milhares de consultas.
  */
-export default async function BookingsPage() {
+export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ scope?: string; page?: string; q?: string }> }) {
   await requireOnboarded()
+  const sp = await searchParams
+  const scope: Scope = SCOPES.some((s) => s.id === sp.scope) ? (sp.scope as Scope) : "upcoming"
+  const q = (sp.q ?? "").trim()
+  const pageNumber = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1)
 
-  const list = await serverApiFetch<BookingListItemDto[]>(endpoints.bookings.root).catch(
-    () => [] as BookingListItemDto[],
-  )
+  const [result, summary] = await Promise.all([
+    serverApiFetch<PagedResult<BookingListItemDto>>(endpoints.bookings.root, { query: { scope, page: pageNumber, ...(q ? { q } : {}) } })
+      .catch(() => ({ items: [], total: 0, page: 1, pageSize: 20 }) as PagedResult<BookingListItemDto>),
+    serverApiFetch<BookingSummaryDto>(endpoints.bookings.summary).catch(() => null),
+  ])
+  const counts: Record<Scope, number> = {
+    upcoming: summary?.upcoming ?? 0, pending: summary?.pendingApproval ?? 0, past: summary?.past ?? 0, cancelled: summary?.cancelledOrExpired ?? 0,
+  }
 
-  const now = new Date()
-  const bookings: Row[] = (list ?? []).map((b) => ({
+  const bookings: Row[] = result.items.map((b) => ({
     uid: b.uid,
     guestName: b.guestName,
     guestEmail: b.guestEmail,
@@ -60,19 +84,10 @@ export default async function BookingsPage() {
     },
   }))
 
-  const pending = bookings.filter((b) => b.status === "PENDING" && b.startTime > now)
-  const upcoming = bookings
-    .filter((b) => b.status === "CONFIRMED" && b.startTime > now)
-    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
-  const past = bookings.filter((b) => b.status === "CONFIRMED" && b.startTime <= now)
-  const canceled = bookings.filter(
-    (b) => b.status === "CANCELLED" || (b.status === "PENDING" && b.startTime <= now),
-  )
-
   const getInitials = (name: string) =>
     name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
 
-  const renderRow = (b: Row, type: "upcoming" | "pending" | "past" | "canceled") => {
+  const renderRow = (b: Row, type: Scope) => {
     const isCanceled = b.status === "CANCELLED"
     const isPending = b.status === "PENDING"
 
@@ -132,6 +147,9 @@ export default async function BookingsPage() {
     )
   }
 
+  const empty = EMPTY[scope]
+  const tabHref = (id: Scope) => `/dashboard/bookings?scope=${id}${q ? `&q=${encodeURIComponent(q)}` : ""}`
+
   return (
     <div>
       <div className="flex items-end justify-between mb-6">
@@ -141,82 +159,47 @@ export default async function BookingsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="upcoming" className="w-full">
-        <TabsList className="rounded-xl w-full sm:w-auto overflow-x-auto flex sm:inline-flex no-scrollbar justify-start">
-          <TabsTrigger value="upcoming" className="rounded-lg shrink-0">Próximos</TabsTrigger>
-          <TabsTrigger value="pending" className="rounded-lg shrink-0">
-            Pendentes
-            {pending.length > 0 && (
-              <span className="ml-1.5 flex h-2 w-2 rounded-full bg-warning animate-pulse" />
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="past" className="rounded-lg shrink-0">Passados</TabsTrigger>
-          <TabsTrigger value="canceled" className="rounded-lg shrink-0">Cancelados</TabsTrigger>
-        </TabsList>
+      <nav aria-label="Filtrar consultas" className="flex gap-1 rounded-xl bg-muted p-1 overflow-x-auto no-scrollbar w-full sm:w-fit">
+        {SCOPES.map((t) => (
+          <Link
+            key={t.id}
+            href={tabHref(t.id)}
+            aria-current={t.id === scope ? "page" : undefined}
+            className={`shrink-0 rounded-lg px-3 py-1.5 text-sm transition ${t.id === scope ? "bg-background font-medium shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {t.label}
+            {counts[t.id] > 0 && <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">{counts[t.id]}</span>}
+            {t.id === "pending" && counts.pending > 0 && <span className="ml-1.5 inline-flex h-2 w-2 rounded-full bg-warning animate-pulse align-middle" />}
+          </Link>
+        ))}
+      </nav>
 
-        <TabsContent value="upcoming" className="mt-5 outline-none">
-          <Card className="rounded-2xl border-border/60 divide-y divide-border/60 shadow-sm overflow-hidden">
-            {upcoming.length === 0 ? (
-              <EmptyState
-                icon={CalendarClock}
-                title="Nenhuma consulta futura por aqui"
-                description="Quando um paciente marcar um horário, a consulta aparece nesta lista. Compartilhe seu link publicando os tipos de consulta que você atende."
-                action={
-                  <Button asChild className="rounded-xl">
-                    <Link href="/dashboard/event-types">
-                      <Plus size={16} /> Criar tipo de consulta
-                    </Link>
-                  </Button>
-                }
-              />
-            ) : (
-              upcoming.map((b) => renderRow(b, "upcoming"))
-            )}
-          </Card>
-        </TabsContent>
+      <form method="get" action="/dashboard/bookings" role="search" className="mt-4 flex gap-2">
+        <input type="hidden" name="scope" value={scope} />
+        <Input name="q" defaultValue={q} placeholder="Buscar por nome ou e-mail do paciente" aria-label="Buscar consulta por paciente" className="max-w-sm rounded-xl" />
+        <Button type="submit" variant="outline" className="rounded-xl">Buscar</Button>
+        {q && <Button asChild variant="ghost" className="rounded-xl"><Link href={tabHref(scope).replace(/&q=[^&]*/, "")}>Limpar</Link></Button>}
+      </form>
 
-        <TabsContent value="pending" className="mt-5 outline-none">
-          <Card className="rounded-2xl border-border/60 divide-y divide-border/60 shadow-sm overflow-hidden">
-            {pending.length === 0 ? (
-              <EmptyState
-                icon={CalendarClock}
-                title="Nada aguardando aprovação"
-                description="As consultas que precisam da sua confirmação aparecem aqui. Por enquanto, está tudo em dia."
-              />
-            ) : (
-              pending.map((b) => renderRow(b, "pending"))
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="past" className="mt-5 outline-none">
-          <Card className="rounded-2xl border-border/60 divide-y divide-border/60 shadow-sm overflow-hidden">
-            {past.length === 0 ? (
-              <EmptyState
-                icon={CalendarCheck2}
-                title="Ainda sem consultas realizadas"
-                description="Seu histórico de atendimentos concluídos vai aparecer aqui conforme as consultas acontecem."
-              />
-            ) : (
-              past.map((b) => renderRow(b, "past"))
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="canceled" className="mt-5 outline-none">
-          <Card className="rounded-2xl border-border/60 divide-y divide-border/60 shadow-sm overflow-hidden">
-            {canceled.length === 0 ? (
-              <EmptyState
-                icon={CalendarX2}
-                title="Nenhuma consulta cancelada"
-                description="Consultas canceladas ou expiradas sem confirmação ficam registradas aqui."
-              />
-            ) : (
-              canceled.map((b) => renderRow(b, "canceled"))
-            )}
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <div className="mt-5 space-y-3">
+        <Card className="rounded-2xl border-border/60 divide-y divide-border/60 shadow-sm overflow-hidden">
+          {bookings.length === 0 ? (
+            <EmptyState
+              icon={empty.icon}
+              title={q ? "Nenhuma consulta encontrada" : empty.title}
+              description={q ? "Tente buscar por outro nome ou e-mail." : empty.description}
+              action={scope === "upcoming" && !q ? (
+                <Button asChild className="rounded-xl">
+                  <Link href="/dashboard/event-types"><Plus size={16} /> Criar tipo de consulta</Link>
+                </Button>
+              ) : undefined}
+            />
+          ) : (
+            bookings.map((b) => renderRow(b, scope))
+          )}
+        </Card>
+        <ListPager basePath="/dashboard/bookings" params={{ scope, ...(q ? { q } : {}) }} page={result.page} pageSize={result.pageSize} total={result.total} noun="consultas" />
+      </div>
     </div>
   )
 }

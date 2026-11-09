@@ -62,6 +62,7 @@ export const endpoints = {
   },
   bookings: {
     root: "/bookings",
+    summary: "/bookings/summary",
     byUid: (uid: string) => `/bookings/${uid}`,
     cancel: (uid: string) => `/bookings/${uid}/cancel`,
     reschedule: (uid: string) => `/bookings/${uid}/reschedule`,
