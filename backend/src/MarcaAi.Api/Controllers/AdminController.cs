@@ -16,7 +16,7 @@ namespace MarcaAi.Api.Controllers;
 [ApiController]
 [Route("api/v1/admin")]
 [Authorize]
-public sealed class AdminController(ApplicationDbContext db, IConfiguration config) : ControllerBase
+public sealed class AdminController(ApplicationDbContext db, IConfiguration config, MarcaAi.Application.Common.Interfaces.IReadCache cache) : ControllerBase
 {
     private bool IsAdmin()
     {
@@ -74,6 +74,11 @@ public sealed class AdminController(ApplicationDbContext db, IConfiguration conf
         return Ok(new
         {
             generatedAt = now,
+            cache = cache.Stats().Select(kv => new
+            {
+                area = kv.Key, hits = kv.Value.Hits, misses = kv.Value.Misses,
+                hitRate = kv.Value.Hits + kv.Value.Misses == 0 ? 0 : Math.Round(100.0 * kv.Value.Hits / (kv.Value.Hits + kv.Value.Misses), 1),
+            }).ToList(),
             outbox = new
             {
                 pending = pendingOutbox.Count, retrying = pendingOutbox.Count(o => o.Attempts > 0), dead = deadCount,

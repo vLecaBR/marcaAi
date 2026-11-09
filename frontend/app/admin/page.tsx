@@ -14,6 +14,7 @@ interface Overview {
   users: { total: number; onboarded: number; newLast7Days: number; activated: number }
   bookings: { byStatus: { status: string; n: number }[]; createdLast7Days: number; upcomingConfirmed: number; pendingPayment: number }
   payments: { paidCount: number; grossCents: number; platformFeeCents: number }
+  cache: { area: string; hits: number; misses: number; hitRate: number }[]
   outbox: { pending: number; retrying: number; dead: number; oldestPendingMinutes: number; deadRecent: { id: string; kind: string; channel: string; attempts: number; lastError: string | null; createdAt: string }[] }
   errors: { last24h: number; recent: { source: string; message: string; path: string | null; status: number | null; createdAt: string }[] }
 }
@@ -59,6 +60,17 @@ export default async function AdminPage() {
         {tile("Notificações na fila", o.outbox.pending, o.outbox.pending ? `${o.outbox.retrying} em nova tentativa · mais antiga há ${o.outbox.oldestPendingMinutes} min` : "nada pendente")}
         {tile("Notificações mortas", o.outbox.dead, o.outbox.dead ? "esgotaram as tentativas — veja abaixo" : "nenhuma")}
       </section>
+
+      {o.cache.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-semibold">Cache de leitura</h2>
+          <div className="flex flex-wrap gap-2 text-sm">
+            {o.cache.map((c) => (
+              <span key={c.area} className="rounded-full bg-muted px-3 py-1">{c.area}: <b>{c.hitRate}%</b> de acerto ({c.hits} acertos · {c.misses} erros)</span>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 text-lg font-semibold">Consultas por status</h2>

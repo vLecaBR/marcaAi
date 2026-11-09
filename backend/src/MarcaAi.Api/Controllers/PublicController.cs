@@ -10,7 +10,7 @@ namespace MarcaAi.Api.Controllers;
 /// <summary>Página pública do profissional (perfil + tipos de consulta ativos).</summary>
 [ApiController]
 [Route("api/v1/public")]
-public sealed class PublicController(IApplicationDbContext db) : ControllerBase
+public sealed class PublicController(IApplicationDbContext db, IReadCache cache) : ControllerBase
 {
     /// <summary>Página pública da clínica: dados da equipe + profissionais já cadastrados (sem e-mail).</summary>
     [AllowAnonymous]
@@ -39,7 +39,18 @@ public sealed class PublicController(IApplicationDbContext db) : ControllerBase
     [HttpGet("{username}")]
     public async Task<ActionResult<PublicProfileDto>> Profile(string username, CancellationToken ct)
     {
-        var user = await db.Users.AsNoTracking()
+        // 60 s de cache; qualquer gravação em usuário/tipo de consulta/pergunta o invalida na hora (ver CacheInvalidationInterceptor).
+        var user = await cache.GetOrCreateAsync("public-profile", IReadCache.ProfilesScope, username, TimeSpan.FromSeconds(60),
+            () => LoadProfileAsync(username, ct), shouldCache: p => p is not null);
+
+        return user is null
+            ? Problem(statusCode: StatusCodes.Status404NotFound, detail: "Profissional não encontrado.")
+            : Ok(user);
+    }
+
+    private async Task<PublicProfileDto?> LoadProfileAsync(string username, CancellationToken ct)
+    {
+        return await db.Users.AsNoTracking()
             .Where(u => u.Username == username)
             .Select(u => new PublicProfileDto(
                 u.Id,
@@ -62,9 +73,5 @@ public sealed class PublicController(IApplicationDbContext db) : ControllerBase
                             .ToList(), e.PayOnSite))
                     .ToList()))
             .FirstOrDefaultAsync(ct);
-
-        return user is null
-            ? Problem(statusCode: StatusCodes.Status404NotFound, detail: "Profissional não encontrado.")
-            : Ok(user);
     }
 }

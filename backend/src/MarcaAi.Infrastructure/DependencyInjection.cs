@@ -41,6 +41,11 @@ public static class DependencyInjection
         var translator = new PreserveCaseNameTranslator();
 
         services.AddSingleton<AuditableInterceptor>();
+        // Cache de leitura (perfil público, dias livres do mês) invalidado a cada gravação confirmada (I2).
+        services.AddSingleton<IReadCache, MarcaAi.Infrastructure.Caching.ReadCache>();
+        services.AddSingleton<MarcaAi.Infrastructure.Caching.CacheInvalidationTracker>();
+        services.AddSingleton<MarcaAi.Infrastructure.Caching.CacheInvalidationInterceptor>();
+        services.AddSingleton<MarcaAi.Infrastructure.Caching.CacheInvalidationTransactionInterceptor>();
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
@@ -61,7 +66,9 @@ public static class DependencyInjection
                 npg.MapEnum<Domain.Enums.PayoutAccountStatus>("PayoutAccountStatus", nameTranslator: translator);
                 npg.MapEnum<Domain.Enums.PayoutOwnerType>("PayoutOwnerType", nameTranslator: translator);
             });
-            options.AddInterceptors(sp.GetRequiredService<AuditableInterceptor>());
+            options.AddInterceptors(sp.GetRequiredService<AuditableInterceptor>(),
+                sp.GetRequiredService<MarcaAi.Infrastructure.Caching.CacheInvalidationInterceptor>(),
+                sp.GetRequiredService<MarcaAi.Infrastructure.Caching.CacheInvalidationTransactionInterceptor>());
         });
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
