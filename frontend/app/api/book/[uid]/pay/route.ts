@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rawApiFetch } from "@/lib/api/http-client"
 import { endpoints } from "@/lib/api/endpoints"
 import { isApiError } from "@/lib/api/problem-details"
+import { IDEMPOTENCY_HEADER, isValidIdempotencyKey } from "@/lib/idempotency"
 import type { PaymentIntentDto, PaymentProviderName } from "@/lib/api/booking-types"
 
 export const dynamic = "force-dynamic"
@@ -30,9 +31,11 @@ export async function POST(
   }
 
   try {
+    const key = req.headers.get(IDEMPOTENCY_HEADER)
     const result = await rawApiFetch<PaymentIntentDto>(endpoints.bookings.pay(uid), {
       method: "POST",
       body: { provider },
+      headers: isValidIdempotencyKey(key) ? { [IDEMPOTENCY_HEADER]: key } : undefined,
     })
     return NextResponse.json(result.data)
   } catch (err) {

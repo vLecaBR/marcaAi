@@ -22,6 +22,7 @@ public sealed class BookingsController(
     /// </summary>
     [AllowAnonymous]
     [EnableRateLimiting("booking-pay")]
+    [Idempotent(ttlMinutes: 30)] // Idempotency-Key: duplo clique/retry devolve a mesma intenção de pagamento
     [HttpPost("{uid}/pay")]
     public async Task<IActionResult> Pay(string uid, [FromBody] PayRequest body, CancellationToken ct)
     {
@@ -50,6 +51,7 @@ public sealed class BookingsController(
     /// <summary>Agenda uma consulta (fluxo público do paciente). Protegido contra double-booking.</summary>
     [AllowAnonymous]
     [EnableRateLimiting("booking-create")]
+    [Idempotent] // Idempotency-Key: duplo clique/retry devolve a mesma consulta, sem criar outra
     [HttpPost]
     public async Task<ActionResult<BookingConfirmationDto>> Create(
         [FromBody] CreateBookingRequest request, CancellationToken ct)

@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { IDEMPOTENCY_HEADER } from "@/lib/idempotency"
+import { useIdempotencyKey } from "@/lib/hooks/use-idempotency-key"
 import { formatInTimeZone } from "date-fns-tz"
 import { ptBR } from "date-fns/locale"
 import { format } from "date-fns"
@@ -55,6 +57,8 @@ export function BookingForm({
   onBack,
 }: BookingFormProps) {
   const router = useRouter()
+  // Uma chave por tentativa: duplo clique/retry reenvia a mesma; qualquer resposta HTTP troca a chave (ver lib/idempotency.ts).
+  const idemKey = useIdempotencyKey()
   const [result, setResult] = useState<BookingResult | null>(null)
 
   const {
@@ -77,7 +81,7 @@ export function BookingForm({
   async function onSubmit(data: BookingFormInput) {
     const res = await fetch("/api/book", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", [IDEMPOTENCY_HEADER]: idemKey.get() },
       body: JSON.stringify({
         eventTypeId:   eventType.id,
         ownerId:       owner.id,
@@ -93,6 +97,7 @@ export function BookingForm({
       }),
     })
 
+    idemKey.rotate() // houve resposta: a próxima tentativa (ex.: dado corrigido) é outra solicitação
     const json = await res.json()
 
     if (res.status === 409) {

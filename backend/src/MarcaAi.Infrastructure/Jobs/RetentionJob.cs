@@ -49,6 +49,8 @@ public sealed class RetentionJob(
             ((o.Status == OutboxStatus.SENT || o.Status == OutboxStatus.SKIPPED) && o.ProcessedAt < DateTime.UtcNow.AddDays(-7))
             || (o.Status == OutboxStatus.DEAD && o.ProcessedAt < DateTime.UtcNow.AddDays(-30))).ExecuteDeleteAsync(ct);
 
+        var idemGone = await db.IdempotencyKeys.Where(k => k.ExpiresAt < DateTime.UtcNow).ExecuteDeleteAsync(ct);
+
         var legacy = await db.Accounts
             .Where(a => (a.AccessToken != null && !a.AccessToken.StartsWith("enc:")) || (a.RefreshToken != null && !a.RefreshToken.StartsWith("enc:")))
             .ToListAsync(ct);
@@ -59,7 +61,7 @@ public sealed class RetentionJob(
         }
         if (legacy.Count > 0) await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("[Retention] tokens de login removidos={Tokens} eventos de webhook removidos={Events} erros antigos removidos={Errors} contas OAuth cifradas={Accounts} outbox removidas={Outbox}",
-            tokensGone, eventsGone, errorsGone, legacy.Count, outboxGone);
+        logger.LogInformation("[Retention] tokens de login removidos={Tokens} eventos de webhook removidos={Events} erros antigos removidos={Errors} contas OAuth cifradas={Accounts} outbox removidas={Outbox} chaves de idempotência removidas={Idem}",
+            tokensGone, eventsGone, errorsGone, legacy.Count, outboxGone, idemGone);
     }
 }

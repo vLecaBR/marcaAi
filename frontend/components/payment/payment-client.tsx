@@ -7,6 +7,8 @@
  */
 
 import { useState } from "react"
+import { IDEMPOTENCY_HEADER } from "@/lib/idempotency"
+import { useIdempotencyKey } from "@/lib/hooks/use-idempotency-key"
 import { useRouter } from "next/navigation"
 import { QrCode, CreditCard, Loader2, CheckCircle2, Clock, ArrowLeft } from "lucide-react"
 import { m } from "motion/react"
@@ -39,6 +41,8 @@ export function PaymentClient({
 }) {
   const router = useRouter()
   const [method, setMethod] = useState<PaymentProviderName | null>(null)
+  // Uma chave por tentativa de pagamento (duplo clique/retry reenvia a mesma; resposta HTTP troca a chave).
+  const payKey = useIdempotencyKey()
   const [intent, setIntent] = useState<PaymentIntentDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +60,7 @@ export function PaymentClient({
   }, [poll.phase, router, uid])
 
   async function choose(provider: PaymentProviderName) {
+    const sentKey = payKey.get()
     setMethod(provider)
     setLoading(true)
     setError(null)
@@ -63,10 +68,11 @@ export function PaymentClient({
     try {
       const res = await fetch(`/api/book/${uid}/pay`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [IDEMPOTENCY_HEADER]: sentKey },
         body: JSON.stringify({ provider }),
         credentials: "same-origin",
       })
+      payKey.rotate() // houve resposta: a próxima escolha é outra solicitação
       const data = await res.json()
       if (!res.ok) {
         setError(data.error ?? "Não foi possível iniciar o pagamento.")

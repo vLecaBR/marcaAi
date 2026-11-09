@@ -38,6 +38,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents => Set<ProcessedWebhookEvent>();
     public DbSet<ErrorEvent> ErrorEvents => Set<ErrorEvent>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<IdempotencyKey> IdempotencyKeys => Set<IdempotencyKey>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -277,6 +278,19 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.Property(x => x.Detail).HasMaxLength(1500);
             e.Property(x => x.Path).HasMaxLength(200);
             e.HasIndex(x => x.CreatedAt);
+        });
+
+        // ---- idempotency_keys (Idempotency-Key em POST /bookings e /pay; I2) ----
+        b.Entity<IdempotencyKey>(e =>
+        {
+            e.ToTable("idempotency_keys");
+            e.HasKey(x => new { x.Scope, x.Key });
+            e.Property(x => x.Scope).HasMaxLength(200);
+            e.Property(x => x.Key).HasMaxLength(64);
+            e.Property(x => x.RequestHash).HasMaxLength(64);
+            e.Property(x => x.State).HasMaxLength(12);
+            e.Property(x => x.ContentType).HasMaxLength(60);
+            e.HasIndex(x => x.ExpiresAt);
         });
 
         // ---- outbox_messages (notificações com entrega garantida; I2) ----

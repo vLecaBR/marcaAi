@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rawApiFetch } from "@/lib/api/http-client"
 import { endpoints } from "@/lib/api/endpoints"
 import { isApiError } from "@/lib/api/problem-details"
+import { IDEMPOTENCY_HEADER, isValidIdempotencyKey } from "@/lib/idempotency"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -51,9 +52,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    // Idempotency-Key do navegador (duplo clique / retry de rede): a API devolve a mesma consulta em vez de criar outra.
+    const key = req.headers.get(IDEMPOTENCY_HEADER)
     const result = await rawApiFetch<Record<string, unknown>>(endpoints.bookings.root, {
       method: "POST",
       body: payload,
+      headers: isValidIdempotencyKey(key) ? { [IDEMPOTENCY_HEADER]: key } : undefined,
     })
     return NextResponse.json({ status: "success", ...result.data }, { status: 201 })
   } catch (err) {
