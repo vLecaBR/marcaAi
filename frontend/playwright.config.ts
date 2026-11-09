@@ -47,7 +47,8 @@ export default defineConfig({
     {
       // E2E_DEV=1 usa `next dev` (HMR; lento e instável para E2E). O padrão é o BUILD DE PRODUÇÃO (`next build` + `next start`),
       // que é o que vai ao ar: sem recompilação por rota e sem Fast Refresh abortando navegações.
-      command: process.env.E2E_DEV ? "npm run dev -- --webpack" : "npm run build && npm run start",
+      // E2E_SKIP_BUILD=1 (scripts/verify.sh, que já fez o build) só sobe o servidor.
+      command: process.env.E2E_DEV ? "npm run dev -- --webpack" : process.env.E2E_SKIP_BUILD ? "npm run start" : "npm run build && npm run start",
       url: "http://localhost:3000",
       reuseExistingServer: !process.env.CI,
       timeout: 360 * 1000,

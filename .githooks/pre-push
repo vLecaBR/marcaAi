@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Hook versionado: roda a verificação rápida antes do push (tudo menos o E2E). Pular em emergência: SKIP_VERIFY=1 git push
+if [ "${SKIP_VERIFY:-0}" = "1" ]; then echo "pre-push: verificação PULADA (SKIP_VERIFY=1)."; exit 0; fi
+echo "pre-push: scripts/verify.sh --fast (SKIP_VERIFY=1 para pular)"
+exec bash "$(git rev-parse --show-toplevel)/scripts/verify.sh" --fast

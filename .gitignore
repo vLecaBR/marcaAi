@@ -61,3 +61,6 @@ backend/tests/.cov/
 .deploy-state
 
 **/TestResults/
+
+# Logs da verificação local (scripts/verify.sh)
+.verify/
